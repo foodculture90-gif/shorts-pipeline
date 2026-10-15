@@ -1,0 +1,44 @@
+name: Build Windows app
+
+# Builds Mission-Control-Setup.exe on a free Windows machine and puts it on the
+# repo's Releases page. Runs whenever the desktop/ folder changes, or by hand.
+on:
+  push:
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Bake in your panel address
+        env:
+          PANEL_URL: ${{ vars.PANEL_URL }}
+        run: |
+          printf '{ "url": "%s" }\n' "$PANEL_URL" > config.json
+          cat config.json
+      - run: npm install --no-audit --no-fund
+      - run: npx electron-builder --win --publish never
+      - name: Publish to Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete desktop-latest --yes --cleanup-tag || true
+          gh release create desktop-latest "dist/Mission-Control-Setup.exe" \
+            --title "Mission Control for Windows" \
+            --notes "Download **Mission-Control-Setup.exe** and run it. If Windows shows 'Windows protected your PC', click **More info → Run anyway** (the app isn't code-signed; signing costs money)."
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Mission-Control-Setup
+          path: desktop/dist/Mission-Control-Setup.exe
