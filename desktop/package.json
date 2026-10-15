@@ -1,0 +1,38 @@
+{
+  "name": "mission-control",
+  "productName": "Mission Control",
+  "version": "1.0.0",
+  "description": "Run your YouTube Shorts and projects from your desktop",
+  "main": "main.js",
+  "author": "Andre",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.missioncontrol.app",
+    "productName": "Mission Control",
+    "files": ["main.js", "preload.js", "setup.html", "offline.html", "config.json", "build/icon.png", "build/tray.png"],
+    "directories": { "output": "dist", "buildResources": "build" },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.ico",
+      "artifactName": "Mission-Control-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Mission Control",
+      "runAfterFinish": true
+    }
+  }
+}

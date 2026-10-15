@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Mission Control — setup</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self'">
+<style>
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:#fbf6f0;color:#1f1a17;display:grid;place-items:center;min-height:100vh}
+  .card{background:#fffdfa;border:1px solid #efe3d6;border-radius:22px;padding:30px;width:min(440px,90vw);box-shadow:0 8px 30px rgba(80,40,10,.08)}
+  img{width:56px;height:56px} h1{margin:12px 0 4px;font-size:24px} p{color:#6f6259;margin:0 0 18px;line-height:1.45}
+  input{width:100%;box-sizing:border-box;border:1px solid #efe3d6;background:#fbf6f0;border-radius:12px;padding:12px;font:inherit;outline:none}
+  input:focus{border-color:#f26b1d} button{margin-top:14px;width:100%;border:0;background:#f26b1d;color:#fff;font:600 15px inherit;padding:13px;border-radius:12px;cursor:pointer}
+  .err{color:#d64545;font-size:13px;margin-top:8px;min-height:18px}
+</style></head>
+<body><form class="card" id="f">
+  <img src="build/icon.png" alt="">
+  <h1>Welcome to Mission Control</h1>
+  <p>Paste the address of your control panel (the Vercel link from the setup guide).</p>
+  <input id="u" placeholder="https://mission-abc.vercel.app" autofocus>
+  <div class="err" id="e"></div>
+  <button>Open my panel</button>
+</form>
+<script>
+  const u = document.getElementById("u");
+  window.missionDesktop.getUrl().then(v => { if (v) u.value = v; });
+  document.getElementById("f").onsubmit = async ev => {
+    ev.preventDefault();
+    const r = await window.missionDesktop.setUrl(u.value);
+    if (!r.ok) document.getElementById("e").textContent = r.error;
+  };
+</script></body></html>

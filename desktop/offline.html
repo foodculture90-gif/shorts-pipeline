@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Mission Control — offline</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self'">
+<style>
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:#fbf6f0;color:#1f1a17;display:grid;place-items:center;min-height:100vh;text-align:center}
+  .card{background:#fffdfa;border:1px solid #efe3d6;border-radius:22px;padding:30px;width:min(420px,90vw)}
+  h1{font-size:22px;margin:10px 0 6px} p{color:#6f6259;margin:0 0 18px}
+  button{border:0;background:#f26b1d;color:#fff;font:600 15px inherit;padding:12px 22px;border-radius:12px;cursor:pointer}
+  .link{display:block;margin-top:14px;color:#6f6259;font-size:13px;background:none;padding:0}
+</style></head>
+<body><div class="card">
+  <img src="build/icon.png" width="52" height="52" alt="">
+  <h1>Can't reach your panel</h1>
+  <p>Check your internet connection. Retrying automatically…</p>
+  <button id="r">Try again</button>
+  <button class="link" id="c">Change panel address</button>
+</div>
+<script>
+  const url = new URLSearchParams(location.search).get("url");
+  const retry = () => window.missionDesktop.retry(url);
+  document.getElementById("r").onclick = retry;
+  document.getElementById("c").onclick = () => location.href = "setup.html";
+  window.addEventListener("online", retry);
+  setInterval(() => { if (navigator.onLine) retry(); }, 15000);
+</script></body></html>

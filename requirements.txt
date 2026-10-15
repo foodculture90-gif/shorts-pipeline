@@ -1,0 +1,8 @@
+requests>=2.31
+Pillow>=10.0
+numpy>=1.26
+opencv-python-headless>=4.9
+onnxruntime>=1.18
+edge-tts>=7.0
+google-api-python-client>=2.130
+google-auth>=2.30
