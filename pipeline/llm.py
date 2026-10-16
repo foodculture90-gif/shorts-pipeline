@@ -55,7 +55,7 @@ def available_models():
 def generate_json(system, prompt, temperature=1.0):
     key = os.environ["GEMINI_API_KEY"]
     last = None
-    for model in available_models()[:5]:
+    for model in available_models()[:8]:
         for attempt in range(3):
             try:
                 r = requests.post(
@@ -72,12 +72,16 @@ def generate_json(system, prompt, temperature=1.0):
                 if r.status_code == 404:          # model retired → try the next one
                     last = f"{model}: not available"
                     break
-                if r.status_code == 429:          # free-tier rate limit: wait, then retry
-                    last = f"{model}: rate limited"
-                    time.sleep(20 * (attempt + 1))
+                if r.status_code == 429:          # free-tier limit on this model
+                    last = f"{model}: rate limited ({r.text[:160]})"
+                    print(f"  {model}: free limit reached, trying another model")
+                    if "PerDay" in r.text or attempt >= 1:
+                        break                      # daily cap or still limited → next model
+                    time.sleep(12)
                     continue
                 if not r.ok:
                     last = f"{model}: {r.status_code} {r.text[:200]}"
+                    print(f"  {model}: error {r.status_code}, retrying")
                     time.sleep(5)
                     continue
                 parts = r.json()["candidates"][0]["content"]["parts"]
