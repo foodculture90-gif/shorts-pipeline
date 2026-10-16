@@ -188,7 +188,7 @@ def cmd_animate(payload, cmd):
                 eps.append(ep)
         except Exception as e:  # noqa: BLE001
             print("  skip", c["payload"], e)
-    work = WORK / f"anim-{cmd['id'][:8]}"
+    work = WORK / f"anim-{cmd['id']}"
     clips = {}
     try:
         if eps:
