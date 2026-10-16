@@ -82,8 +82,11 @@ def test(title_prefix, count="3"):
                 break
             shots.append({"image": db.signed_url(f"{ep['assets_path']}/s{i + 1}_{k + 1}.jpg"),
                           "prompt": video_prompt(st, sh), "name": f"s{i + 1}_{k + 1}", "seed": 7 + len(shots)})
-    job = {"shots": shots, "list_models": True}
+    job = dict(DEFAULTS, shots=shots)
     job.update(json.loads(os.environ.get("JOB_EXTRA", "") or "{}"))
+    if job.get("variants"):  # A/B test: every shot once per settings variant, e.g. [{"guidance": 2}, ...]
+        job["shots"] = [dict(s, **v, name=f"{s['name']}_v{j}") for j, v in enumerate(job.pop("variants"))
+                        for s in shots]
     print("testing on", ep["title"], "with", len(shots), "shots", {k: v for k, v in job.items() if k != "shots"})
     out = ROOT / "output" / "kaggle-test"
     logs, res, status = run(job, out)
@@ -96,7 +99,7 @@ def test(title_prefix, count="3"):
         print("uploaded", f"tests/{stamp}-{f.name}")
 
 
-DEFAULTS = {"guidance": 3.0, "steps": 30, "frames": 73, "end_strength": 0.0}  # g3 = lively motion
+DEFAULTS = {"guidance": 2.5, "steps": 30, "frames": 73, "end_strength": 0.3}  # lively but stays on model
 
 
 def animate_batch(episodes, workdir: Path, log=print):
@@ -136,7 +139,8 @@ ACTION_WORDS = {
 def video_prompt(story, shot):
     """Describes the motion for the image-to-video model."""
     act = shot.get("motion") or "The character " + ACTION_WORDS.get(shot.get("action", ""), "moves naturally")
-    return (f"{shot['prompt']} {act.rstrip('.')}, lively expressive cartoon acting, big clear movement, staying in the frame, "
+    return (f"{shot['prompt']} {act.rstrip('.')}, lively expressive cartoon acting, the characters stay in the centre "
+            f"of the frame the whole time, "
             f"keeping exactly the same look, expressive face, smooth cartoon animation, steady camera. "
             f"3D animated preschool TV cartoon, bright colours, high quality.")[:900]
 
