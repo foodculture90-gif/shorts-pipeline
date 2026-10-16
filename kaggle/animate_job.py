@@ -59,8 +59,9 @@ try:
 except Exception as e:  # noqa: BLE001
     log("list models failed", e)
 
-done = 0
+NAMES = []
 try:
+    import copy, gc, threading
     from diffusers import LTXConditionPipeline
     from diffusers.pipelines.ltx.pipeline_ltx_condition import LTXVideoCondition
     from diffusers.utils import export_to_video
@@ -73,45 +74,70 @@ try:
         log("could not load", MODEL, "->", str(e)[:300], "; using Lightricks/LTX-Video-0.9.5")
         MODEL, STEPS = "Lightricks/LTX-Video-0.9.5", max(STEPS, 30)
         pipe = LTXConditionPipeline.from_pretrained(MODEL, torch_dtype=dtype)
-    # T5 text encoder in full precision on the CPU (fp16 T5 overflows); everything else on GPU 0
-    pipe.text_encoder.to("cpu", torch.float32)
-    pipe.transformer.to("cuda:0")
-    pipe.vae.to("cuda:0")
-    pipe.vae.enable_tiling()
-    log("loaded; gpu mem GB", torch.cuda.memory_allocated() / 1e9)
 
-    # encode every prompt first, then free the big text encoder so the GPU path is clean
+    # 1) encode every prompt with the T5 text encoder in full precision on the CPU (fp16 T5 overflows),
+    #    then free it
+    GUIDE = float(JOB.get("guidance", 3.0))
+    CFG = GUIDE > 1.0          # guidance 1 = no negative pass = twice as fast
+    pipe.text_encoder.to("cpu", torch.float32)
     embeds = []
     for shot in JOB["shots"]:
         with torch.no_grad():
             pe, pm, ne, nm = pipe.encode_prompt(prompt=shot["prompt"], negative_prompt=NEG,
-                                                do_classifier_free_guidance=True, device="cpu",
+                                                do_classifier_free_guidance=CFG, device="cpu",
                                                 max_sequence_length=256)
-        embeds.append((pe.to("cuda:0", dtype), pm.to("cuda:0"), ne.to("cuda:0", dtype), nm.to("cuda:0")))
+        embeds.append((pe.to(dtype), pm, ne.to(dtype) if CFG else None, nm if CFG else None))
     log("prompts encoded")
-    import gc
     pipe.text_encoder = None
     gc.collect()
 
-    for i, shot in enumerate(JOB["shots"]):
-        t = time.time()
-        src = fetch(shot["image"], f"/tmp/in{i}.jpg")
-        img = prep(src)
-        pe, pm, ne, nm = embeds[i]
-        cond = LTXVideoCondition(image=img, frame_index=0)
-        g = torch.Generator("cuda:0").manual_seed(shot.get("seed", 1))
-        video = pipe(conditions=[cond], prompt_embeds=pe, prompt_attention_mask=pm,
-                     negative_prompt_embeds=ne, negative_prompt_attention_mask=nm,
-                     width=W, height=H, num_frames=FRAMES, num_inference_steps=STEPS,
-                     guidance_scale=JOB.get("guidance", 3.0), generator=g,
-                     decode_timestep=0.05, decode_noise_scale=0.025,
-                     output_type="pil").frames[0]
-        name = shot.get("name", f"clip{i}")
-        export_to_video(video, f"{OUT}/{name}.mp4", fps=JOB.get("fps", 24))
-        done += 1
-        log(f"clip {name}: {len(video)} frames in {time.time() - t:.0f}s")
+    # 2) one copy of the video model per GPU (Kaggle gives 2 x T4) -> twice as many clips per hour
+    ngpu = max(1, min(torch.cuda.device_count(), int(JOB.get("gpus", 2)), len(JOB["shots"])))
+    pipes = [pipe]
+    for k in range(1, ngpu):
+        pipes.append(LTXConditionPipeline(scheduler=copy.deepcopy(pipe.scheduler), vae=copy.deepcopy(pipe.vae),
+                                          text_encoder=None, tokenizer=pipe.tokenizer,
+                                          transformer=copy.deepcopy(pipe.transformer)))
+    for k, pp in enumerate(pipes):
+        pp.transformer.to(f"cuda:{k}")
+        pp.vae.to(f"cuda:{k}")
+        pp.vae.enable_tiling()
+    log("model on", ngpu, "GPU(s)")
+
+    END = float(JOB.get("end_strength", 0.0))  # >0: also pin the last frame to the picture (less drift/blur)
+
+    def work(k):
+        pp, dev = pipes[k], f"cuda:{k}"
+        for i in range(k, len(JOB["shots"]), ngpu):
+            shot = JOB["shots"][i]
+            name = shot.get("name", f"clip{i}")
+            t = time.time()
+            try:
+                img = prep(fetch(shot["image"], f"/tmp/in{i}.jpg"))
+                pe, pm, ne, nm = embeds[i]
+                conds = [LTXVideoCondition(image=img, frame_index=0)]
+                if END > 0:
+                    conds.append(LTXVideoCondition(image=img, frame_index=FRAMES - 1, strength=END))
+                g = torch.Generator(dev).manual_seed(shot.get("seed", 1))
+                extra = dict(negative_prompt_embeds=ne.to(dev), negative_prompt_attention_mask=nm.to(dev)) if CFG else {}
+                with torch.cuda.device(k):
+                    video = pp(conditions=conds, prompt_embeds=pe.to(dev), prompt_attention_mask=pm.to(dev), **extra,
+                               width=W, height=H, num_frames=FRAMES, num_inference_steps=STEPS,
+                               guidance_scale=GUIDE, generator=g, decode_timestep=0.05, decode_noise_scale=0.025,
+                               output_type="pil").frames[0]
+                export_to_video(video, f"{OUT}/{name}.mp4", fps=JOB.get("fps", 24))
+                NAMES.append(name)
+                log(f"gpu{k} clip {name}: {len(video)} frames in {time.time() - t:.0f}s")
+            except Exception:  # noqa: BLE001  (one bad shot must not stop the rest)
+                log(f"gpu{k} clip {name} FAILED\n" + traceback.format_exc()[-1500:])
+
+    threads = [threading.Thread(target=work, args=(k,)) for k in range(ngpu)]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join()
 except Exception:
     log("FAILED\n" + traceback.format_exc())
 
-json.dump({"done": done, "secs": time.time() - T0}, open(f"{OUT}/result.json", "w"))
-log("finished", done, "clips")
+json.dump({"done": len(NAMES), "secs": time.time() - T0, "names": NAMES}, open(f"{OUT}/result.json", "w"))
+log("finished", len(NAMES), "clips")
