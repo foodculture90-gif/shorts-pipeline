@@ -1,143 +1,170 @@
-"""Edits the final Short: motion shots + narration + word-timed captions + title + music.
-Works at any size (small preview for the app, full 1080x1920 for YouTube)."""
+"""Edits the final Short in one pass: living motion shots, smooth transitions, floating particles,
+bouncy karaoke captions, title card, narration, made-from-scratch music and sound effects.
+Works at any size (small preview for the app, full 1080x1920 for YouTube). Same seed = same video."""
 import random
 import subprocess
-import textwrap
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+import numpy as np
+from PIL import Image
 
-from . import config, motion
+from . import config, fx, motion, music
 from .voice import duration
 
-FONT_PATHS = [
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
-    "/Library/Fonts/Arial Bold.ttf",
-    "C:/Windows/Fonts/arialbd.ttf",
-]
-
-
-def _font(size):
-    for p in FONT_PATHS:
-        if Path(p).exists():
-            return ImageFont.truetype(p, size)
-    return ImageFont.load_default(size)
-
-
-def _text_png(text, out: Path, size, y_center, frame, wrap=14, fill="white"):
-    W, H = frame
-    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    f = _font(size)
-    lines = textwrap.wrap(text, wrap)
-    lh = int(size * 1.18)
-    y = y_center - lh * len(lines) // 2
-    for line in lines:
-        w = d.textlength(line, font=f)
-        d.text(((W - w) / 2, y), line, font=f, fill=fill,
-               stroke_width=max(3, size // 9), stroke_fill=(25, 20, 45))
-        y += lh
-    img.save(out)
-
-
-def _caption_groups(words, max_words=3):
-    groups, cur = [], []
-    for w in words:
-        cur.append(w)
-        if len(cur) >= max_words or str(w[0])[-1:] in ".,!?":
-            groups.append(cur)
-            cur = []
-    if cur:
-        groups.append(cur)
-    return [(" ".join(x[0] for x in g), g[0][1], g[-1][2]) for g in groups]
+SR = music.SR
+FADE = 0.4          # cross-fade between shots (seconds)
 
 
 def scene_lengths(voice_secs):
-    return [s + (0.9 if i == len(voice_secs) - 1 else 0.35) for i, s in enumerate(voice_secs)]
+    return [s + (1.0 if i == len(voice_secs) - 1 else 0.4) for i, s in enumerate(voice_secs)]
 
 
-def _scene(i, clip, audio, words, seconds, title, workdir: Path, frame):
-    W, H = frame
-    s = W / 1080
-    inputs = ["-i", str(clip), "-i", str(audio)]
-    overlays = []
-    groups = _caption_groups([tuple(w) for w in words])
-    for c, (text, start, end) in enumerate(groups):
-        png = workdir / f"cap{i}_{c}.png"
-        _text_png(text.upper(), png, int(94 * s), int(H * 0.80), frame,
-                  fill=(255, 224, 90) if c % 2 else "white")
-        nxt = groups[c + 1][1] if c + 1 < len(groups) else seconds
-        overlays.append((png, start, max(end, nxt)))
-    if title:
-        png = workdir / "title.png"
-        _text_png(title, png, int(80 * s), int(H * 0.13), frame, wrap=20)
-        overlays.append((png, 0, min(2.6, seconds)))
-    for png, *_ in overlays:
-        inputs += ["-i", str(png)]
-    graph = (f"[0:v]setpts=PTS-STARTPTS,vignette=angle=PI/6,"
-             f"fade=t=in:st=0:d=0.2,fade=t=out:st={seconds - 0.2:.2f}:d=0.2[v0];")
-    last = "v0"
-    for k, (_, start, end) in enumerate(overlays):
-        graph += f"[{last}][{k + 2}:v]overlay=0:0:enable='between(t,{start:.2f},{end:.2f})'[v{k + 1}];"
-        last = f"v{k + 1}"
-    graph += f"[1:a]aresample=44100,apad=whole_dur={seconds:.2f}[a]"
-    out = workdir / f"part{i}.mp4"
-    preview = W < 1080
-    subprocess.run(
-        ["ffmpeg", "-y", "-loglevel", "error", *inputs, "-filter_complex", graph,
-         "-map", f"[{last}]", "-map", "[a]", "-t", f"{seconds:.2f}", "-r", str(config.FPS),
-         "-c:v", "libx264", "-preset", "medium", "-crf", "27" if preview else "19", "-pix_fmt", "yuv420p",
-         "-c:a", "aac", "-b:a", "96k" if preview else "192k", "-ac", "2", str(out)],
-        check=True)
+def _decode(path: Path):
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-f", "f32le", "-ac", "1", "-ar", str(SR), "-"],
+                         capture_output=True, check=True).stdout
+    return np.frombuffer(raw, np.float32)
+
+
+def _timeline(story, lengths):
+    """Shot segments on the global timeline: [(scene, shot, start, end)], overlapping by FADE."""
+    segs, t = [], 0.0
+    for i, (scene, secs) in enumerate(zip(story["scenes"], lengths)):
+        n = len(scene["shots"])
+        cuts = [t + secs * k / n for k in range(n + 1)]
+        if n == 2:
+            cuts[1] = t + secs * 0.55
+        for k in range(n):
+            a = cuts[k] - (FADE / 2 if (i or k) else 0)
+            b = cuts[k + 1] + FADE / 2
+            segs.append((i, k, a, b))
+        t += secs
+    return segs, t
+
+
+def _audio(story, voices, lengths, total, music_volume, seed, out: Path):
+    n = int(total * SR) + 1
+    voice = np.zeros(n, np.float32)
+    t = 0.0
+    starts = []
+    for v, secs in zip(voices, lengths):
+        a = _decode(v)
+        i = int((t + 0.12) * SR)
+        voice[i:i + len(a)] += a[: max(0, n - i)]
+        starts.append(t)
+        t += secs
+    mix = np.stack([voice, voice], 1) * 1.0
+    if music_volume > 0:
+        tracks = sorted(config.MUSIC_DIR.glob("*.mp3")) if config.MUSIC_DIR.exists() else []
+        if tracks:
+            m = _decode(random.Random(seed).choice(tracks))
+            m = np.resize(m, n)
+            m = np.stack([m, m], 1)
+        else:
+            m = music.make_music(total, seed)
+            m = np.pad(m, ((0, max(0, n - len(m))), (0, 0)))[:n]
+        # duck the music while someone is speaking
+        env = np.abs(voice)
+        k = int(0.25 * SR)
+        env = np.convolve(env, np.ones(k) / k, mode="same")
+        speaking = np.clip(env / (env.max() * 0.15 + 1e-6), 0, 1)
+        gain = music_volume * 2.2 * (1 - 0.45 * speaking)
+        mix += m * gain[:, None]
+        # whoosh on every scene change, sparkle on the title
+        for j, s0 in enumerate(starts[1:], 1):
+            w = music.whoosh(0.5, seed + j)
+            i = max(0, int((s0 - 0.25) * SR))
+            seg = w[: n - i]
+            mix[i:i + len(seg)] += (seg * 0.10)[:, None]
+        sp = music.sparkle(seed)
+        mix[: len(sp)] += (sp[: n] * 0.10)[:, None]
+    peak = np.abs(mix).max() or 1
+    if peak > 0.97:
+        mix *= 0.97 / peak
+    out.write_bytes(mix.astype(np.float32).tobytes())
     return out
 
 
 def render(assets: Path, story, workdir: Path, frame, music_volume=0.12, use_depth_model=True) -> Path:
     """assets: folder with s{n}_{k}.jpg pictures + voice{n}.mp3. Returns path of finished mp4."""
     workdir.mkdir(parents=True, exist_ok=True)
+    W, H = frame
+    fps = config.FPS
+    seed = int(story.get("seed", 1))
     voices = [assets / f"voice{i + 1}.mp3" for i in range(len(story["scenes"]))]
     lengths = scene_lengths([duration(v) for v in voices])
-    seed = story.get("seed", 1)
-    parts = []
-    for i, (scene, secs) in enumerate(zip(story["scenes"], lengths)):
-        pics = [assets / f"s{i + 1}_{k + 1}.jpg" for k in range(len(scene["shots"]))]
-        clip = motion.render_scene(pics, secs, workdir / f"motion{i}.mp4", frame, config.FPS,
-                                   seed=seed + i, use_depth_model=use_depth_model,
-                                   crf=24 if frame[0] < 1080 else 17)
-        parts.append(_scene(i, clip, voices[i], scene.get("words") or [], secs,
-                            story["title"] if i == 0 else None, workdir, frame))
-    listing = workdir / "parts.txt"
-    listing.write_text("".join(f"file '{p.name}'\n" for p in parts))
-    joined = workdir / "joined.mp4"
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(listing),
-                    "-c", "copy", str(joined)], check=True, cwd=workdir)
-    final = workdir / ("preview.mp4" if frame[0] < 1080 else "video.mp4")
-    tracks = sorted(config.MUSIC_DIR.glob("*.mp3")) if config.MUSIC_DIR.exists() else []
-    if tracks and music_volume > 0:
-        music = random.Random(seed).choice(tracks)
-        total = duration(joined)
-        subprocess.run(
-            ["ffmpeg", "-y", "-loglevel", "error", "-i", str(joined), "-stream_loop", "-1", "-i", str(music),
-             "-filter_complex",
-             f"[1:a]volume={music_volume},afade=t=in:d=0.8,afade=t=out:st={max(0, total - 1.5):.2f}:d=1.5[m];"
-             "[0:a][m]amix=inputs=2:duration=first:normalize=0[a]",
-             "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
-             "-t", f"{total:.2f}", "-movflags", "+faststart", str(final)], check=True)
-    else:
-        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(joined), "-c", "copy",
-                        "-movflags", "+faststart", str(final)], check=True)
-    return final
+    segs, total = _timeline(story, lengths)
+
+    # shots
+    rng = random.Random(seed)
+    shots = {}
+    for i, scene in enumerate(story["scenes"]):
+        moves = motion.pick_moves(rng)
+        for k in range(len(scene["shots"])):
+            shots[(i, k)] = motion.Shot(assets / f"s{i + 1}_{k + 1}.jpg", frame, moves[k % len(moves)], rng,
+                                        use_depth_model, close=(k % 2 == 1))
+
+    # captions on the global timeline (voice starts 0.12 s into each scene)
+    words, t0 = [], 0.0
+    for scene, secs in zip(story["scenes"], lengths):
+        for w in scene.get("words") or []:
+            words.append((w[0], t0 + 0.12 + float(w[1]), t0 + 0.12 + float(w[2])))
+        t0 += secs
+    caps = fx.Captions(words, frame)
+    title = fx.Title(story["title"], frame)
+    parts = fx.Particles(fx.particle_kind(story), frame, seed)
+
+    audio = _audio(story, voices, lengths, total, music_volume, seed, workdir / "mix.f32")
+    out = workdir / ("preview.mp4" if W < 1080 else "video.mp4")
+    preview = W < 1080
+    proc = subprocess.Popen(
+        ["ffmpeg", "-y", "-loglevel", "error",
+         "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{W}x{H}", "-r", str(fps), "-i", "-",
+         "-f", "f32le", "-ar", str(SR), "-ac", "2", "-i", str(audio),
+         "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-preset", "medium",
+         "-crf", "28" if preview else "18", "-pix_fmt", "yuv420p",
+         "-af", "loudnorm=I=-14:TP=-1.5:LRA=11", "-ar", "44100",
+         "-c:a", "aac", "-b:a", "96k" if preview else "192k", "-shortest", "-movflags", "+faststart", str(out)],
+        stdin=subprocess.PIPE)
+    try:
+        nframes = int(round(total * fps))
+        for f in range(nframes):
+            t = f / fps
+            active = [s for s in segs if s[2] <= t < s[3]] or [segs[-1]]
+            imgs = []
+            for (i, k, a, b) in active[:2]:
+                img = shots[(i, k)].frame((t - a) / (b - a), t)
+                w8 = 1.0
+                if len(active) > 1:
+                    if (i, k) == active[1][:2]:
+                        w8 = motion.ease((t - a) / FADE)
+                imgs.append((img, w8))
+            if len(imgs) == 2:
+                w8 = imgs[1][1]
+                img = (imgs[0][0].astype(np.float32) * (1 - w8) + imgs[1][0].astype(np.float32) * w8).astype(np.uint8)
+            else:
+                img = imgs[0][0]
+            img = np.ascontiguousarray(img)
+            parts.draw(img, t)
+            title.draw(img, t)
+            caps.draw(img, t)
+            if t > total - 0.5:  # soft fade to black at the very end
+                img = (img.astype(np.float32) * max(0.0, (total - t) / 0.5)).astype(np.uint8)
+            proc.stdin.write(img.tobytes())
+    finally:
+        proc.stdin.close()
+        proc.wait()
+    if proc.returncode:
+        raise RuntimeError("ffmpeg failed while rendering the video")
+    audio.unlink(missing_ok=True)
+    return out
 
 
 def thumbnail(picture: Path, title: str, out: Path):
     img = Image.open(picture).convert("RGB")
     w, h = img.size
     img = img.crop(((w - h * 9 // 16) // 2, 0, (w + h * 9 // 16) // 2, h)).resize((360, 640))
-    tmp = out.with_suffix(".png")
-    _text_png(title, tmp, 34, 90, (360, 640), wrap=18, fill=(255, 224, 90))
-    over = Image.open(tmp)
-    img.paste(over, (0, 0), over)
-    img.save(out, "JPEG", quality=80)
-    tmp.unlink()
+    arr = np.asarray(img)[..., ::-1].copy()
+    arr = motion.grade(arr)
+    fx.Title(title, (360, 640), secs=99).draw(arr, 1.0)
+    Image.fromarray(arr[..., ::-1]).save(out, "JPEG", quality=82)
     return out
