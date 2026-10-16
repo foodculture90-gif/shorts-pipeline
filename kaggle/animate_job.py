@@ -22,6 +22,7 @@ def sh(cmd):
 
 log("job:", json.dumps({k: v for k, v in JOB.items() if k != "shots"}))
 sh("nvidia-smi --query-gpu=name,memory.total --format=csv")
+sh("pip uninstall -y -q torchao")  # Kaggle's old torchao breaks new diffusers; not needed
 sh("pip install -q -U 'diffusers>=0.33' 'transformers>=4.48' accelerate sentencepiece imageio imageio-ffmpeg ftfy")
 
 import torch  # noqa: E402
