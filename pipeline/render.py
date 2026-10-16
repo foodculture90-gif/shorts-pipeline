@@ -41,7 +41,7 @@ def _timeline(story, lengths):
     return segs, t
 
 
-def _audio(story, voices, lengths, total, music_volume, seed, out: Path):
+def _audio(story, voices, lengths, total, music_volume, seed, out: Path, segs=()):
     n = int(total * SR) + 1
     voice = np.zeros(n, np.float32)
     t = 0.0
@@ -77,6 +77,16 @@ def _audio(story, voices, lengths, total, music_volume, seed, out: Path):
             mix[i:i + len(seg)] += (seg * 0.10)[:, None]
         sp = music.sparkle(seed)
         mix[: len(sp)] += (sp[: n] * 0.10)[:, None]
+    # cartoon sound effect for each shot, chosen by the writer to fit the action
+    loud = 0.30 if story.get("silent") else 0.16
+    for j, (i, k, a, b) in enumerate(segs):
+        name = (story["scenes"][i]["shots"][k].get("sfx") or "").strip().lower()
+        if name not in music.SFX:
+            continue
+        fx_ = music.sfx(name, seed + j)
+        st_ = int(max(0.0, a + FADE / 2 + 0.3) * SR)
+        seg = fx_[: max(0, n - st_)]
+        mix[st_:st_ + len(seg)] += (seg * loud)[:, None]
     peak = np.abs(mix).max() or 1
     if peak > 0.97:
         mix *= 0.97 / peak
@@ -101,7 +111,8 @@ def render(assets: Path, story, workdir: Path, frame, music_volume=0.12, use_dep
         moves = motion.pick_moves(rng)
         for k in range(len(scene["shots"])):
             shots[(i, k)] = motion.Shot(assets / f"s{i + 1}_{k + 1}.jpg", frame, moves[k % len(moves)], rng,
-                                        use_depth_model, close=(k % 2 == 1))
+                                        use_depth_model, close=(k % 2 == 1),
+                                        action=scene["shots"][k].get("action"), animate_chars=use_depth_model)
 
     # captions on the global timeline (voice starts 0.12 s into each scene)
     words, t0 = [], 0.0
@@ -109,11 +120,11 @@ def render(assets: Path, story, workdir: Path, frame, music_volume=0.12, use_dep
         for w in scene.get("words") or []:
             words.append((w[0], t0 + 0.12 + float(w[1]), t0 + 0.12 + float(w[2])))
         t0 += secs
-    caps = fx.Captions(words, frame)
+    caps = fx.Captions([] if story.get("silent") else words, frame)  # music-only shorts: no captions
     title = fx.Title(story["title"], frame)
     parts = fx.Particles(fx.particle_kind(story), frame, seed)
 
-    audio = _audio(story, voices, lengths, total, music_volume, seed, workdir / "mix.f32")
+    audio = _audio(story, voices, lengths, total, music_volume, seed, workdir / "mix.f32", segs)
     out = workdir / ("preview.mp4" if W < 1080 else "video.mp4")
     preview = W < 1080
     proc = subprocess.Popen(
