@@ -10,7 +10,7 @@ import math
 import cv2
 import numpy as np
 
-from . import depth as depth_mod
+from . import animate, depth as depth_mod
 
 MOVES = ["pan_right", "pan_left", "push_in", "pull_out", "rise"]
 
@@ -30,7 +30,8 @@ def grade(img):
 
 
 class Shot:
-    def __init__(self, image_path, size, move, rng, use_depth_model=True, close=False):
+    def __init__(self, image_path, size, move, rng, use_depth_model=True, close=False, action=None,
+                 animate_chars=True):
         W, H = size
         self.W, self.H = W, H
         L = int(H * 1.12)  # square source; the 9:16 window travels across it
@@ -43,6 +44,8 @@ class Shot:
         d = cv2.resize(d, (L, L), interpolation=cv2.INTER_LINEAR)
         d = cv2.GaussianBlur(d, (0, 0), L / 120).astype(np.float32)
         self.depth = d - 0.5
+        acts = [action] if action in animate.ACTIONS else []
+        self.scene = animate.Scene(self.src, d, acts, rng, close=close) if animate_chars else None
         # foreground mask for the "alive" breathing motion
         lo, hi = np.quantile(d, 0.6), np.quantile(d, 0.9)
         self.fg = np.clip((d - lo) / max(1e-3, hi - lo), 0, 1).astype(np.float32)
@@ -101,11 +104,15 @@ class Shot:
         # breathing / bobbing of near things (characters)
         period, ph = self.breath
         b = math.sin(2 * math.pi * t / period + ph)
-        fg = cv2.remap(self.fg, xs, ys, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
-        s = 1 + 0.012 * b * fg
-        xs = self.sx + (xs - self.sx) / s
-        ys = self.sy + (ys - self.sy) / s + 0.004 * self.H * b * fg
-        return cv2.remap(self.src, xs, ys, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+        if self.scene is not None and self.scene.animated:
+            src = self.scene.frame(t, p)   # characters move by themselves
+        else:
+            fg = cv2.remap(self.fg, xs, ys, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+            s = 1 + 0.012 * b * fg
+            xs = self.sx + (xs - self.sx) / s
+            ys = self.sy + (ys - self.sy) / s + 0.004 * self.H * b * fg
+            src = self.src
+        return cv2.remap(src, xs, ys, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
 
 
 def pick_moves(rng):
