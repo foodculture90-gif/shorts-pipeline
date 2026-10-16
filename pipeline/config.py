@@ -8,7 +8,7 @@ MUSIC_DIR = ROOT / "music"          # drop royalty-free .mp3 files here (in the 
 MODELS_DIR = ROOT / ".models"       # depth model is downloaded here once (cached by GitHub)
 
 # --- Writer: Google Gemini (free tier) -----------------------------------------------
-GEMINI_MODELS = os.getenv("GEMINI_MODELS", "gemini-2.5-flash,gemini-2.5-flash-lite").split(",")
+GEMINI_MODELS = ["gemini-flash-latest", "gemini-flash-lite-latest"]  # fallbacks; real list is fetched from Google
 
 # --- Pictures: Cloudflare Workers AI (free 10,000 "neurons" per day) -------------------
 IMAGE_MODEL = "@cf/black-forest-labs/flux-1-schnell"
