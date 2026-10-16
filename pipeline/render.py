@@ -15,8 +15,11 @@ SR = music.SR
 FADE = 0.4          # cross-fade between shots (seconds)
 
 
+MIN_SCENE = 2.8     # each scene is at least one AI clip long
+
+
 def scene_lengths(voice_secs):
-    return [s + (1.0 if i == len(voice_secs) - 1 else 0.4) for i, s in enumerate(voice_secs)]
+    return [max(s + 0.4, MIN_SCENE) + (0.6 if i == len(voice_secs) - 1 else 0.0) for i, s in enumerate(voice_secs)]
 
 
 def _decode(path: Path):
@@ -110,8 +113,16 @@ def render(assets: Path, story, workdir: Path, frame, music_volume=0.12, use_dep
     for i, scene in enumerate(story["scenes"]):
         moves = motion.pick_moves(rng)
         for k in range(len(scene["shots"])):
+            clip = assets / f"c{i + 1}_{k + 1}.mp4"
+            close = scene["shots"][k].get("framing") == "close" if len(scene["shots"]) == 1 else k % 2 == 1
+            if clip.exists():
+                try:
+                    shots[(i, k)] = motion.ClipShot(clip, frame, rng, close=close)
+                    continue
+                except Exception as e:  # noqa: BLE001  (bad clip -> fall back to the puppet engine)
+                    print("  clip unusable:", clip.name, e)
             shots[(i, k)] = motion.Shot(assets / f"s{i + 1}_{k + 1}.jpg", frame, moves[k % len(moves)], rng,
-                                        use_depth_model, close=(k % 2 == 1),
+                                        use_depth_model, close=close,
                                         action=scene["shots"][k].get("action"), animate_chars=use_depth_model)
 
     # captions on the global timeline (voice starts 0.12 s into each scene)
@@ -143,7 +154,9 @@ def render(assets: Path, story, workdir: Path, frame, music_volume=0.12, use_dep
             active = [s for s in segs if s[2] <= t < s[3]] or [segs[-1]]
             imgs = []
             for (i, k, a, b) in active[:2]:
-                img = shots[(i, k)].frame((t - a) / (b - a), t)
+                sh = shots[(i, k)]
+                img = (sh.frame((t - a) / (b - a), t, b - a) if isinstance(sh, motion.ClipShot)
+                       else sh.frame((t - a) / (b - a), t))
                 w8 = 1.0
                 if len(active) > 1:
                     if (i, k) == active[1][:2]:

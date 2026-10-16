@@ -1,6 +1,6 @@
 """Makes one short.
 
-Step 1 make_assets(): script + 8 pictures + narration (small files, stored until you decide).
+Step 1 make_assets(): script + pictures + character voices (small files, stored until you decide).
 Step 2 render.render(): edits them into a video — a small preview for the app, and the full
 1080x1920 version only when you approve (keeps everything inside free storage limits).
 
@@ -25,17 +25,25 @@ def make_assets(workdir: Path, channel, *, past_titles=(), idea=None, feedback=N
         st = story_mod.write_story(channel, list(past_titles), idea=idea, feedback=feedback, previous=previous,
                                   silent=silent)
     st["seed"] = random.randint(1, 1_000_000)
-    log(f"Drawing 8 pictures for “{st['title']}”")
+    log(f"Drawing {sum(len(sc['shots']) for sc in st['scenes'])} pictures for “{st['title']}”")
     images.make_pictures(st, workdir, offline=offline, on_image=on_image)
     st["silent"] = bool(silent)
-    log("Music-only short (no talking)" if silent else "Recording narration")
+    log("Music-only short (no talking)" if silent else "Recording character voices")
     voice.make_narration(st, workdir, voice=voice_name or channel.get("voice"), offline=offline, silent=silent)
     (workdir / "story.json").write_text(json.dumps(st, indent=1, ensure_ascii=False))
     return st
 
 
-ASSET_FILES = ["story.json"] + [f"s{i}_{k}.jpg" for i in range(1, 5) for k in (1, 2)] + \
-              [f"voice{i}.mp3" for i in range(1, 5)]
+def asset_files(story, clips=None):
+    """Files that make up a short: script, pictures, voices (+ AI clips c{n}_{k}.mp4 once animated)."""
+    clips = story.get("clips") if clips is None else clips
+    files = ["story.json"]
+    for i, sc in enumerate(story["scenes"]):
+        files += [f"s{i + 1}_{k + 1}.jpg" for k in range(len(sc["shots"]))]
+        files.append(f"voice{i + 1}.mp3")
+        if clips:
+            files += [f"c{i + 1}_{k + 1}.mp4" for k in range(len(sc["shots"]))]
+    return files
 
 
 def main():

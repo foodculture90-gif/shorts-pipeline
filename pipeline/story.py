@@ -1,48 +1,52 @@
 """Writes a fresh short every time: new characters, new world, new art style."""
 import random
 
-from . import animate, config, music
+from . import config, music
 from .llm import generate_json
 
-SYSTEM = """You write scripts for YouTube Shorts. Each short is a complete mini-story told in 4 scenes,
-narrated aloud over beautiful illustrations. Every short has NEW original characters — never reuse
-characters from earlier shorts, never use existing characters, brands, real people or celebrities.
-Invent fresh, uncommon character names every time (never "Pip"). Characters suit a bright 3D preschool
-TV cartoon: cute animals (often puppies or other pets), kids and friendly vehicles, each with a clear job or
-special skill, a bold signature colour and a simple outfit or gear.
+SYSTEM = """You write viral YouTube Shorts for a kids' 3D cartoon channel, in the style of the most-watched
+preschool cartoon Shorts: one quick, funny, surprising moment that kids want to watch again and again.
+Every short has NEW original characters - never reuse characters from earlier shorts, never use existing
+characters, shows, brands, real people or celebrities. Invent fresh, uncommon character names (never "Pip").
+Characters suit a bright 3D preschool TV cartoon: cute kids, toddlers, grandparents, funny pets and animals,
+friendly creatures or vehicles, each with a bold signature colour, a simple outfit and one distinctive detail.
 
 Hard rules:
-- Exactly 4 scenes. Each scene: 1-2 short sentences of narration, 15-24 words.
-- Total narration 70-90 words (about 35 seconds).
-- Scene 1's first sentence is a hook (a surprise, question or funny problem).
-- A satisfying ending. For kids' channels: gentle, warm, simple words, a kind takeaway, no scary or unsafe moments.
-- Each scene has exactly 2 shots: first a WIDE shot (the place and action), then a CLOSE shot
-  (a character's face/reaction or an important object).
-- Shot prompts describe only what is visible: who, doing what, where, expression, lighting, time of day.
-  Name characters by their look (not just their name) so an artist can draw them. No text or signs in images.
-- "characters": every recurring character with a precise, fixed visual description
-  (species/type, colours, clothing, one distinctive detail). Keep them identical in every shot.
-- Characters are animated, so every shot has an "action" for the main character(s), one of:
-  ACTIONS_LIST. Pick what fits the moment (happy = bounce/dance, walking = walk, thinking = nod,
-  surprise = jump, calm = idle or sway). Vary them across the short.
-- Every shot has a cartoon sound effect "sfx", one of: SFX_LIST, or "none".
-  Use them where they fit the action (jump = boing, splash in water = splash, magic = twinkle).
+- Exactly 4 scenes, each is ONE shot of about 3 seconds. Whole short: 12-16 seconds.
+- Scene 1 grabs attention instantly (something funny, odd or exciting is already happening).
+- Scene 4 is a clear, funny or heart-warming payoff (a twist, a big laugh, a hug, a happy surprise).
+- Simple physical comedy and big expressions that a 3-year-old understands with no words.
+- Gentle and safe: no danger, no scary moments, no meanness, no unsafe behaviour to copy.
+- Title: a short catchy hook like "How To Get A FREE Cake!!" or "Who Ate The Last Cookie?!" -
+  max 45 characters, Title Case, may end with one fitting emoji.
+- Each shot:
+  * "framing": "close" (head and shoulders, big expressive faces - use this most) or "wide" (full bodies, place).
+  * "prompt": the still picture - who (described by look), what they are doing, where, expression, lighting.
+    No text or signs in pictures.
+  * "motion": what happens during the 3 seconds, as simple physical action for an animator
+    (e.g. "the girl blinks, gasps and points at the cake, her eyes grow huge"). One clear action, small moves,
+    characters stay in the frame.
+  * "line": what a character says in this shot - max 7 short, funny words, or "" for no line.
+    Lines are optional; many great shorts have only 1-3 lines. "speaker": the character's name.
+  * "sfx": a cartoon sound effect, one of: SFX_LIST, or "none".
+- "characters": every character with a precise, fixed visual description (species/type, colours, clothing,
+  one distinctive detail) - keep them identical in every shot - and a "voice": one of
+  girl, boy, toddler, woman, man, grandma, grandpa, creature.
 
 Reply as JSON:
-{"title": "max 60 chars, catchy, no emojis",
+{"title": "...",
  "description": "2 short sentences",
  "tags": ["5-8 tags"],
  "takeaway": "one short sentence",
- "characters": [{"name": "...", "look": "..."}],
+ "characters": [{"name": "...", "look": "...", "voice": "..."}],
  "setting": "one sentence: the world, palette and mood",
- "scenes": [{"narration": "...", "shots": [{"framing": "wide", "prompt": "...", "action": "...", "sfx": "..."},
-                                          {"framing": "close", "prompt": "...", "action": "...", "sfx": "..."}]}]}"""
-SYSTEM = SYSTEM.replace("ACTIONS_LIST", ", ".join(animate.ACTIONS)).replace("SFX_LIST", ", ".join(music.SFX))
+ "scenes": [{"narration": "one sentence describing the scene",
+             "shots": [{"framing": "close", "prompt": "...", "motion": "...", "speaker": "...", "line": "...",
+                        "sfx": "..."}]}]}"""
+SYSTEM = SYSTEM.replace("SFX_LIST", ", ".join(music.SFX))
 
-SILENT_NOTE = ("This short has NO narration and NO captions: it is watched with music and sound effects only. "
-               "Tell the story purely through clear, expressive, easy-to-follow visuals and actions that a "
-               "3-year-old understands without words. Each \"narration\" is just one short sentence describing the "
-               "scene (used for the video description only).\n")
+SILENT_NOTE = ("This short has NO talking: every \"line\" must be \"\" - it is watched with music and sound "
+               "effects only, so tell the joke purely through clear, expressive actions.\n")
 
 
 def write_story(channel, past_titles, idea=None, feedback=None, previous=None, silent=False):
@@ -79,7 +83,7 @@ def write_story(channel, past_titles, idea=None, feedback=None, previous=None, s
 def _valid(st):
     try:
         return (len(st["scenes"]) == config.SCENES
-                and all(len(s["shots"]) == config.SHOTS_PER_SCENE and s["narration"] for s in st["scenes"])
+                and all(len(s["shots"]) == config.SHOTS_PER_SCENE and s["shots"][0].get("prompt") for s in st["scenes"])
                 and st["title"] and st["characters"])
     except (KeyError, TypeError):
         return False
@@ -106,18 +110,18 @@ def offline_story():
         "description": "Tilly the firefly is scared of the night. A wise old owl shows her she carries her own light.",
         "tags": ["bedtime story", "kids stories", "firefly"],
         "takeaway": "The light you need is already inside you.",
-        "characters": [{"name": "Tilly", "look": "a tiny firefly with big round eyes, a glowing lemon-yellow tail and a red knitted scarf"},
-                       {"name": "Oma", "look": "a fluffy grey owl with round gold glasses and a lavender shawl"}],
+        "characters": [{"name": "Tilly", "voice": "girl", "look": "a tiny firefly with big round eyes, a glowing lemon-yellow tail and a red knitted scarf"},
+                       {"name": "Oma", "voice": "grandma", "look": "a fluffy grey owl with round gold glasses and a lavender shawl"}],
         "setting": "a mossy forest at dusk, deep blues and warm glows, cosy and calm",
         "style": config.STYLES[0],
         "scenes": [
-            {"narration": "Every evening, when the sun went down, little Tilly the firefly hid under a leaf. She was afraid of the dark!",
-             "shots": [{"framing": "wide", "prompt": "a forest at dusk"}, {"framing": "close", "prompt": "Tilly hiding"}]},
-            {"narration": "Oma the owl landed beside her. Why do you hide, little one? Because the night is so big, Tilly whispered.",
-             "shots": [{"framing": "wide", "prompt": "owl lands"}, {"framing": "close", "prompt": "Tilly whispering"}]},
-            {"narration": "Oma smiled. Look behind you, Tilly. Tilly turned around, and her tail was glowing like a tiny golden star!",
-             "shots": [{"framing": "wide", "prompt": "glowing tail"}, {"framing": "close", "prompt": "surprised face"}]},
-            {"narration": "That night, Tilly lit the way for all her friends. The light you need is already inside you. Goodnight!",
-             "shots": [{"framing": "wide", "prompt": "fireflies flying"}, {"framing": "close", "prompt": "Tilly smiling"}]},
+            {"narration": "Tilly hides under a leaf.", "shots": [{"framing": "close", "prompt": "Tilly hiding under a leaf",
+             "motion": "Tilly peeks out and blinks", "speaker": "Tilly", "line": "It's so dark!", "sfx": "bubble"}]},
+            {"narration": "Oma lands.", "shots": [{"framing": "wide", "prompt": "owl lands beside Tilly",
+             "motion": "the owl flaps and lands", "speaker": "Oma", "line": "", "sfx": "whoosh"}]},
+            {"narration": "Her tail glows.", "shots": [{"framing": "close", "prompt": "Tilly's tail glowing",
+             "motion": "Tilly turns and gasps", "speaker": "Tilly", "line": "Whoa! That's me?!", "sfx": "twinkle"}]},
+            {"narration": "Everyone follows her light.", "shots": [{"framing": "wide", "prompt": "fireflies flying",
+             "motion": "fireflies swirl happily", "speaker": "Oma", "line": "", "sfx": "tada"}]},
         ],
     }

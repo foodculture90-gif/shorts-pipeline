@@ -32,7 +32,7 @@ def _kaggle(*args, check=True):
     return out
 
 
-def run(job: dict, outdir: Path, timeout_min=110, log=print):
+def run(job: dict, outdir: Path, timeout_min=170, log=print):
     """Pushes the job, waits for it, downloads clips into outdir. Returns (log_text, result)."""
     user = _env()
     work = outdir / "_kernel"
@@ -96,6 +96,36 @@ def test(title_prefix, count="3"):
         print("uploaded", f"tests/{stamp}-{f.name}")
 
 
+DEFAULTS = {"guidance": 1.0, "steps": 30, "frames": 73, "end_strength": 0.5}
+
+
+def animate_batch(episodes, workdir: Path, log=print):
+    """episodes: [(ep_id, story, assets_path)]. One Kaggle run for all of them.
+    Returns {ep_id: {"c1_1.mp4": Path, ...}} for the clips that came back."""
+    from . import db
+    shots = []
+    for ep_id, st, assets in episodes:
+        for i, sc in enumerate(st["scenes"]):
+            for k, sh in enumerate(sc["shots"]):
+                shots.append({"image": db.signed_url(f"{assets}/s{i + 1}_{k + 1}.jpg"),
+                              "prompt": video_prompt(st, sh), "name": f"{ep_id[:8]}__c{i + 1}_{k + 1}",
+                              "seed": int(st.get("seed", 1)) + len(shots)})
+    job = dict(DEFAULTS, shots=shots)
+    job.update(json.loads(os.environ.get("KAGGLE_JOB_EXTRA", "") or "{}"))
+    out = workdir / "kaggle-out"
+    shutil.rmtree(out, ignore_errors=True)
+    log(f"  animating {len(shots)} shots for {len(episodes)} shorts on Kaggle")
+    logs, res, status = run(job, out, log=log)
+    log(f"  kaggle {status}: {res}")
+    if not res.get("done"):
+        log(logs[-3000:])
+    clips = {}
+    for ep_id, _, _ in episodes:
+        got = {f.name.split("__", 1)[1]: f for f in out.glob(f"{ep_id[:8]}__c*.mp4") if f.stat().st_size > 1000}
+        clips[ep_id] = got
+    return clips
+
+
 ACTION_WORDS = {
     "bounce": "bounces up and down happily", "hop": "hops forward", "sway": "sways gently side to side",
     "dance": "dances joyfully, waving its arms", "jump": "jumps up in surprise", "walk": "walks forward",
@@ -105,8 +135,8 @@ ACTION_WORDS = {
 
 def video_prompt(story, shot):
     """Describes the motion for the image-to-video model."""
-    act = ACTION_WORDS.get(shot.get("action", ""), "moves naturally")
-    return (f"{shot['prompt']} The character {act}, slowly and gently, staying in the centre of the frame, "
+    act = shot.get("motion") or "The character " + ACTION_WORDS.get(shot.get("action", ""), "moves naturally")
+    return (f"{shot['prompt']} {act.rstrip('.')}, smoothly, staying in the centre of the frame, "
             f"keeping exactly the same look, expressive face, smooth cartoon animation, steady camera. "
             f"3D animated preschool TV cartoon, bright colours, high quality.")[:900]
 

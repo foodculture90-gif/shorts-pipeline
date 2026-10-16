@@ -15,8 +15,8 @@ IMAGE_MODEL = "@cf/black-forest-labs/flux-1-schnell"
 IMAGE_STEPS = 4
 NEURONS_PER_IMAGE = 58          # 1024x1024 at 4 steps ≈ 4×4.8 + 4×9.6
 DAILY_NEURONS = 9_800           # keep a little under the free 10,000
-SHOTS_PER_SCENE = 2
-SCENES = 4                      # → 8 pictures per short → ~20 shorts per day free
+SHOTS_PER_SCENE = 1
+SCENES = 4                      # → 4 shots per short (short, punchy, every shot animated by AI)
 
 # --- Voice: free Microsoft Edge neural voices -------------------------------------------
 DEFAULT_VOICE = "en-US-AnaNeural"
@@ -44,11 +44,13 @@ STYLES = [
     f"{_TV}, jungle with big leaves, dappled sunlight, vivid greens",
     f"{_TV}, seaside harbour town, bright boats, sparkling water",
 ]
-FORMATS = [
-    "funny fable with a gentle lesson", "bedtime story", "animal adventure", "space adventure",
-    "underwater adventure", "silly mystery with a happy reveal", "fairy-tale with a twist",
-    "story about a brave little vehicle or robot", "nature story explaining a real fact",
-    "friendship story", "story about trying something new", "seasonal/holiday story",
+FORMATS = [  # quick, funny, highly re-watchable moments (like the top kids' cartoon Shorts)
+    "a clever trick to get something yummy", "a silly prank that backfires in a sweet way",
+    "a funny misunderstanding with a happy surprise", "a race or contest with a twist ending",
+    "a magic object that does something unexpected", "trying to hide something from a grown-up",
+    "a pet doing something hilarious", "a big sneeze / hiccup / yawn that causes chaos",
+    "a surprise party moment", "copy-cat: one character copies another", "a tiny helper saves the day",
+    "a 'how to' trick that goes wonderfully wrong", "a giant version of an everyday thing",
 ]
 SPARKS = [
     "a lost balloon", "a sleepy volcano", "a hiccuping dragon", "a library at night", "a snail race",

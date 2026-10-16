@@ -120,3 +120,54 @@ def pick_moves(rng):
     wide = rng.choice(["pan_right", "pan_left", "rise", "pull_out", "push_in"])
     close = rng.choice(["push_in", "push_in", "pull_out", "pan_left" if wide == "pan_right" else "pan_right"])
     return [wide, close]
+
+
+class ClipShot:
+    """A shot made from an AI-animated clip (Kaggle image-to-video): real character motion.
+    Fills the frame, adds a slow push-in and the cartoon colour grade. If the scene runs longer than
+    the clip, it plays on in reverse (ping-pong) so it never freezes."""
+
+    def __init__(self, clip_path, size, rng, close=False):
+        self.W, self.H = size
+        cap = cv2.VideoCapture(str(clip_path))
+        self.fps = cap.get(cv2.CAP_PROP_FPS) or 24.0
+        frames = []
+        while True:
+            ok, f = cap.read()
+            if not ok:
+                break
+            frames.append(f)
+        cap.release()
+        if not frames:
+            raise ValueError(f"empty clip {clip_path}")
+        self.frames = frames
+        self.span = len(frames) / self.fps
+        h, w = frames[0].shape[:2]
+        self.base = max(self.W / w, self.H / h)
+        self.zoom = (1.0, rng.uniform(1.04, 1.08) if close else rng.uniform(1.02, 1.05))
+        self.drift = rng.uniform(-0.01, 0.01) * self.W
+        self.cache = {}
+
+    def _get(self, idx):
+        if idx not in self.cache:
+            if len(self.cache) > 6:
+                self.cache.pop(next(iter(self.cache)))
+            f = self.frames[idx]
+            blur = cv2.GaussianBlur(f, (0, 0), 1.0)
+            self.cache[idx] = grade(cv2.addWeighted(f, 1.4, blur, -0.4, 0))
+        return self.cache[idx]
+
+    def frame(self, p, t=0.0, seg_secs=None):
+        secs = (seg_secs or self.span) * max(0.0, p)
+        n = len(self.frames)
+        k = int(secs * self.fps)
+        period = max(1, 2 * n - 2)
+        k %= period
+        idx = k if k < n else period - k
+        src = self._get(min(n - 1, idx))
+        e = ease(p)
+        z = self.base * (self.zoom[0] + (self.zoom[1] - self.zoom[0]) * e)
+        h, w = src.shape[:2]
+        M = np.float32([[z, 0, self.W / 2 - z * w / 2 + self.drift * (e - 0.5)],
+                        [0, z, self.H / 2 - z * h / 2]])
+        return cv2.warpAffine(src, M, (self.W, self.H), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)

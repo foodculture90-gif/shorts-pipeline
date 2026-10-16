@@ -4,6 +4,7 @@
     python -m pipeline.worker daily   # queue each channel's daily shorts + a stats refresh
 """
 import json
+import os
 import shutil
 import sys
 import traceback
@@ -11,13 +12,16 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from . import config, db, notify, render
-from .generate import ASSET_FILES, make_assets
+from .generate import asset_files, make_assets
 from .images import QuotaExceeded
 from .llm import Busy
 
 WORK = config.OUTPUT
 CAPACITY = config.DAILY_NEURONS // config.NEURONS_PER_IMAGE        # pictures per day (free)
 PICS = config.SCENES * config.SHOTS_PER_SCENE                        # pictures per short
+WORKER_ID = os.environ.get("WORKER_ID", "1")
+USE_KAGGLE = bool(os.environ.get("KAGGLE_KEY"))   # free GPU turns pictures into real animation
+ANIMATE_BATCH = 10                                 # shorts per Kaggle run (start-up costs ~5 min)
 
 
 class Wait(Exception):
@@ -63,7 +67,8 @@ def _token(ch_id):
 def _remove_files(ep, keep_thumb=False):
     paths = []
     if ep.get("assets_path"):
-        paths += [f"{ep['assets_path']}/{f}" for f in ASSET_FILES]
+        st = ep.get("story") or {"scenes": [{"shots": [{}, {}]}] * 4}
+        paths += [f"{ep['assets_path']}/{f}" for f in set(asset_files(st, False) + asset_files(st, True))]
     if ep.get("preview_path"):
         paths.append(ep["preview_path"])
     if ep.get("thumb_path") and not keep_thumb:
@@ -106,19 +111,15 @@ def cmd_generate(payload, cmd):
         st = make_assets(work, ch, past_titles=past, idea=payload.get("idea"), feedback=payload.get("feedback"),
                          previous=previous, log=lambda m: print("  ·", m), silent=bool(silent),
                          on_image=lambda: drawn.__setitem__(0, drawn[0] + 1))
-        preview = render.render(work, st, work / "preview", config.PREVIEW_SIZE,
-                                music_volume=float(db.settings().get("music_volume") or 0.12))
-        thumb = render.thumbnail(work / "s1_1.jpg", st["title"], work / "thumb.jpg")
         base = f"episodes/{ep_id}"
-        for f in ASSET_FILES:
-            db.upload(work / f, f"{base}/assets/{f}",
-                      "application/json" if f.endswith(".json") else "image/jpeg" if f.endswith(".jpg") else "audio/mpeg")
-        db.upload(preview, f"{base}/preview.mp4", "video/mp4")
-        db.upload(thumb, f"{base}/thumb.jpg", "image/jpeg")
-        _set(ep_id, status="awaiting_approval", title=st["title"], takeaway=st.get("takeaway"), story=st,
-             style=st.get("style", "")[:80], assets_path=f"{base}/assets", preview_path=f"{base}/preview.mp4",
-             thumb_path=f"{base}/thumb.jpg", duration=round(render.duration(preview), 1))
-        db.log(f"🎬 Ready: {st['title']} ({ch['name']})", "success")
+        for f in asset_files(st):
+            db.upload(work / f, f"{base}/assets/{f}", _mime(f))
+        _set(ep_id, title=st["title"], story=st, assets_path=f"{base}/assets")
+        if USE_KAGGLE:  # pictures → real animation on Kaggle's free GPU (batched by worker 1)
+            db.log(f"🎨 Animating: {st['title']}")
+            db.insert("commands", {"type": "animate", "payload": {"episode_id": ep_id}})
+        else:
+            _finish(ep_id, work, st, ch)
         return ep_id
     except QuotaExceeded:
         _refund(PICS - drawn[0])
@@ -134,6 +135,90 @@ def cmd_generate(payload, cmd):
         raise
     finally:
         shutil.rmtree(work, ignore_errors=True)
+
+
+def _mime(f):
+    return {"json": "application/json", "jpg": "image/jpeg", "mp3": "audio/mpeg", "mp4": "video/mp4"}[f.rsplit(".", 1)[1]]
+
+
+def _finish(ep_id, work, st, ch=None):
+    """Renders the preview from the files in work/ and puts the short up for approval."""
+    preview = render.render(work, st, work / "preview", config.PREVIEW_SIZE,
+                            music_volume=float(db.settings().get("music_volume") or 0.12))
+    thumb = render.thumbnail(work / "s1_1.jpg", st["title"], work / "thumb.jpg")
+    base = f"episodes/{ep_id}"
+    db.upload(preview, f"{base}/preview.mp4", "video/mp4")
+    db.upload(thumb, f"{base}/thumb.jpg", "image/jpeg")
+    _set(ep_id, status="awaiting_approval", title=st["title"], takeaway=st.get("takeaway"), story=st,
+         style=st.get("style", "")[:80], assets_path=f"{base}/assets", preview_path=f"{base}/preview.mp4",
+         thumb_path=f"{base}/thumb.jpg", duration=round(render.duration(preview), 1), error=None)
+    db.log(f"🎬 Ready: {st['title']}" + (f" ({ch['name']})" if ch else ""), "success")
+
+
+def _download(ep, work, clips=None):
+    work.mkdir(parents=True, exist_ok=True)
+    if not db.download(f"{ep['assets_path']}/story.json", work / "story.json"):
+        raise RuntimeError("missing story.json")
+    st = json.loads((work / "story.json").read_text())
+    for f in asset_files(st, clips):
+        if f != "story.json" and not db.download(f"{ep['assets_path']}/{f}", work / f):
+            raise RuntimeError(f"missing file {f}")
+    return st
+
+
+def cmd_animate(payload, cmd):
+    """Worker 1 only: animates up to ANIMATE_BATCH waiting shorts in ONE Kaggle GPU run, then renders them.
+    If Kaggle fails, the shorts are still finished with the built-in puppet animation."""
+    from . import kaggle_video
+    import time
+    for _ in range(30):  # wait (max ~10 min) for shorts other workers are still making, to batch them
+        if not db.select("commands", "select=id&type=eq.generate&status=eq.running&limit=1"):
+            break
+        time.sleep(20)
+    others = db.select("commands", f"type=eq.animate&status=eq.queued&id=neq.{cmd['id']}"
+                                   f"&order=created_at.asc&limit={ANIMATE_BATCH - 1}")
+    taken = [c for c in others if db.update("commands", f"id=eq.{c['id']}&status=eq.queued",
+                                             {"status": "running", "note": "animating with another short"})]
+    jobs = [cmd] + taken
+    eps = []
+    for c in jobs:
+        try:
+            ep = _episode(c["payload"]["episode_id"])
+            if ep["status"] == "generating" and ep.get("assets_path"):
+                eps.append(ep)
+        except Exception as e:  # noqa: BLE001
+            print("  skip", c["payload"], e)
+    work = WORK / f"anim-{cmd['id'][:8]}"
+    clips = {}
+    try:
+        if eps:
+            clips = kaggle_video.animate_batch([(e["id"], e["story"], e["assets_path"]) for e in eps], work,
+                                               log=lambda m: print(m))
+    except Exception as e:  # noqa: BLE001
+        traceback.print_exc()
+        db.log(f"⚠️ AI animation failed, using built-in animation: {e}"[:300], "warning")
+    try:
+        for ep in eps:
+            ew = work / ep["id"]
+            try:
+                st = _download(ep, ew, clips=False)
+                got = clips.get(ep["id"], {})
+                need = [f for f in asset_files(st, True) if f.startswith("c")]
+                if got and all(f in got for f in need):
+                    for f in need:
+                        shutil.copy(got[f], ew / f)
+                        db.upload(ew / f, f"{ep['assets_path']}/{f}", "video/mp4")
+                    st["clips"] = True
+                    (ew / "story.json").write_text(json.dumps(st, indent=1, ensure_ascii=False))
+                    db.upload(ew / "story.json", f"{ep['assets_path']}/story.json", "application/json")
+                _finish(ep["id"], ew, st)
+            except Exception as e:  # noqa: BLE001
+                traceback.print_exc()
+                _set(ep["id"], status="failed", error=str(e)[:400])
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+        for c in taken:
+            db.update("commands", f"id=eq.{c['id']}", {"status": "done", "finished_at": now().isoformat()})
 
 
 def cmd_revise(payload, cmd):
@@ -155,10 +240,7 @@ def cmd_publish(payload, cmd):
     _set(ep["id"], status="publishing", error=None)
     work = WORK / f"pub-{ep['id']}"
     try:
-        for f in ASSET_FILES:
-            if not db.download(f"{ep['assets_path']}/{f}", work / f):
-                raise RuntimeError(f"missing file {f}")
-        st = json.loads((work / "story.json").read_text())
+        st = _download(ep, work)
         video = render.render(work, st, work / "final", config.FINAL_SIZE,
                               music_volume=float(db.settings().get("music_volume") or 0.12))
         publish_at = payload.get("publish_at")
@@ -217,7 +299,7 @@ def cmd_stats(payload=None, cmd=None):
                 db.update("episodes", f"id=eq.{e['id']}", v)
 
 
-HANDLERS = {"generate": cmd_generate, "revise": cmd_revise, "publish": cmd_publish, "delete": cmd_delete,
+HANDLERS = {"generate": cmd_generate, "animate": cmd_animate, "revise": cmd_revise, "publish": cmd_publish, "delete": cmd_delete,
             "stats": cmd_stats, "connect_channel": cmd_connect}
 
 
@@ -227,7 +309,8 @@ def process_queue():
               {"status": "queued", "note": "retrying after a stopped run"})
     failures = 0
     while True:
-        rows = db.select("commands", f"status=eq.queued&run_after=lte.{now().isoformat()}"
+        only = "" if WORKER_ID == "1" else "&type=neq.animate"   # one Kaggle GPU job at a time
+        rows = db.select("commands", f"status=eq.queued&run_after=lte.{now().isoformat()}{only}"
                                      "&order=created_at.asc&limit=1")
         if not rows:
             break
