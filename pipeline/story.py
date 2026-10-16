@@ -1,7 +1,7 @@
 """Writes a fresh short every time: new characters, new world, new art style."""
 import random
 
-from . import config
+from . import animate, config, music
 from .llm import generate_json
 
 SYSTEM = """You write scripts for YouTube Shorts. Each short is a complete mini-story told in 4 scenes,
@@ -22,6 +22,11 @@ Hard rules:
   Name characters by their look (not just their name) so an artist can draw them. No text or signs in images.
 - "characters": every recurring character with a precise, fixed visual description
   (species/type, colours, clothing, one distinctive detail). Keep them identical in every shot.
+- Characters are animated, so every shot has an "action" for the main character(s), one of:
+  ACTIONS_LIST. Pick what fits the moment (happy = bounce/dance, walking = walk, thinking = nod,
+  surprise = jump, calm = idle or sway). Vary them across the short.
+- Every shot has a cartoon sound effect "sfx", one of: SFX_LIST, or "none".
+  Use them where they fit the action (jump = boing, splash in water = splash, magic = twinkle).
 
 Reply as JSON:
 {"title": "max 60 chars, catchy, no emojis",
@@ -30,16 +35,22 @@ Reply as JSON:
  "takeaway": "one short sentence",
  "characters": [{"name": "...", "look": "..."}],
  "setting": "one sentence: the world, palette and mood",
- "scenes": [{"narration": "...", "shots": [{"framing": "wide", "prompt": "..."},
-                                          {"framing": "close", "prompt": "..."}]}]}"""
+ "scenes": [{"narration": "...", "shots": [{"framing": "wide", "prompt": "...", "action": "...", "sfx": "..."},
+                                          {"framing": "close", "prompt": "...", "action": "...", "sfx": "..."}]}]}"""
+SYSTEM = SYSTEM.replace("ACTIONS_LIST", ", ".join(animate.ACTIONS)).replace("SFX_LIST", ", ".join(music.SFX))
+
+SILENT_NOTE = ("This short has NO narration and NO captions: it is watched with music and sound effects only. "
+               "Tell the story purely through clear, expressive, easy-to-follow visuals and actions that a "
+               "3-year-old understands without words. Each \"narration\" is just one short sentence describing the "
+               "scene (used for the video description only).\n")
 
 
-def write_story(channel, past_titles, idea=None, feedback=None, previous=None):
+def write_story(channel, past_titles, idea=None, feedback=None, previous=None, silent=False):
     """channel: dict with name, niche, audience. Returns (story, style)."""
     niche = channel.get("niche") or "kids' stories for ages 3-7"
     if previous and feedback:
         style = previous.get("style") or random.choice(config.STYLES)
-        prompt = (f"Channel niche: {niche}\nHere is a short you wrote:\n{previous}\n\n"
+        prompt = ((SILENT_NOTE if silent else "") + f"Channel niche: {niche}\nHere is a short you wrote:\n{previous}\n\n"
                   f"The owner wants these changes: {feedback}\nRewrite it, following all rules.")
     else:
         styles = channel.get("styles") or config.STYLES
@@ -48,8 +59,9 @@ def write_story(channel, past_titles, idea=None, feedback=None, previous=None):
         spark = random.choice(config.SPARKS)
         recent = "\n".join(f"- {t}" for t in past_titles[-50:]) or "- (none yet)"
         prompt = (
-            f"Channel: {channel.get('name', '')}\nChannel niche: {niche}\n"
-            f"Format for this short: {fmt}\n"
+            (SILENT_NOTE if silent else "")
+            + f"Channel: {channel.get('name', '')}\nChannel niche: {niche}\n"
+            + f"Format for this short: {fmt}\n"
             f"Random spark (use it, or let it inspire something better): {spark}\n"
             f"Art style the artist will use: {style}\n"
             + (f"The owner's idea for this short: {idea}\n" if idea else "")
