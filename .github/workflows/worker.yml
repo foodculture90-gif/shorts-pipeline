@@ -46,7 +46,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.queued != '0'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 300
     strategy:
       fail-fast: false
       matrix:
@@ -60,6 +60,9 @@ jobs:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       PANEL_URL: ${{ vars.PANEL_URL }}
+      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+      KAGGLE_USERNAME: storytimeeditor
+      WORKER_ID: ${{ matrix.worker }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
