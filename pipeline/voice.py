@@ -41,14 +41,25 @@ async def _edge(text, voice, out: Path):
     return words
 
 
-def make_narration(story, workdir: Path, voice=None, offline=False):
-    """Writes voice{n}.mp3 per scene; stores word timings in story["scenes"][n]["words"]."""
+SILENT_SCENE_SECS = 6.0   # music-only shorts: each scene (2 shots) lasts this long
+
+
+def make_narration(story, workdir: Path, voice=None, offline=False, silent=False):
+    """Writes voice{n}.mp3 per scene; stores word timings in story["scenes"][n]["words"].
+    silent=True: no talking and no captions — each voice file is just quiet time for the scene."""
     voice = voice or config.DEFAULT_VOICE
     results = []
     for i, scene in enumerate(story["scenes"]):
         text = scene["narration"]
         out = workdir / f"voice{i + 1}.mp3"
         words = []
+        if silent:
+            subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i",
+                            f"anullsrc=r=44100:cl=mono", "-t", str(SILENT_SCENE_SECS), "-q:a", "9", str(out)],
+                           check=True)
+            scene["words"] = []
+            results.append(duration(out))
+            continue
         if offline:
             secs = max(3.5, len(text.split()) / 2.6)
             subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i",
