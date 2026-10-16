@@ -75,8 +75,11 @@ def _valid(st):
 
 def image_prompt(story, shot):
     cast = "; ".join(f"{c['name']}: {c['look']}" for c in story["characters"])
-    framing = ("wide establishing shot, full scene visible" if shot.get("framing") == "wide"
-               else "close-up, expressive face, shallow depth of field")
+    # pictures are square but the video is tall (9:16): keep the action in the centre column
+    framing = ("wide shot, characters full body in the centre of the picture, important action centred, "
+               "open space above and below" if shot.get("framing") == "wide"
+               else "medium close-up, head and shoulders centred in the picture with space around, "
+                    "expressive face, shallow depth of field")
     p = (f"{shot['prompt']}. {framing}. Characters (draw exactly as described): {cast}. "
          f"World: {story.get('setting', '')}. Style: {story['style']}. "
          "Masterpiece, beautiful composition, clean details, no text, no letters, no watermark, no border.")
