@@ -13,6 +13,7 @@ from pathlib import Path
 from . import config, db, notify, render
 from .generate import ASSET_FILES, make_assets
 from .images import QuotaExceeded
+from .llm import Busy
 
 WORK = config.OUTPUT
 CAPACITY = config.DAILY_NEURONS // config.NEURONS_PER_IMAGE        # pictures per day (free)
@@ -120,6 +121,10 @@ def cmd_generate(payload, cmd):
         _refund(PICS - drawn[0])
         _set(ep_id, status="queued")
         raise Wait(tomorrow_utc(), "Cloudflare's free limit was reached — continues after midnight UTC")
+    except Busy:
+        _refund(PICS - drawn[0])
+        _set(ep_id, status="queued", error=None)
+        raise Wait(now() + timedelta(minutes=30), "The free script writer is busy — trying again in 30 minutes")
     except Exception as e:
         _refund(PICS - drawn[0])
         _set(ep_id, status="failed", error=str(e)[:400])
