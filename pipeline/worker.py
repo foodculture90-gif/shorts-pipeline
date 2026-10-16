@@ -70,6 +70,14 @@ def _remove_files(ep, keep_thumb=False):
     db.remove(paths)
 
 
+def _refund(n):
+    if n > 0:
+        try:
+            db.rpc("reserve_images", n=-n, cap=CAPACITY)
+        except Exception as e:  # noqa: BLE001
+            print("  could not refund picture allowance:", e)
+
+
 # ---- commands ------------------------------------------------------------------------
 def cmd_generate(payload, cmd):
     ch = _channel(payload["channel_id"])
@@ -84,6 +92,7 @@ def cmd_generate(payload, cmd):
         raise Wait(tomorrow_utc(), "Today's free pictures are used up — continues after midnight UTC")
     _set(ep_id, status="generating", error=None)
     work = WORK / ep_id
+    drawn = [0]  # pictures actually made; unused reservations are given back if this fails
     try:
         previous = None
         if payload.get("parent_id"):
@@ -91,7 +100,8 @@ def cmd_generate(payload, cmd):
         past = [r["title"] for r in db.select(
             "episodes", f"select=title&channel_id=eq.{ch['id']}&title=not.is.null&order=created_at.desc&limit=60")]
         st = make_assets(work, ch, past_titles=past, idea=payload.get("idea"), feedback=payload.get("feedback"),
-                         previous=previous, log=lambda m: print("  ·", m))
+                         previous=previous, log=lambda m: print("  ·", m),
+                         on_image=lambda: drawn.__setitem__(0, drawn[0] + 1))
         preview = render.render(work, st, work / "preview", config.PREVIEW_SIZE,
                                 music_volume=float(db.settings().get("music_volume") or 0.12))
         thumb = render.thumbnail(work / "s1_1.jpg", st["title"], work / "thumb.jpg")
@@ -107,9 +117,11 @@ def cmd_generate(payload, cmd):
         db.log(f"🎬 Ready: {st['title']} ({ch['name']})", "success")
         return ep_id
     except QuotaExceeded:
+        _refund(PICS - drawn[0])
         _set(ep_id, status="queued")
         raise Wait(tomorrow_utc(), "Cloudflare's free limit was reached — continues after midnight UTC")
     except Exception as e:
+        _refund(PICS - drawn[0])
         _set(ep_id, status="failed", error=str(e)[:400])
         raise
     finally:
