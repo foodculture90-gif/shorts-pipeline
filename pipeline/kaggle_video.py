@@ -106,8 +106,9 @@ ACTION_WORDS = {
 def video_prompt(story, shot):
     """Describes the motion for the image-to-video model."""
     act = ACTION_WORDS.get(shot.get("action", ""), "moves naturally")
-    return (f"{shot['prompt']} The character {act}, expressive face, natural smooth cartoon animation, "
-            f"gentle camera movement. 3D animated preschool TV cartoon, bright colours, high quality.")[:900]
+    return (f"{shot['prompt']} The character {act}, slowly and gently, staying in the centre of the frame, "
+            f"keeping exactly the same look, expressive face, smooth cartoon animation, steady camera. "
+            f"3D animated preschool TV cartoon, bright colours, high quality.")[:900]
 
 
 if __name__ == "__main__":
