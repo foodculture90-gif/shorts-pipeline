@@ -112,3 +112,11 @@ def remove(paths):
         return
     requests.delete(f"{_base()}/storage/v1/object/{BUCKET}", headers=_headers(),
                     data=json.dumps({"prefixes": list(paths)}), timeout=60)
+
+
+def signed_url(remote: str, seconds=7200):
+    """Temporary public link to a private file (used to hand pictures to the Kaggle GPU)."""
+    r = requests.post(f"{_base()}/storage/v1/object/sign/{BUCKET}/{remote}", headers=_headers(),
+                      data=json.dumps({"expiresIn": seconds}), timeout=30)
+    _check(r)
+    return f"{_base()}/storage/v1{r.json()['signedURL']}"
