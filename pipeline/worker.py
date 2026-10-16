@@ -100,8 +100,11 @@ def cmd_generate(payload, cmd):
             previous = _episode(payload["parent_id"]).get("story")
         past = [r["title"] for r in db.select(
             "episodes", f"select=title&channel_id=eq.{ch['id']}&title=not.is.null&order=created_at.desc&limit=60")]
+        silent = payload.get("silent")
+        if silent is None and previous is not None:
+            silent = bool(previous.get("silent"))
         st = make_assets(work, ch, past_titles=past, idea=payload.get("idea"), feedback=payload.get("feedback"),
-                         previous=previous, log=lambda m: print("  ·", m),
+                         previous=previous, log=lambda m: print("  ·", m), silent=bool(silent),
                          on_image=lambda: drawn.__setitem__(0, drawn[0] + 1))
         preview = render.render(work, st, work / "preview", config.PREVIEW_SIZE,
                                 music_volume=float(db.settings().get("music_volume") or 0.12))
@@ -255,7 +258,8 @@ def daily():
     for ch in db.select("channels", "select=*&auto_daily=eq.true"):
         done = db.select("commands", f"select=id&type=eq.generate&created_at=gte.{today}"
                                      f"&payload->>channel_id=eq.{ch['id']}&payload->>auto=eq.true")
-        batch += [{"type": "generate", "payload": {"channel_id": ch["id"], "auto": True}}
+        silent = str(db.settings().get("silent", "true")).lower() not in ("false", "0", "no")
+        batch += [{"type": "generate", "payload": {"channel_id": ch["id"], "auto": True, "silent": silent}}
                   for _ in range(max(0, int(ch["per_day"]) - len(done)))]
     batch.append({"type": "stats", "payload": {}})
     db.insert_many("commands", batch)  # one insert = one wake-up of the workers
