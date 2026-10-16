@@ -160,7 +160,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
 const CFG = window.MC_CONFIG || {};
 const DEMO = new URLSearchParams(location.search).has("demo") || !CFG.SUPABASE_URL || CFG.SUPABASE_URL.includes("YOUR-PROJECT");
 const sb = DEMO ? null : (await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm")).createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
-const PICS_PER_DAY = 168, PICS_PER_SHORT = 8;
+const PICS_PER_DAY = 168, PICS_PER_SHORT = 4;
 if ("serviceWorker" in navigator && !DEMO) navigator.serviceWorker.register("sw.js").catch(() => {});
 
 // ---------------------------------------------------------------- icons + helpers
