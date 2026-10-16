@@ -7,6 +7,9 @@ from .llm import generate_json
 SYSTEM = """You write scripts for YouTube Shorts. Each short is a complete mini-story told in 4 scenes,
 narrated aloud over beautiful illustrations. Every short has NEW original characters — never reuse
 characters from earlier shorts, never use existing characters, brands, real people or celebrities.
+Invent fresh, uncommon character names every time (never "Pip"). Characters suit a bright 3D preschool
+TV cartoon: cute animals (often puppies or other pets), kids and friendly vehicles, each with a clear job or
+special skill, a bold signature colour and a simple outfit or gear.
 
 Hard rules:
 - Exactly 4 scenes. Each scene: 1-2 short sentences of narration, 15-24 words.
