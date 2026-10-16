@@ -52,11 +52,17 @@ def available_models():
     return _models
 
 
+class Busy(LLMError):
+    """Every model was busy or over its free limit — try again later."""
+
+
 def generate_json(system, prompt, temperature=1.0):
+    """Tries each model quickly; busy (503) or slow models are skipped instead of waited on.
+    Two passes over the model list; raises Busy if Google is overloaded/limited everywhere."""
     key = os.environ["GEMINI_API_KEY"]
-    last = None
-    for model in available_models()[:8]:
-        for attempt in range(3):
+    last, busy_only = None, True
+    for rnd in range(2):
+        for model in available_models()[:8]:
             try:
                 r = requests.post(
                     f"{API}/models/{model}:generateContent",
@@ -67,28 +73,32 @@ def generate_json(system, prompt, temperature=1.0):
                         "generationConfig": {"temperature": temperature, "responseMimeType": "application/json",
                                              "maxOutputTokens": 8192},
                     },
-                    timeout=120,
+                    timeout=(10, 75),
                 )
-                if r.status_code == 404:          # model retired → try the next one
+                if r.status_code == 404:          # model retired → next one
                     last = f"{model}: not available"
-                    break
-                if r.status_code == 429:          # free-tier limit on this model
-                    last = f"{model}: rate limited ({r.text[:160]})"
-                    print(f"  {model}: free limit reached, trying another model")
-                    if "PerDay" in r.text or attempt >= 1:
-                        break                      # daily cap or still limited → next model
-                    time.sleep(12)
+                    continue
+                if r.status_code in (429, 500, 502, 503, 504):
+                    last = f"{model}: {r.status_code} {r.text[:160]}"
+                    print(f"  {model}: {'free limit reached' if r.status_code == 429 else 'busy'} ({r.status_code}), next model")
                     continue
                 if not r.ok:
+                    busy_only = False
                     last = f"{model}: {r.status_code} {r.text[:200]}"
-                    print(f"  {model}: error {r.status_code}, retrying")
-                    time.sleep(5)
+                    print(f"  {model}: error {r.status_code}, next model")
                     continue
                 parts = r.json()["candidates"][0]["content"]["parts"]
                 text = "".join(p.get("text", "") for p in parts if not p.get("thought"))
                 m = re.search(r"\{.*\}", text, re.S)
                 return json.loads(m.group(0) if m else text)
+            except requests.Timeout:
+                last = f"{model}: too slow"
+                print(f"  {model}: too slow, next model")
             except (requests.RequestException, KeyError, IndexError, json.JSONDecodeError) as e:
+                busy_only = False
                 last = f"{model}: {e}"
-                time.sleep(5)
-    raise LLMError(f"Gemini failed: {last}")
+                print(f"  {model}: {str(e)[:120]}")
+        if rnd == 0:
+            print("  all writer models busy — waiting 30 s and trying once more")
+            time.sleep(30)
+    raise (Busy if busy_only else LLMError)(f"Gemini failed: {last}")
