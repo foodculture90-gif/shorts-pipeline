@@ -466,7 +466,7 @@ async function episodeAction(act, id, btn) {
     if (!state.channels.find(c => c.id === e?.channel_id)?.connected) return toast("Connect this channel to YouTube first (Channels tab)");
     return guard(btn, async () => { await api.command("publish", { episode_id: id }); toast("Publishing — live in a few minutes"); refresh(); });
   }
-  if (act === "retry") return guard(btn, async () => { await api.commands([{ type: "generate", payload: { channel_id: e.channel_id, idea: e.idea } }, { type: "delete", payload: { episode_id: id } }]); toast("Trying again"); refresh(); });
+  if (act === "retry") return guard(btn, async () => { await api.commands([{ type: "generate", payload: { channel_id: e.channel_id, idea: e.idea, silent: !!e.story?.silent } }, { type: "delete", payload: { episode_id: id } }]); toast("Trying again"); refresh(); });
   if (act === "delete") { if (!confirm("Delete this short?")) return; return guard(btn, async () => { await api.command("delete", { episode_id: id }); toast("Deleted"); refresh(); }); }
   if (act === "schedule") {
     const d = new Date(Date.now() + 864e5); d.setHours(17, 0, 0, 0);
@@ -520,15 +520,17 @@ async function newShortsSheet() {
   sheet(`<h3>New shorts</h3><div class="sub">New characters, world and art style every time. ${left} more possible free today.</div>
     <label class="f">Channel</label><select class="input" id="ch">${channels.map(c => `<option value="${c.id}" ${c.id === state.channel ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select>
     <label class="f">How many?</label><div class="seg" id="cnt">${[1, 3, 5, 10].map(n => `<button data-n="${n}" class="${n === 1 ? "on" : ""}">${n}</button>`).join("")}</div>
+    <label class="f">Sound</label><div class="seg" id="snd"><button data-s="1" class="${silentPref() ? "on" : ""}">Music + sound effects</button><button data-s="0" class="${silentPref() ? "" : "on"}">Narration + captions</button></div>
     <label class="f">Idea (optional)</label><input class="input" id="idea" placeholder="e.g. a whale who sings off-key · how bees make honey">
     <div class="hint">Leave empty and the AI invents something new each time.</div>
     <div style="margin-top:16px"><button class="btn primary block" id="go">${ic("spark", 16)} Make it</button></div>`,
     (el, close) => {
-      let n = 1;
+      let n = 1, silent = silentPref();
+      el.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { silent = b.dataset.s === "1"; try { localStorage.setItem("mc_silent", silent ? "1" : "0"); } catch {} el.querySelectorAll("[data-s]").forEach(x => x.classList.toggle("on", x === b)); });
       el.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { n = +b.dataset.n; el.querySelectorAll("[data-n]").forEach(x => x.classList.toggle("on", x === b)); });
       el.querySelector("#go").onclick = ev => guard(ev.currentTarget, async () => {
         const idea = el.querySelector("#idea").value.trim() || undefined, channel_id = el.querySelector("#ch").value;
-        await api.commands([...Array(n)].map(() => ({ type: "generate", payload: { channel_id, idea } })));
+        await api.commands([...Array(n)].map(() => ({ type: "generate", payload: { channel_id, idea, silent } })));
         close(); toast(n > left ? `${left} start now, the rest continue after the free limit resets` : `Making ${n} short${n > 1 ? "s" : ""}`);
         state.tab = "progress"; if (location.hash !== "#/shorts") location.hash = "#/shorts"; else refresh();
       });
@@ -584,6 +586,7 @@ function channelSheet(c) {
     });
 }
 
+function silentPref() { try { return localStorage.getItem("mc_silent") !== "0"; } catch { return true; } }
 function redirectUri() { return location.origin + location.pathname; }
 function connectYouTube(channelId) {
   if (DEMO) { api.command("connect_channel", { channel_id: channelId }); toast("Demo: connected"); return viewChannels(); }
