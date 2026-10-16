@@ -1,0 +1,34 @@
+name: Kaggle animation test
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: "Start of the title of an existing short to animate"
+        default: "Kip"
+      count:
+        description: "How many pictures to animate"
+        default: "3"
+      extra:
+        description: "Extra job settings (JSON), e.g. {\"steps\": 20, \"fp16\": false}"
+        default: "{}"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+      KAGGLE_USERNAME: storytimeeditor
+      JOB_EXTRA: ${{ inputs.extra }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q kaggle requests
+      - name: Animate on Kaggle GPU
+        run: python -m pipeline.kaggle_video test "${{ inputs.title }}" "${{ inputs.count }}"
