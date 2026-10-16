@@ -128,8 +128,9 @@ def render(assets: Path, story, workdir: Path, frame, music_volume=0.12, use_dep
     # captions on the global timeline (voice starts 0.12 s into each scene)
     words, t0 = [], 0.0
     for scene, secs in zip(story["scenes"], lengths):
-        for w in scene.get("words") or []:
-            words.append((w[0], t0 + 0.12 + float(w[1]), t0 + 0.12 + float(w[2])))
+        ws = scene.get("words") or []
+        for j, w in enumerate(ws):  # 4th value: last word of a line -> captions never mix two lines
+            words.append((w[0], t0 + 0.12 + float(w[1]), t0 + 0.12 + float(w[2]), j == len(ws) - 1))
         t0 += secs
     caps = fx.Captions([] if story.get("silent") else words, frame)  # music-only shorts: no captions
     title = fx.Title(story["title"], frame)

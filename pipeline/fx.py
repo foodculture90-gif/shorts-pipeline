@@ -225,7 +225,7 @@ class Captions:
         cur = []
         for w in timed_words:
             cur.append(w)
-            if len(cur) >= max_words or str(w[0])[-1:] in ".,!?;:":
+            if len(cur) >= max_words or str(w[0])[-1:] in ".,!?;:" or (len(w) > 3 and w[3]):
                 self.groups.append(cur)
                 cur = []
         if cur:

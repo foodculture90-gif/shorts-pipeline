@@ -90,7 +90,10 @@ def _valid(st):
 
 
 def image_prompt(story, shot):
-    cast = "; ".join(f"{c['name']}: {c['look']}" for c in story["characters"])
+    # only the characters in this shot (others' features would bleed into them)
+    text = " ".join(str(shot.get(k, "")) for k in ("prompt", "motion", "speaker")).lower()
+    chars = [c for c in story["characters"] if any(w in text for w in c["name"].lower().split() if len(w) > 2)] or story["characters"]
+    cast = "; ".join(f"{c['name']}: {c['look']}" for c in chars)
     # pictures are square but the video is tall (9:16): keep the action in the centre column
     framing = ("wide shot, characters full body in the centre of the picture, important action centred, "
                "open space above and below" if shot.get("framing") == "wide"

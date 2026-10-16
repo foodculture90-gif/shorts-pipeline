@@ -184,7 +184,7 @@ def cmd_animate(payload, cmd):
     for c in jobs:
         try:
             ep = _episode(c["payload"]["episode_id"])
-            if ep["status"] == "generating" and ep.get("assets_path"):
+            if ep["status"] == "generating" and ep.get("assets_path") and ep["id"] not in [x["id"] for x in eps]:
                 eps.append(ep)
         except Exception as e:  # noqa: BLE001
             print("  skip", c["payload"], e)

@@ -96,7 +96,7 @@ def test(title_prefix, count="3"):
         print("uploaded", f"tests/{stamp}-{f.name}")
 
 
-DEFAULTS = {"guidance": 1.0, "steps": 30, "frames": 73, "end_strength": 0.5}
+DEFAULTS = {"guidance": 3.0, "steps": 30, "frames": 73, "end_strength": 0.0}  # g3 = lively motion
 
 
 def animate_batch(episodes, workdir: Path, log=print):
@@ -136,7 +136,7 @@ ACTION_WORDS = {
 def video_prompt(story, shot):
     """Describes the motion for the image-to-video model."""
     act = shot.get("motion") or "The character " + ACTION_WORDS.get(shot.get("action", ""), "moves naturally")
-    return (f"{shot['prompt']} {act.rstrip('.')}, smoothly, staying in the centre of the frame, "
+    return (f"{shot['prompt']} {act.rstrip('.')}, lively expressive cartoon acting, big clear movement, staying in the frame, "
             f"keeping exactly the same look, expressive face, smooth cartoon animation, steady camera. "
             f"3D animated preschool TV cartoon, bright colours, high quality.")[:900]
 
