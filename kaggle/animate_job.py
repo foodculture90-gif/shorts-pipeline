@@ -35,7 +35,7 @@ FRAMES = JOB.get("frames", 73)
 STEPS = JOB.get("steps", 30)
 MODEL = JOB.get("model", "Lightricks/LTX-Video-0.9.5")
 NEG = ("worst quality, inconsistent motion, blurry, jittery, distorted, deformed, extra limbs, "
-       "morphing, text, watermark")
+       "morphing, melting, character leaving the frame, empty scene, fast camera move, text, watermark")
 
 
 def fetch(url, path):
@@ -78,7 +78,7 @@ try:
     # 1) encode every prompt with the T5 text encoder in full precision on the CPU (fp16 T5 overflows),
     #    then free it
     GUIDE = float(JOB.get("guidance", 3.0))
-    CFG = GUIDE > 1.0          # guidance 1 = no negative pass = twice as fast
+    CFG = any(float(s.get("guidance", GUIDE)) > 1.0 for s in JOB["shots"])  # guidance 1 = no negative pass = 2x faster
     pipe.text_encoder.to("cpu", torch.float32)
     embeds = []
     for shot in JOB["shots"]:
@@ -116,14 +116,15 @@ try:
                 img = prep(fetch(shot["image"], f"/tmp/in{i}.jpg"))
                 pe, pm, ne, nm = embeds[i]
                 conds = [LTXVideoCondition(image=img, frame_index=0)]
-                if END > 0:
-                    conds.append(LTXVideoCondition(image=img, frame_index=FRAMES - 1, strength=END))
+                end, gs = float(shot.get("end_strength", END)), float(shot.get("guidance", GUIDE))
+                if end > 0:
+                    conds.append(LTXVideoCondition(image=img, frame_index=FRAMES - 1, strength=end))
                 g = torch.Generator(dev).manual_seed(shot.get("seed", 1))
-                extra = dict(negative_prompt_embeds=ne.to(dev), negative_prompt_attention_mask=nm.to(dev)) if CFG else {}
+                extra = dict(negative_prompt_embeds=ne.to(dev), negative_prompt_attention_mask=nm.to(dev)) if gs > 1.0 else {}
                 with torch.cuda.device(k):
                     video = pp(conditions=conds, prompt_embeds=pe.to(dev), prompt_attention_mask=pm.to(dev), **extra,
                                width=W, height=H, num_frames=FRAMES, num_inference_steps=STEPS,
-                               guidance_scale=GUIDE, generator=g, decode_timestep=0.05, decode_noise_scale=0.025,
+                               guidance_scale=gs, generator=g, decode_timestep=0.05, decode_noise_scale=0.025,
                                output_type="pil").frames[0]
                 export_to_video(video, f"{OUT}/{name}.mp4", fps=JOB.get("fps", 24))
                 NAMES.append(name)
