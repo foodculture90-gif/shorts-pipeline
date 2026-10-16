@@ -16,18 +16,20 @@ from . import config, images, render, story as story_mod, voice
 
 
 def make_assets(workdir: Path, channel, *, past_titles=(), idea=None, feedback=None, previous=None,
-                voice_name=None, offline=False, on_image=None, log=print):
+                voice_name=None, offline=False, on_image=None, log=print, silent=False):
     workdir.mkdir(parents=True, exist_ok=True)
     log("Writing the script")
     if offline:
         st = story_mod.offline_story()
     else:
-        st = story_mod.write_story(channel, list(past_titles), idea=idea, feedback=feedback, previous=previous)
+        st = story_mod.write_story(channel, list(past_titles), idea=idea, feedback=feedback, previous=previous,
+                                  silent=silent)
     st["seed"] = random.randint(1, 1_000_000)
     log(f"Drawing 8 pictures for “{st['title']}”")
     images.make_pictures(st, workdir, offline=offline, on_image=on_image)
-    log("Recording narration")
-    voice.make_narration(st, workdir, voice=voice_name or channel.get("voice"), offline=offline)
+    st["silent"] = bool(silent)
+    log("Music-only short (no talking)" if silent else "Recording narration")
+    voice.make_narration(st, workdir, voice=voice_name or channel.get("voice"), offline=offline, silent=silent)
     (workdir / "story.json").write_text(json.dumps(st, indent=1, ensure_ascii=False))
     return st
 
