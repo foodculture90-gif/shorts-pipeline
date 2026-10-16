@@ -67,7 +67,12 @@ try:
 
     dtype = torch.float16 if JOB.get("fp16", True) else torch.float32
     log("loading", MODEL, dtype)
-    pipe = LTXConditionPipeline.from_pretrained(MODEL, torch_dtype=dtype)
+    try:
+        pipe = LTXConditionPipeline.from_pretrained(MODEL, torch_dtype=dtype)
+    except Exception as e:  # noqa: BLE001  (model not in diffusers format etc.)
+        log("could not load", MODEL, "->", str(e)[:300], "; using Lightricks/LTX-Video-0.9.5")
+        MODEL, STEPS = "Lightricks/LTX-Video-0.9.5", max(STEPS, 30)
+        pipe = LTXConditionPipeline.from_pretrained(MODEL, torch_dtype=dtype)
     # T5 text encoder in full precision on the CPU (fp16 T5 overflows); everything else on GPU 0
     pipe.text_encoder.to("cpu", torch.float32)
     pipe.transformer.to("cuda:0")
