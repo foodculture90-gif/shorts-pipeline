@@ -38,7 +38,7 @@ def run(job: dict, outdir: Path, timeout_min=110, log=print):
     work = outdir / "_kernel"
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir(parents=True)
-    code = SCRIPT.read_text().replace("JOB = {}", "JOB = " + json.dumps(job), 1)
+    code = SCRIPT.read_text().replace("JOB = {}", "JOB = __import__('json').loads(" + repr(json.dumps(job)) + ")", 1)
     (work / "animate_job.py").write_text(code)
     (work / "kernel-metadata.json").write_text(json.dumps({
         "id": f"{user}/{SLUG}", "title": SLUG, "code_file": "animate_job.py", "language": "python",
