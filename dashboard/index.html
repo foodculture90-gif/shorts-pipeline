@@ -242,7 +242,18 @@ const api = {
     if (id) await q(sb.from("channels").update(values).eq("id", id)); else await q(sb.from("channels").insert(values));
   },
   async deleteChannel(id) { if (DEMO) { demo.channels = demo.channels.filter(c => c.id !== id); return; } await q(sb.from("channels").delete().eq("id", id)); },
-  async episodes() { return DEMO ? demo.episodes : q(sb.from("episodes").select("*").not("status", "in", "(replaced,deleted)").order("created_at", { ascending: false }).limit(300)); },
+  async episodes() {
+    if (DEMO) return demo.episodes;
+    const [eps, cmds] = await Promise.all([
+      q(sb.from("episodes").select("*").not("status", "in", "(replaced,deleted)").order("created_at", { ascending: false }).limit(300)),
+      q(sb.from("commands").select("id,payload,created_at,status").eq("type", "generate").in("status", ["queued", "running"]).order("created_at", { ascending: false }).limit(50)),
+    ]);
+    // Shorts you just asked for show up immediately, before a worker picks them up.
+    const pending = cmds.filter(c => !c.payload?.episode_id).map(c => ({
+      id: "cmd-" + c.id, channel_id: c.payload?.channel_id, status: "queued", idea: c.payload?.idea,
+      feedback: c.payload?.feedback, created_at: c.created_at, pending: true }));
+    return [...pending, ...eps];
+  },
   async waitingNote() {
     if (DEMO) return null;
     const rows = await q(sb.from("commands").select("note,run_after").eq("status", "queued").gt("run_after", new Date().toISOString()).limit(1));
@@ -370,6 +381,7 @@ function epCard(e, waitNote) {
     <button class="btn" data-act="schedule" data-id="${e.id}">${ic("clock", 16)}</button>
     <button class="btn" data-act="revise" data-id="${e.id}">${ic("edit", 16)} Change</button>
     <button class="btn ghost danger" data-act="delete" data-id="${e.id}" aria-label="Delete">${ic("trash", 16)}</button>`;
+  else if (e.pending) actions = "";
   else if (e.status === "failed") actions = `
     <button class="btn dark" data-act="${e.assets_path ? "publish" : "retry"}" data-id="${e.id}">${ic("refresh", 16)} Retry</button>
     <button class="btn ghost danger" data-act="delete" data-id="${e.id}">${ic("trash", 16)} Remove</button>`;
@@ -702,6 +714,7 @@ async function boot() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "activity" }, () => { if (!location.hash || location.hash === "#/") refresh(); })
       .subscribe();
     document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+    setInterval(() => { if (!document.hidden && state.episodes.some(e => ["queued", "generating", "publishing"].includes(e.status))) refresh(); }, 20000);
   }
 }
 boot();
