@@ -12,6 +12,16 @@ def _base():
     return os.environ["SUPABASE_URL"].rstrip("/")
 
 
+def _q(query):
+    """URL-safe query string: '+' in timestamps (e.g. +00:00) would otherwise be read as a space."""
+    return query.replace("+", "%2B")
+
+
+def _check(r):
+    if not r.ok:
+        raise requests.HTTPError(f"{r.status_code} from database: {r.text[:300]}", response=r)
+
+
 def _headers(extra=None):
     key = os.environ["SUPABASE_SERVICE_KEY"]
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json"}
@@ -20,34 +30,34 @@ def _headers(extra=None):
 
 
 def select(table, query=""):
-    r = requests.get(f"{_base()}/rest/v1/{table}?{query}", headers=_headers(), timeout=30)
-    r.raise_for_status()
+    r = requests.get(f"{_base()}/rest/v1/{table}?{_q(query)}", headers=_headers(), timeout=30)
+    _check(r)
     return r.json()
 
 
 def insert(table, row):
     r = requests.post(f"{_base()}/rest/v1/{table}", headers=_headers({"Prefer": "return=representation"}),
                       data=json.dumps(row, default=str), timeout=30)
-    r.raise_for_status()
+    _check(r)
     return r.json()[0]
 
 
 def insert_many(table, rows):
     r = requests.post(f"{_base()}/rest/v1/{table}", headers=_headers({"Prefer": "return=minimal"}),
                       data=json.dumps(rows, default=str), timeout=30)
-    r.raise_for_status()
+    _check(r)
 
 
 def update(table, match, values):
-    r = requests.patch(f"{_base()}/rest/v1/{table}?{match}", headers=_headers({"Prefer": "return=representation"}),
+    r = requests.patch(f"{_base()}/rest/v1/{table}?{_q(match)}", headers=_headers({"Prefer": "return=representation"}),
                        data=json.dumps(values, default=str), timeout=30)
-    r.raise_for_status()
+    _check(r)
     return r.json()
 
 
 def rpc(fn, **args):
     r = requests.post(f"{_base()}/rest/v1/rpc/{fn}", headers=_headers(), data=json.dumps(args), timeout=30)
-    r.raise_for_status()
+    _check(r)
     return r.json()
 
 
@@ -55,7 +65,7 @@ def upsert(table, row, on_conflict):
     r = requests.post(f"{_base()}/rest/v1/{table}?on_conflict={on_conflict}",
                       headers=_headers({"Prefer": "resolution=merge-duplicates,return=minimal"}),
                       data=json.dumps(row, default=str), timeout=30)
-    r.raise_for_status()
+    _check(r)
 
 
 def settings():
@@ -76,7 +86,7 @@ def upload(local: Path, remote: str, content_type="application/octet-stream"):
         r = requests.post(f"{_base()}/storage/v1/object/{BUCKET}/{remote}",
                           headers=_headers({"Content-Type": content_type, "x-upsert": "true"}),
                           data=f, timeout=600)
-    r.raise_for_status()
+    _check(r)
     return remote
 
 
