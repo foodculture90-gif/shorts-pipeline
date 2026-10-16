@@ -80,8 +80,10 @@ def image_prompt(story, shot):
                "open space above and below" if shot.get("framing") == "wide"
                else "medium close-up, head and shoulders centred in the picture with space around, "
                     "expressive face, shallow depth of field")
-    p = (f"{shot['prompt']}. {framing}. Characters (draw exactly as described): {cast}. "
-         f"World: {story.get('setting', '')}. Style: {story['style']}. "
+    # characters first: the image model follows the start of the prompt most closely,
+    # which keeps the same character looking the same in every shot
+    p = (f"{story['style']}. Characters, exactly as described every time: {cast}. "
+         f"Shot: {shot['prompt']}. {framing}. World: {story.get('setting', '')}. "
          "Masterpiece, beautiful composition, clean details, no text, no letters, no watermark, no border.")
     return p[:2000]
 
