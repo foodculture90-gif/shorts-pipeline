@@ -6,3 +6,4 @@ onnxruntime>=1.18
 edge-tts>=7.0
 google-api-python-client>=2.130
 google-auth>=2.30
+kaggle>=1.7
