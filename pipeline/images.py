@@ -21,7 +21,7 @@ def _cloudflare(prompt, seed, out: Path):
     r = requests.post(
         f"https://api.cloudflare.com/client/v4/accounts/{acct}/ai/run/{config.IMAGE_MODEL}",
         headers={"Authorization": f"Bearer {token}"},
-        json={"prompt": prompt, "steps": config.IMAGE_STEPS, "seed": seed},
+        json={"prompt": prompt[:2048], "steps": config.IMAGE_STEPS},  # this model accepts only these two
         timeout=120,
     )
     body = r.text.lower()
@@ -30,6 +30,8 @@ def _cloudflare(prompt, seed, out: Path):
     if r.status_code in (401, 403):
         raise PermissionError(f"Cloudflare refused the key ({r.status_code}): {r.text[:200]} — "
                               "re-copy CLOUDFLARE_API_TOKEN (Workers AI template) into GitHub secrets")
+    if r.status_code == 400:
+        raise ValueError(f"Cloudflare rejected the picture request: {r.text[:300]}")
     r.raise_for_status()
     data = r.json()
     img = (data.get("result") or {}).get("image")
@@ -87,7 +89,7 @@ def make_pictures(story, workdir: Path, offline=False, on_image=None):
                         if on_image:
                             on_image()
                         break
-                    except (QuotaExceeded, PermissionError):
+                    except (QuotaExceeded, PermissionError, ValueError):
                         raise
                     except Exception as e:  # noqa: BLE001
                         print(f"  picture {si + 1}.{hi + 1} attempt {attempt + 1}: {e}")
