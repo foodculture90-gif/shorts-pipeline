@@ -172,3 +172,86 @@ def sparkle(seed=0):
         a = int(k * 0.06 * SR)
         out[a:a + len(b)] += b[: len(out) - a] * (0.8 - 0.12 * k)
     return out / (np.abs(out).max() or 1)
+
+
+# ------------------------------------------------------------------ sound effects
+SFX = ["boing", "pop", "twinkle", "whoosh", "slide_up", "slide_down", "splash", "tada", "taps", "honk",
+       "ding", "drum_roll", "bubble"]
+
+
+def _env(n, attack=0.005, decay=0.2):
+    t = np.arange(n) / SR
+    return np.minimum(1, t / attack) * np.exp(-t / decay)
+
+
+def sfx(name, seed=0):
+    """Cartoon sound effects, synthesised (no samples, no copyright)."""
+    rng = np.random.default_rng(seed)
+    if name == "boing":
+        n = int(0.55 * SR); t = np.arange(n) / SR
+        f = 180 + 260 * np.exp(-t * 7) + 30 * np.sin(2 * np.pi * 14 * t) * np.exp(-t * 3)
+        s = np.sin(2 * np.pi * np.cumsum(f) / SR) * _env(n, 0.003, 0.22)
+    elif name == "pop":
+        n = int(0.12 * SR); t = np.arange(n) / SR
+        s = np.sin(2 * np.pi * np.cumsum(900 - 5000 * t) / SR) * _env(n, 0.001, 0.03)
+    elif name == "twinkle":
+        s = sparkle(seed)
+    elif name == "whoosh":
+        s = whoosh(0.5, seed)
+    elif name in ("slide_up", "slide_down"):
+        n = int(0.6 * SR); t = np.arange(n) / SR
+        f = 400 + 900 * (t / t[-1]) if name == "slide_up" else 1300 - 900 * (t / t[-1])
+        vib = 1 + 0.02 * np.sin(2 * np.pi * 9 * t)
+        s = np.sin(2 * np.pi * np.cumsum(f * vib) / SR) * np.minimum(1, t / 0.03) * np.minimum(1, (t[-1] - t) / 0.08)
+        s += 0.3 * np.sin(2 * 2 * np.pi * np.cumsum(f * vib) / SR) * np.minimum(1, t / 0.03) * np.minimum(1, (t[-1] - t) / 0.08)
+    elif name == "splash":
+        n = int(0.7 * SR)
+        noise = rng.normal(0, 1, n)
+        noise = noise - np.concatenate(([0], noise[:-1])) * 0.7
+        s = noise * _env(n, 0.004, 0.18)
+        for k in range(6):  # droplets
+            a = int(rng.uniform(0.1, 0.6) * SR); m = int(0.05 * SR)
+            tt = np.arange(m) / SR
+            s[a:a + m] += 0.6 * np.sin(2 * np.pi * np.cumsum(1200 + 2500 * tt) / SR)[: n - a] * np.exp(-tt * 60)[: n - a]
+    elif name == "tada":
+        n = int(1.3 * SR); s = np.zeros(n)
+        for k, (m, st) in enumerate([(72, 0.0), (76, 0.0), (79, 0.0), (84, 0.18), (88, 0.18), (91, 0.18)]):
+            note = _sine_note(m, 1.1 - st, attack=0.01, release=0.5)
+            a = int(st * SR); s[a:a + len(note)] += note[: n - a] * 0.4
+    elif name == "taps":
+        n = int(0.9 * SR); s = np.zeros(n)
+        for k in range(4):
+            m = int(0.04 * SR); tt = np.arange(m) / SR
+            hit = np.sin(2 * np.pi * (300 + 60 * (k % 2)) * tt) * np.exp(-tt * 90) + rng.normal(0, 0.3, m) * np.exp(-tt * 200)
+            a = int(k * 0.2 * SR); s[a:a + m] += hit
+    elif name == "honk":
+        n = int(0.5 * SR); t = np.arange(n) / SR
+        sq = np.sign(np.sin(2 * np.pi * 330 * t)) * 0.5 + np.sign(np.sin(2 * np.pi * 415 * t)) * 0.5
+        s = np.convolve(sq, np.ones(12) / 12, mode="same") * np.minimum(1, t / 0.01) * np.minimum(1, (t[-1] - t) / 0.05)
+        s[int(0.22 * SR):int(0.27 * SR)] *= 0.1
+    elif name == "ding":
+        s = _bell(88, 1.2)
+    elif name == "giggle":
+        n = int(0.8 * SR); s = np.zeros(n)
+        for k in range(5):
+            m = int(0.09 * SR); tt = np.arange(m) / SR
+            f0 = 520 + 40 * k + 80 * np.sin(2 * np.pi * 7 * tt)
+            v = (np.sin(2 * np.pi * np.cumsum(f0) / SR) + 0.4 * np.sin(4 * np.pi * np.cumsum(f0) / SR))
+            v *= np.sin(np.pi * tt / tt[-1]) ** 2
+            a = int(k * 0.13 * SR); s[a:a + m] += v[: n - a] * (1 - 0.12 * k)
+    elif name == "drum_roll":
+        n = int(1.0 * SR); s = np.zeros(n)
+        for k in range(28):
+            m = int(0.03 * SR); tt = np.arange(m) / SR
+            a = int(k * 0.034 * SR)
+            s[a:a + m] += (rng.normal(0, 1, m) * 0.5 + np.sin(2 * np.pi * 180 * tt)) * np.exp(-tt * 80) * (0.4 + 0.6 * k / 28)
+    elif name == "bubble":
+        n = int(0.5 * SR); s = np.zeros(n)
+        for k in range(4):
+            m = int(0.06 * SR); tt = np.arange(m) / SR
+            a = int(rng.uniform(0, 0.4) * SR)
+            s[a:a + m] += np.sin(2 * np.pi * np.cumsum(500 + 1800 * tt / tt[-1]) / SR)[: n - a] * np.exp(-tt * 40)[: n - a]
+    else:
+        return np.zeros(1, np.float32)
+    s = np.asarray(s, np.float32)
+    return s / (np.abs(s).max() or 1)
