@@ -27,6 +27,9 @@ def _cloudflare(prompt, seed, out: Path):
     body = r.text.lower()
     if r.status_code == 429 or "neuron" in body and ("allocation" in body or "limit" in body):
         raise QuotaExceeded("Cloudflare free daily picture limit reached")
+    if r.status_code in (401, 403):
+        raise PermissionError(f"Cloudflare refused the key ({r.status_code}): {r.text[:200]} — "
+                              "re-copy CLOUDFLARE_API_TOKEN (Workers AI template) into GitHub secrets")
     r.raise_for_status()
     data = r.json()
     img = (data.get("result") or {}).get("image")
@@ -84,7 +87,7 @@ def make_pictures(story, workdir: Path, offline=False, on_image=None):
                         if on_image:
                             on_image()
                         break
-                    except QuotaExceeded:
+                    except (QuotaExceeded, PermissionError):
                         raise
                     except Exception as e:  # noqa: BLE001
                         print(f"  picture {si + 1}.{hi + 1} attempt {attempt + 1}: {e}")
