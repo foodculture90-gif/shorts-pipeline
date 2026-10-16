@@ -28,17 +28,21 @@ PREVIEW_SIZE = (540, 960)       # what you watch in the app (small = stays insid
 FPS = 30
 
 # --- Variety: every short gets a random format, art style and spark ----------------------
+# All styles share one look: a bright 3D CGI preschool TV cartoon. The lighting and palette
+# change per short, and the characters are always new.
+_TV = ("3D CGI preschool TV cartoon, smooth clean shading, big expressive eyes, rounded chunky shapes, "
+       "simple clean environments, saturated primary colours, crisp render, kid-friendly, high quality animation still")
 STYLES = [
-    "high-end 3D animated feature film style, soft cinematic lighting, subsurface scattering, rich colour, highly detailed, expressive cute characters",
-    "children's picture-book watercolour illustration, soft textured paper, delicate ink outlines, gentle pastel washes, whimsical",
-    "claymation stop-motion style, handmade plasticine characters with fingerprints, miniature set, warm studio lighting, shallow depth of field",
-    "hand-painted Japanese animated film style, lush painted backgrounds, warm afternoon light, soft clouds, nostalgic and gentle",
-    "layered papercraft diorama, cut-paper characters, real paper texture, soft shadows between layers, vibrant colours",
-    "needle-felted wool puppets in a cosy miniature world, fuzzy textures, soft window light, tilt-shift",
-    "vintage 1950s storybook gouache illustration, limited warm palette, charming textured brushwork",
-    "glossy toy-like 3D render, bright candy colours, soft global illumination, playful and clean",
-    "cosy digital painting, storybook fantasy, glowing warm lights, magical atmosphere, painterly brushstrokes",
-    "colourful chalk-pastel illustration on dark paper, soft glowing highlights, dreamy bedtime mood",
+    f"{_TV}, sunny daytime, bright blue sky, cheerful",
+    f"{_TV}, golden late-afternoon light, warm orange tones",
+    f"{_TV}, soft night-time lighting, glowing lamps, cosy blues and purples",
+    f"{_TV}, rainy day, shiny puddles, colourful raincoats and umbrellas",
+    f"{_TV}, snowy winter, soft white snow, warm cheerful lights",
+    f"{_TV}, underwater world, sparkling light rays, bright corals",
+    f"{_TV}, outer space, glowing planets and stars, shiny spaceship",
+    f"{_TV}, lush green park and town, tidy streets, fluffy clouds",
+    f"{_TV}, jungle with big leaves, dappled sunlight, vivid greens",
+    f"{_TV}, seaside harbour town, bright boats, sparkling water",
 ]
 FORMATS = [
     "funny fable with a gentle lesson", "bedtime story", "animal adventure", "space adventure",
