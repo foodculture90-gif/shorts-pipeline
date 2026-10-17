@@ -81,7 +81,7 @@ def draw_pictures():
         groups.setdefault(s["pic_name"].split("__")[0], []).append(s)
     groups = [sorted(g, key=lambda s: s["pic_name"]) for g in groups.values()]
     n = max(1, min(torch.cuda.device_count(), 2, len(groups)))
-    pipes, ipa = [], [False] * n
+    pipes, ipa, loaded = [], [False] * n, [False] * n
     for k in range(n):
         try:
             pp = DiffusionPipeline.from_pretrained(model, torch_dtype=torch.float16, variant="fp16")
@@ -92,7 +92,7 @@ def draw_pictures():
             try:
                 pp.load_ip_adapter("h94/IP-Adapter", subfolder="sdxl_models", weight_name="ip-adapter_sdxl.bin")
                 pp.to(f"cuda:{k}")
-                ipa[k] = True
+                ipa[k] = loaded[k] = True
             except Exception as e:  # noqa: BLE001
                 log("IP-Adapter unavailable:", str(e)[:200])
         pipes.append(pp)
@@ -104,10 +104,12 @@ def draw_pictures():
                 t = time.time()
                 try:
                     g = torch.Generator(f"cuda:{k}").manual_seed(int(s.get("gen_seed", 1)))
+                    blank = Image.new("RGB", (224, 224), "white")
                     extra = {}
-                    if ipa[k]:
-                        pipes[k].set_ip_adapter_scale(JOB.get("ip_scale", 0.45) if ref is not None else 0.0)
-                        extra["ip_adapter_image"] = ref if ref is not None else Image.new("RGB", (224, 224), "white")
+                    if loaded[k]:  # adapter loaded: reference picture (or a blank one at strength 0)
+                        use = ipa[k] and ref is not None
+                        pipes[k].set_ip_adapter_scale(JOB.get("ip_scale", 0.45) if use else 0.0)
+                        extra["ip_adapter_image"] = ref if use else blank
                     args = dict(prompt=s["gen_prompt"], negative_prompt=s.get("gen_negative"), width=768, height=1344,
                                 num_inference_steps=JOB.get("image_steps", 30), guidance_scale=JOB.get("image_guidance", 3.0))
                     try:
@@ -115,11 +117,11 @@ def draw_pictures():
                     except Exception as e:  # noqa: BLE001  (IP-Adapter trouble -> carry on without it)
                         if not ipa[k]:
                             raise
-                        log("IP-Adapter failed, switching it off:", str(e)[:200])
-                        pipes[k].unload_ip_adapter()
+                        log("IP-Adapter FAILED, switching it off:", repr(e)[:400])
                         ipa[k] = False
+                        pipes[k].set_ip_adapter_scale(0.0)
                         g = torch.Generator(f"cuda:{k}").manual_seed(int(s.get("gen_seed", 1)))
-                        im = pipes[k](generator=g, **args).images[0]
+                        im = pipes[k](generator=g, ip_adapter_image=blank, **args).images[0]
                     if ref is None:
                         ref = im.copy()
                     im = im.convert("RGB").resize((W, H), Image.LANCZOS)
