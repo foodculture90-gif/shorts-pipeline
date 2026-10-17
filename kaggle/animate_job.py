@@ -92,9 +92,15 @@ def draw_pictures():
             try:
                 pp.load_ip_adapter("h94/IP-Adapter", subfolder="sdxl_models", weight_name="ip-adapter_sdxl.bin")
                 pp.to(f"cuda:{k}")
+                if getattr(pp, "image_encoder", None) is not None:  # loads in fp32 -> Half/float mismatch + wasted memory
+                    pp.image_encoder.to(f"cuda:{k}", torch.float16)
                 ipa[k] = loaded[k] = True
             except Exception as e:  # noqa: BLE001
                 log("IP-Adapter unavailable:", str(e)[:200])
+        try:  # 768x1344 VAE decode + adapter don't fit a T4 otherwise
+            pp.enable_vae_tiling()
+        except Exception:  # noqa: BLE001
+            pass
         pipes.append(pp)
 
     def work(k):
@@ -114,14 +120,19 @@ def draw_pictures():
                                 num_inference_steps=JOB.get("image_steps", 30), guidance_scale=JOB.get("image_guidance", 3.0))
                     try:
                         im = pipes[k](generator=g, **args, **extra).images[0]
-                    except Exception as e:  # noqa: BLE001  (IP-Adapter trouble -> carry on without it)
-                        if not ipa[k]:
+                    except Exception as e:  # noqa: BLE001  (IP-Adapter / memory trouble -> unload it and carry on)
+                        if not loaded[k]:
                             raise
-                        log("IP-Adapter FAILED, switching it off:", repr(e)[:400])
-                        ipa[k] = False
-                        pipes[k].set_ip_adapter_scale(0.0)
+                        log("IP-Adapter FAILED, removing it:", repr(e)[:400])
+                        ipa[k] = loaded[k] = False
+                        try:
+                            pipes[k].unload_ip_adapter()
+                        except Exception as e2:  # noqa: BLE001
+                            log("unload_ip_adapter:", repr(e2)[:200])
+                        gc.collect()
+                        torch.cuda.empty_cache()
                         g = torch.Generator(f"cuda:{k}").manual_seed(int(s.get("gen_seed", 1)))
-                        im = pipes[k](generator=g, ip_adapter_image=blank, **args).images[0]
+                        im = pipes[k](generator=g, **args).images[0]
                     if ref is None:
                         ref = im.copy()
                     im = im.convert("RGB").resize((W, H), Image.LANCZOS)
@@ -132,6 +143,9 @@ def draw_pictures():
                     log(f"gpu{k} picture {s['pic_name']} in {time.time() - t:.0f}s")
                 except Exception:  # noqa: BLE001
                     log(f"picture {s['pic_name']} FAILED\n" + traceback.format_exc()[-1200:])
+                finally:
+                    gc.collect()
+                    torch.cuda.empty_cache()
 
     th = [threading.Thread(target=work, args=(k,)) for k in range(n)]
     [x.start() for x in th]
