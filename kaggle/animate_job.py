@@ -23,15 +23,17 @@ def sh(cmd):
 log("job:", json.dumps({k: v for k, v in JOB.items() if k != "shots"}))
 sh("nvidia-smi --query-gpu=name,memory.total --format=csv")
 sh("pip uninstall -y -q torchao")  # Kaggle's old torchao breaks new diffusers; not needed
-sh("pip install -q -U 'diffusers>=0.33' 'transformers>=4.48' accelerate sentencepiece imageio imageio-ffmpeg ftfy")
+sh("pip install -q -U 'diffusers>=0.33' 'transformers>=4.48' accelerate sentencepiece imageio imageio-ffmpeg ftfy spandrel")
 
 import torch  # noqa: E402
 from PIL import Image  # noqa: E402
 
 log("torch", torch.__version__, "cuda", torch.cuda.is_available(), torch.cuda.device_count())
 OUT = "/kaggle/working"
-W, H = JOB.get("width", 512), JOB.get("height", 896)
-FRAMES = JOB.get("frames", 73)
+W, H = JOB.get("width", 576), JOB.get("height", 1024)
+FRAMES = JOB.get("frames", 97)
+OUT_W, OUT_H = JOB.get("out_width", 1080), JOB.get("out_height", 1920)  # final clip size after upscaling
+ESRGAN = "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesr-animevideov3.pth"
 STEPS = JOB.get("steps", 30)
 MODEL = JOB.get("model", "Lightricks/LTX-Video-0.9.5")
 NEG = ("worst quality, inconsistent motion, blurry, jittery, distorted, deformed, extra limbs, "
@@ -130,6 +132,41 @@ try:
         pp.vae.enable_tiling()
     log("model on", ngpu, "GPU(s)")
 
+    # 3) cartoon upscaler (Real-ESRGAN anime-video, tiny + fast): 576x1024 -> crisp 1080x1920
+    import numpy as np
+    import imageio
+    import torch.nn.functional as F
+    upscalers = {}
+    if JOB.get("upscale", True):
+        try:
+            from spandrel import ModelLoader
+            fetch(ESRGAN, "/tmp/esrgan.pth")
+            for k in range(ngpu):
+                upscalers[k] = ModelLoader().load_from_file("/tmp/esrgan.pth").model.eval().half().to(f"cuda:{k}")
+            log("upscaler ready")
+        except Exception as e:  # noqa: BLE001
+            log("upscaler unavailable:", str(e)[:300])
+
+    def save_clip(frames, path, k):
+        arr = np.stack([np.asarray(f.convert("RGB")) for f in frames])  # T,H,W,3 uint8
+        out = []
+        if k in upscalers:
+            try:
+                with torch.no_grad():
+                    for i in range(0, len(arr), 4):
+                        x = torch.from_numpy(arr[i:i + 4]).to(f"cuda:{k}").permute(0, 3, 1, 2).half() / 255
+                        y = upscalers[k](x).clamp(0, 1)
+                        y = F.interpolate(y.float(), size=(OUT_H, OUT_W), mode="area")
+                        out.append((y * 255).round().byte().permute(0, 2, 3, 1).cpu().numpy())
+                arr = np.concatenate(out)
+            except Exception as e:  # noqa: BLE001
+                log("upscale failed, saving raw:", str(e)[:200])
+        w = imageio.get_writer(path, fps=JOB.get("fps", 24), codec="libx264", quality=None, macro_block_size=8,
+                               ffmpeg_params=["-crf", str(JOB.get("crf", 20)), "-pix_fmt", "yuv420p", "-preset", "medium"])
+        for fr in arr:
+            w.append_data(fr)
+        w.close()
+
     END = float(JOB.get("end_strength", 0.0))  # >0: also pin the last frame to the picture (less drift/blur)
 
     def work(k):
@@ -152,7 +189,7 @@ try:
                                width=W, height=H, num_frames=FRAMES, num_inference_steps=STEPS,
                                guidance_scale=gs, generator=g, decode_timestep=0.05, decode_noise_scale=0.025,
                                output_type="pil").frames[0]
-                export_to_video(video, f"{OUT}/{name}.mp4", fps=JOB.get("fps", 24))
+                save_clip(video, f"{OUT}/{name}.mp4", k)
                 NAMES.append(name)
                 log(f"gpu{k} clip {name}: {len(video)} frames in {time.time() - t:.0f}s")
             except Exception:  # noqa: BLE001  (one bad shot must not stop the rest)
