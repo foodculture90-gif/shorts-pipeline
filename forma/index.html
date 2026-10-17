@@ -8,27 +8,26 @@
 <link rel="icon" href="icon-192.png">
 <title>FORMA</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="theme-color" content="#0b0f1c">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#efe9df">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="FORMA">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>window.FORMA_CONFIG = window.FORMA_CONFIG || {};</script>
 <script src="config.js" onerror="void 0"></script>
 <style>
 /* Layout: one phone-width column, sticky header, bottom tab bar; cards only for things you act on */
 :root{
-  --bg:#0b0f1c; --bg2:#161c2e; --card:#111729; --ink:#eef2ff; --ink2:#9aa4c4; --ink3:#5f6a8d;
-  --line:#1f2740; --accent:#3ad7ff; --accent2:#7b8cff; --accentSoft:rgba(58,215,255,.12);
-  --mag:#ff4fd8; --magSoft:rgba(255,79,216,.14);
-  --green:#3ee08f; --greenSoft:rgba(62,224,143,.13); --red:#ff5d73; --redSoft:rgba(255,93,115,.14); --blue:#7b8cff; --blueSoft:rgba(123,140,255,.14);
-  --amber:#ffc24d; --amberSoft:rgba(255,194,77,.13);
-  --shadow:none;
+  --bg:#efe9df; --bg2:rgba(20,20,20,.06); --card:rgba(255,255,255,.55); --ink:#141414; --ink2:#5d574e; --ink3:#9a9184;
+  --line:rgba(20,20,20,.08); --accent:#141414; --accent2:#8c8478; --accentSoft:rgba(20,20,20,.07);
+  --green:#1f7a4d; --greenSoft:rgba(31,122,77,.1); --red:#b23a3a; --redSoft:rgba(178,58,58,.1); --blue:#8c8478; --blueSoft:rgba(140,132,120,.15);
+  --amber:#c2a878; --amberSoft:rgba(194,168,120,.18);
+  --glass:rgba(255,255,255,.5); --glassLine:rgba(255,255,255,.8);
+  --shadow:0 10px 30px rgba(70,52,28,.08),inset 0 1px 0 rgba(255,255,255,.7);
   --font:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --disp:"Chakra Petch","IBM Plex Sans",system-ui,sans-serif;
+  --disp:"Sora","IBM Plex Sans",system-ui,sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,monospace;
-  --r:18px; color-scheme:dark;
+  --r:22px; color-scheme:light;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
@@ -163,71 +162,85 @@ input[type=time].in{width:124px;flex:none;padding:8px 6px;font-size:14px}
 .rem{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
 .rem input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);flex:none}
 details summary{list-style:none}details summary::-webkit-details-marker{display:none}
-/* v3: calmer dark UI */
+/* v4: cream + black, frosted glass */
 h1,h2,h3,.bf,.big,.n,.kbig,.sn,.brand,.kcal,.tile .n,.ct{font-family:var(--disp)}
-h1{font-size:30px;font-weight:700;letter-spacing:-.01em;margin:10px 0 4px}
-h2{font-size:17px;font-weight:600;margin:28px 2px 12px;letter-spacing:0}
-.eyebrow{text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:600;color:var(--ink2)}
-.card{border:1px solid var(--line);box-shadow:none;padding:18px}
-.tile{border:1px solid var(--line);background:var(--card)}
+h1{font-size:30px;font-weight:600;letter-spacing:-.03em;margin:10px 0 4px}
+h2{font-size:17px;font-weight:600;margin:28px 2px 12px;letter-spacing:-.01em}
+body{background:var(--bg);min-height:100vh}
+body::after{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;
+  background:radial-gradient(40% 30% at 85% 8%,rgba(214,196,168,.55),transparent 70%),
+             radial-gradient(45% 35% at 5% 45%,rgba(255,255,255,.9),transparent 70%),
+             radial-gradient(40% 30% at 90% 85%,rgba(196,182,160,.45),transparent 70%)}
+.eyebrow{text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:500;color:var(--ink2)}
+.card,.tile,.quick button,.badge,.coach{background:var(--glass);border:1px solid var(--glassLine);box-shadow:var(--shadow);
+  -webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4)}
+.card{padding:18px;border-radius:22px}
+.tile{border-radius:18px}
 .tile .l{font-weight:500}
-.btn{border-radius:12px;color:#06101f;font-weight:700}
-.btn.ghost{background:var(--bg2);color:var(--ink)}
-.btn.danger{background:var(--redSoft);color:var(--red)}
-.mark{background:var(--accent);color:#06101f;border-radius:8px}
-.brand{letter-spacing:.12em;font-weight:700}
-.avatar{background:var(--bg2);color:var(--ink)}
-header.top{background:rgba(11,15,28,.88);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
-body::before{background:var(--bg)}
-nav.tabs{background:rgba(11,15,28,.9);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
-nav.tabs button{font-weight:600}
-.quick button{background:var(--card);border-color:var(--line);box-shadow:none;font-weight:600;color:var(--ink)}
-.quick svg{color:var(--accent)}
-.coach{background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.btn{background:var(--ink);color:var(--bg);border-radius:14px;font-weight:600}
+.btn.ghost{background:rgba(255,255,255,.55);color:var(--ink);border:1px solid var(--glassLine)}
+.btn.danger{background:rgba(180,40,40,.08);color:#a12a2a}
+.mark{background:var(--ink);color:var(--bg);border-radius:9px}
+.brand{letter-spacing:.14em;font-weight:600}
+.avatar{background:rgba(255,255,255,.6);color:var(--ink);border:1px solid var(--glassLine)}
+header.top{background:rgba(239,233,223,.72);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+body::before{background:rgba(239,233,223,.9)}
+nav.tabs{background:rgba(250,247,241,.72);border-top:1px solid var(--glassLine);-webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4)}
+nav.tabs button{font-weight:600;color:var(--ink3)}
+nav.tabs button.on{color:var(--ink)}
+.quick button{font-weight:600;color:var(--ink)}
+.quick svg{color:var(--ink)}
+.coach{color:var(--ink)}
 .coach .sub{color:var(--ink2);opacity:1}
-.coach .btn{background:var(--accent);color:#06101f}
-.demo{background:var(--amberSoft);color:var(--amber)}
-.streak{background:var(--magSoft);color:var(--mag)}
-.seg{background:var(--bg2)}
-.seg button.on{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
-input.in,select.in,textarea.in{background:var(--bg2);border-color:var(--line)}
-.sheet{background:var(--card);border-top:1px solid var(--line)}
-.scrim{background:rgba(3,6,14,.7)}
+.coach .btn{background:var(--ink);color:var(--bg)}
+.demo{background:rgba(255,255,255,.55);color:var(--ink2);border:1px solid var(--glassLine)}
+.streak{background:var(--ink);color:var(--bg)}
+.pill{background:rgba(255,255,255,.6);color:var(--ink2)}
+.pill.green{background:rgba(31,122,77,.1);color:#1f7a4d}.pill.amber{background:rgba(150,110,30,.1);color:#8a6418}
+.pill.orange,.pill.blue{background:rgba(17,17,17,.07);color:var(--ink)}
+.seg{background:rgba(17,17,17,.06)}
+.seg button.on{background:rgba(255,255,255,.85);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+input.in,select.in,textarea.in{background:rgba(255,255,255,.6);border-color:var(--glassLine)}
+.sheet{background:rgba(250,247,241,.88);-webkit-backdrop-filter:blur(26px);backdrop-filter:blur(26px);border-top:1px solid var(--glassLine)}
+.scrim{background:rgba(20,18,14,.35)}
 .toast{background:var(--ink);color:var(--bg)}
-.badge{background:var(--card)}
-.badge .medal{background:var(--mag);color:#1b0618}
-.restbar{background:var(--green);color:#06101f}
+.badge .medal{background:var(--ink);color:var(--bg)}
+.badge.locked .medal{background:rgba(17,17,17,.06);color:var(--ink3)}
+.set.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.restbar{background:var(--ink);color:var(--bg)}
+.steps li::before{background:var(--ink);color:var(--bg)}
+code,.code{background:rgba(17,17,17,.06)}
+.li img,.li .ph{background:rgba(17,17,17,.05)}
 .ring .big{font-size:34px}
 .hero{gap:20px}
 /* training days */
 .train-card .ct{font-size:16px;font-weight:600}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
-.stat{background:var(--bg2);border-radius:14px;padding:12px}
-.sn{font-size:28px;font-weight:700;color:var(--mag);line-height:1}
-.sn span{font-size:14px;color:var(--ink3);font-weight:600;margin-left:2px}
+.stat{background:rgba(255,255,255,.55);border:1px solid var(--glassLine);border-radius:16px;padding:12px}
+.sn{font-size:28px;font-weight:600;color:var(--ink);line-height:1;letter-spacing:-.02em}
+.sn span{font-size:14px;color:var(--ink3);font-weight:500;margin-left:2px}
 .sl{font-size:12px;color:var(--ink2);margin-top:6px}
 .wdots{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px}
 .wd{display:grid;justify-items:center;gap:6px;font-size:11px;color:var(--ink3);font-weight:600}
-.wd i{width:100%;max-width:34px;height:8px;border-radius:99px;background:var(--bg2)}
-.wd.on i{background:var(--mag);box-shadow:0 0 12px rgba(255,79,216,.55)}
+.wd i{width:100%;max-width:34px;height:8px;border-radius:99px;background:rgba(17,17,17,.08)}
+.wd.on i{background:var(--ink)}
 .wd.now span{color:var(--ink)}
-.wd.later i{opacity:.4}
+.wd.later i{opacity:.45}
 .yscroll{overflow-x:auto;margin-top:10px;padding-bottom:6px;scrollbar-width:none}
 .yscroll::-webkit-scrollbar{display:none}
 .ymonths{display:grid;gap:0;font-size:10.5px;color:var(--ink3);margin-bottom:4px;white-space:nowrap}
-.ymonths span{overflow:visible}
 .ygrid{display:flex;gap:3px}
 .ycol{display:grid;grid-template-rows:repeat(7,11px);gap:3px}
-.ycol i,.ylegend i{width:11px;height:11px;border-radius:3px;background:var(--bg2);display:block}
+.ycol i,.ylegend i{width:11px;height:11px;border-radius:3px;background:rgba(17,17,17,.07);display:block}
 .ycol i.off{background:transparent}
-.l1{background:rgba(255,79,216,.35)!important}.l2{background:rgba(255,79,216,.65)!important}.l3{background:var(--mag)!important;box-shadow:0 0 6px rgba(255,79,216,.6)}
+.l1{background:rgba(17,17,17,.3)!important}.l2{background:rgba(17,17,17,.6)!important}.l3{background:var(--ink)!important}
 .ylegend{display:flex;align-items:center;gap:4px;justify-content:flex-end;font-size:11px;color:var(--ink3);margin-top:6px}
 .ylegend span{margin:0 4px}
 /* calories */
-.kbig{font-size:36px;font-weight:700;letter-spacing:-.01em;line-height:1}
-.kbig span{font-family:var(--font);font-size:14px;font-weight:500;color:var(--ink2);margin-left:6px}
+.kbig{font-size:36px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.kbig span{font-family:var(--font);font-size:14px;font-weight:500;color:var(--ink2);margin-left:6px;letter-spacing:0}
 .macros3{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:13.5px;color:var(--ink2)}
-.macros3 b{color:var(--ink);font-weight:700}
+.macros3 b{color:var(--ink);font-weight:600}
 </style>
 
 </head>
@@ -511,7 +524,7 @@ function renderToday(v) {
   v.innerHTML = `${demoBanner()}
     <div><div class="sub">${new Date().toLocaleDateString(undefined, {weekday: "long", day: "numeric", month: "long"})}</div><h1>${hello}, ${esc(S.profile.name)}</h1></div>
     <div class="card hero" style="margin-top:12px">${ring(tot.kcal, tg.kcal)}
-      <div class="stack" style="gap:10px"><div class="row between"><span class="eyebrow">Eaten, kcal</span><span class="num" style="font-weight:700;white-space:nowrap;font-size:14px">${r0(tot.kcal).toLocaleString()} / ${tg.kcal.toLocaleString()}</span></div>
+      <div class="stack" style="gap:10px"><div class="row between"><span class="eyebrow">Eaten</span><span class="num" style="font-weight:700;white-space:nowrap;font-size:14px">${r0(tot.kcal).toLocaleString()} / ${tg.kcal.toLocaleString()}</span></div>
       ${macro("Protein", tot.p, tg.protein, "var(--accent)")}${macro("Carbs", tot.c, tg.carbs, "var(--blue)")}${macro("Fat", tot.f, tg.fat, "var(--amber)")}</div></div>
     ${stk && !of("meal", t).length ? `<div class="demo" style="margin-top:12px;background:var(--accentSoft);color:var(--accent)">${ICON.flame}<span class="grow">Your ${stk}-day streak is waiting. Log a meal today to keep it going.</span></div>` : ""}
     <div class="quick" style="margin-top:12px">
