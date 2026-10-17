@@ -12,10 +12,11 @@ from . import config, fx, motion, music
 from .voice import duration
 
 SR = music.SR
-FADE = 0.4          # cross-fade between shots (seconds)
+FADE = 0.4          # cross-fade between still-picture shots (seconds)
+CUT = 0.08          # AI-video shorts: quick cartoon cuts instead of slow fades
 
 
-MIN_SCENE = 2.8     # each scene is at least one AI clip long
+MIN_SCENE = 3.3     # each scene shows most of its ~4 s AI clip
 
 
 def scene_lengths(voice_secs):
@@ -28,7 +29,7 @@ def _decode(path: Path):
     return np.frombuffer(raw, np.float32)
 
 
-def _timeline(story, lengths):
+def _timeline(story, lengths, fade=FADE):
     """Shot segments on the global timeline: [(scene, shot, start, end)], overlapping by FADE."""
     segs, t = [], 0.0
     for i, (scene, secs) in enumerate(zip(story["scenes"], lengths)):
@@ -37,14 +38,14 @@ def _timeline(story, lengths):
         if n == 2:
             cuts[1] = t + secs * 0.55
         for k in range(n):
-            a = cuts[k] - (FADE / 2 if (i or k) else 0)
-            b = cuts[k + 1] + FADE / 2
+            a = cuts[k] - (fade / 2 if (i or k) else 0)
+            b = cuts[k + 1] + fade / 2
             segs.append((i, k, a, b))
         t += secs
     return segs, t
 
 
-def _audio(story, voices, lengths, total, music_volume, seed, out: Path, segs=()):
+def _audio(story, voices, lengths, total, music_volume, seed, out: Path, segs=(), fade=FADE):
     n = int(total * SR) + 1
     voice = np.zeros(n, np.float32)
     t = 0.0
@@ -87,7 +88,7 @@ def _audio(story, voices, lengths, total, music_volume, seed, out: Path, segs=()
         if name not in music.SFX:
             continue
         fx_ = music.sfx(name, seed + j)
-        st_ = int(max(0.0, a + FADE / 2 + 0.3) * SR)
+        st_ = int(max(0.0, a + fade / 2 + 0.3) * SR)
         seg = fx_[: max(0, n - st_)]
         mix[st_:st_ + len(seg)] += (seg * loud)[:, None]
     peak = np.abs(mix).max() or 1
@@ -105,7 +106,9 @@ def render(assets: Path, story, workdir: Path, frame, music_volume=0.12, use_dep
     seed = int(story.get("seed", 1))
     voices = [assets / f"voice{i + 1}.mp3" for i in range(len(story["scenes"]))]
     lengths = scene_lengths([duration(v) for v in voices])
-    segs, total = _timeline(story, lengths)
+    has_clips = any((assets / f"c{i + 1}_1.mp4").exists() for i in range(len(story["scenes"])))
+    fade = CUT if has_clips else FADE
+    segs, total = _timeline(story, lengths, fade)
 
     # shots
     rng = random.Random(seed)
@@ -136,7 +139,7 @@ def render(assets: Path, story, workdir: Path, frame, music_volume=0.12, use_dep
     title = fx.Title(story["title"], frame)
     parts = fx.Particles(fx.particle_kind(story), frame, seed)
 
-    audio = _audio(story, voices, lengths, total, music_volume, seed, workdir / "mix.f32", segs)
+    audio = _audio(story, voices, lengths, total, music_volume, seed, workdir / "mix.f32", segs, fade)
     out = workdir / ("preview.mp4" if W < 1080 else "video.mp4")
     preview = W < 1080
     proc = subprocess.Popen(
@@ -161,7 +164,7 @@ def render(assets: Path, story, workdir: Path, frame, music_volume=0.12, use_dep
                 w8 = 1.0
                 if len(active) > 1:
                     if (i, k) == active[1][:2]:
-                        w8 = motion.ease((t - a) / FADE)
+                        w8 = motion.ease((t - a) / fade)
                 imgs.append((img, w8))
             if len(imgs) == 2:
                 w8 = imgs[1][1]

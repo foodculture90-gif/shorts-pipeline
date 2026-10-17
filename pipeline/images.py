@@ -1,4 +1,8 @@
-"""Pictures from Cloudflare Workers AI (FLUX schnell) — free 10,000 neurons/day ≈ 170 pictures."""
+"""Pictures from Cloudflare Workers AI — free 10,000 neurons/day.
+
+Main model: FLUX.2 klein 4B, drawn directly in tall 9:16 (576x1024, ≈110 neurons ≈ 90 pictures/day).
+Later shots get the first picture as a reference image, so the characters look the same in every shot.
+Fallback: FLUX.1 schnell (square, no references)."""
 import base64
 import os
 import random
@@ -6,6 +10,8 @@ import time
 from pathlib import Path
 
 import requests
+import io
+
 from PIL import Image, ImageDraw, ImageFilter
 
 from . import config
@@ -44,6 +50,65 @@ def _cloudflare(prompt, seed, out: Path):
     Image.open(out).convert("RGB").save(out, "JPEG", quality=92)
 
 
+KLEIN = "@cf/black-forest-labs/flux-2-klein-4b"
+PIC_W, PIC_H = 576, 1024
+_klein_ok = [True]
+
+
+def _check(r):
+    body = r.text.lower()
+    if "neuron" in body and ("allocation" in body or "limit" in body or "daily" in body):
+        print("  cloudflare:", r.status_code, r.text[:300])
+        raise QuotaExceeded("Cloudflare free daily picture limit reached")
+    if r.status_code == 429:  # too many requests at once (4 workers) -> slow down and retry
+        raise RuntimeError(f"Cloudflare busy (429): {r.text[:200]}")
+    if r.status_code in (401, 403):
+        raise PermissionError(f"Cloudflare refused the key ({r.status_code}): {r.text[:200]} — "
+                              "re-copy CLOUDFLARE_API_TOKEN (Workers AI template) into GitHub secrets")
+
+
+def _ref_bytes(path):
+    im = Image.open(path).convert("RGB")
+    im.thumbnail((500, 500))  # reference images must be under 512x512
+    buf = io.BytesIO()
+    im.save(buf, "JPEG", quality=90)
+    return buf.getvalue()
+
+
+def _klein(prompt, seed, out: Path, refs=()):
+    """Tall 9:16 picture; refs = earlier pictures whose characters must look the same."""
+    acct, token = os.environ["CLOUDFLARE_ACCOUNT_ID"], os.environ["CLOUDFLARE_API_TOKEN"]
+    if refs:
+        prompt = ("The characters in the reference image(s) are this story's cast: keep every character looking "
+                  "exactly the same (same species, colours, clothes, details) but draw a brand-new shot. " + prompt)
+    files = {"prompt": (None, prompt[:2000]), "width": (None, str(PIC_W)), "height": (None, str(PIC_H)),
+             "seed": (None, str(seed % 2_000_000_000))}
+    for i, ref in enumerate(list(refs)[:2]):
+        files[f"input_image_{i}"] = (f"ref{i}.jpg", _ref_bytes(ref), "image/jpeg")
+    r = requests.post(f"https://api.cloudflare.com/client/v4/accounts/{acct}/ai/run/{KLEIN}",
+                      headers={"Authorization": f"Bearer {token}"}, files=files, timeout=150)
+    _check(r)
+    if r.status_code >= 400:
+        raise ValueError(f"klein {r.status_code}: {r.text[:300]}")
+    data = r.json()
+    img = (data.get("result") or {}).get("image") or data.get("image")
+    if not img:
+        raise ValueError(f"klein returned no image: {str(data)[:200]}")
+    out.write_bytes(base64.b64decode(img))
+    Image.open(out).convert("RGB").save(out, "JPEG", quality=93)
+
+
+def picture(prompt, seed, out: Path, refs=()):
+    """Best available model; falls back to FLUX.1 schnell if klein is unavailable."""
+    if _klein_ok[0]:
+        try:
+            return _klein(prompt, seed, out, refs)
+        except ValueError as e:
+            print("  klein unavailable, using schnell:", e)
+            _klein_ok[0] = False
+    _cloudflare(prompt, seed, out)
+
+
 def demo_picture(idx, out: Path, size=1024):
     """Offline test scene with clear depth layers (sky, hills, character, foreground grass)."""
     rnd = random.Random(idx)
@@ -75,20 +140,24 @@ def demo_picture(idx, out: Path, size=1024):
 
 
 def make_pictures(story, workdir: Path, offline=False, on_image=None):
-    """8 pictures (4 scenes × 2 shots). on_image() is called after each real picture (quota tracking).
-    Returns list of lists: [[wide, close], ...]."""
+    """One picture per shot. on_image() is called after each real picture (quota tracking).
+    Returns list of lists of picture paths per scene."""
     seed = random.randint(1, 2_000_000_000)  # same seed for all shots helps characters match
     scenes = []
     for si, scene in enumerate(story["scenes"]):
         shots = []
         for hi, shot in enumerate(scene["shots"]):
             out = workdir / f"s{si + 1}_{hi + 1}.jpg"
+            done = [p for sc in scenes for p in sc] + shots
+            refs = [p for p in ([done[0]] + done[-1:]) if p != out][:2] if done else []
+            refs = list(dict.fromkeys(refs))
             if offline:
                 demo_picture(si * 2 + hi, out)
+                Image.open(out).crop((224, 0, 800, 1024)).save(out, "JPEG", quality=92)  # 576x1024
             else:
                 for attempt in range(4):
                     try:
-                        _cloudflare(image_prompt(story, shot), seed + attempt * 7, out)
+                        picture(image_prompt(story, shot), seed + attempt * 7, out, refs)
                         if on_image:
                             on_image()
                         break

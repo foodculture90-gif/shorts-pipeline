@@ -99,7 +99,8 @@ def test(title_prefix, count="3"):
         print("uploaded", f"tests/{stamp}-{f.name}")
 
 
-DEFAULTS = {"guidance": 2.5, "steps": 30, "frames": 73, "end_strength": 0.3}  # lively but stays on model
+DEFAULTS = {"guidance": 2.5, "steps": 30, "frames": 97, "end_strength": 0.3,  # ~4 s, lively but on-model
+            "width": 576, "height": 1024, "upscale": True}                      # -> 1080x1920 after upscaling
 
 
 def animate_batch(episodes, workdir: Path, log=print):

@@ -11,9 +11,9 @@ MODELS_DIR = ROOT / ".models"       # depth model is downloaded here once (cache
 GEMINI_MODELS = ["gemini-flash-latest", "gemini-flash-lite-latest"]  # fallbacks; real list is fetched from Google
 
 # --- Pictures: Cloudflare Workers AI (free 10,000 "neurons" per day) -------------------
-IMAGE_MODEL = "@cf/black-forest-labs/flux-1-schnell"
+IMAGE_MODEL = "@cf/black-forest-labs/flux-1-schnell"   # fallback; main model is FLUX.2 klein (images.py)
 IMAGE_STEPS = 4
-NEURONS_PER_IMAGE = 58          # 1024x1024 at 4 steps ≈ 4×4.8 + 4×9.6
+NEURONS_PER_IMAGE = 112         # klein 576x1024: 4 output tiles × 26 + small reference images
 DAILY_NEURONS = 9_800           # keep a little under the free 10,000
 SHOTS_PER_SCENE = 1
 SCENES = 4                      # → 4 shots per short (short, punchy, every shot animated by AI)

@@ -39,12 +39,25 @@ def upload(refresh_token, video_path, story, channel, publish_at=None):
               "selfDeclaredMadeForKids": bool(channel.get("made_for_kids", True))}
     if publish_at:
         status["publishAt"] = publish_at
-    tags = [t for t in (story.get("tags") or []) if isinstance(t, str)][:12] + ["shorts"]
+    tags, total = [], 0
+    for t in [x for x in (story.get("tags") or []) if isinstance(x, str)] + ["kids cartoon", "shorts"]:
+        t = t.strip().replace("<", "").replace(">", "")[:60]
+        if t and t.lower() not in (x.lower() for x in tags) and total + len(t) + 3 < 480:
+            tags.append(t)
+            total += len(t) + 3
+    tags = tags[:20]
+    hashtags = []
+    for h in ["shorts"] + [str(x) for x in (story.get("hashtags") or [])]:
+        h = "".join(ch for ch in h.lower() if ch.isalnum())
+        if h and h not in hashtags:
+            hashtags.append(h)
+    title = story["title"].strip()[:100]
+    desc = (f"{story.get('description', '').strip()}\n\n"
+            f"🔔 Subscribe to {channel.get('name', 'us')} for a new funny cartoon every day!\n\n"
+            + " ".join("#" + h for h in hashtags[:6]))
     body = {
         "snippet": {
-            "title": (story["title"][:88] + " #shorts"),
-            "description": (f"{story.get('description', '')}\n\n{story.get('takeaway', '')}\n\n"
-                            f"New stories every day on {channel.get('name', '')}! #shorts"),
+            "title": title, "description": desc.replace("<", "").replace(">", "")[:4900],
             "tags": tags, "categoryId": "1", "defaultLanguage": "en", "defaultAudioLanguage": "en"},
         "status": status,
     }

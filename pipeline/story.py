@@ -17,8 +17,14 @@ Hard rules:
 - Scene 4 is a clear, funny or heart-warming payoff (a twist, a big laugh, a hug, a happy surprise).
 - Simple physical comedy and big expressions that a 3-year-old understands with no words.
 - Gentle and safe: no danger, no scary moments, no meanness, no unsafe behaviour to copy.
-- Title: a short catchy hook like "How To Get A FREE Cake!!" or "Who Ate The Last Cookie?!" -
-  max 45 characters, Title Case, may end with one fitting emoji.
+- Title: a curiosity hook that makes kids AND parents tap - like "How To Get A FREE Cake!!",
+  "Who Ate The Last Cookie?!", "Don't Wake The Baby Dragon! 🐉". Max 50 characters, Title Case, one fitting emoji
+  at the end. Name the funny thing that happens, never the moral. No clickbait that the short doesn't deliver.
+- Description: 2 short lines. Line 1 = a playful hook about what happens (with 1 emoji). Line 2 = a short line that
+  makes them watch to the end or again (e.g. "Wait for the sneaky surprise at the end! 🎂"). No hashtags in it.
+- Hashtags: 4 lowercase hashtags (without #) that real people search, mixing broad and specific
+  (e.g. "kidscartoon", "funnycartoon", "cartoonforkids", "birthdaycake").
+- Tags: 12 search keywords/phrases (topic, characters' species, "kids cartoon", "funny cartoon", "3d animation for kids"...).
 - Each shot:
   * "framing": "close" (head and shoulders, big expressive faces - use this most) or "wide" (full bodies, place).
   * "prompt": the still picture - who (described by look), what they are doing, where, expression, lighting.
@@ -35,8 +41,9 @@ Hard rules:
 
 Reply as JSON:
 {"title": "...",
- "description": "2 short sentences",
- "tags": ["5-8 tags"],
+ "description": "line 1\nline 2",
+ "hashtags": ["4 hashtags"],
+ "tags": ["12 keywords"],
  "takeaway": "one short sentence",
  "characters": [{"name": "...", "look": "...", "voice": "..."}],
  "setting": "one sentence: the world, palette and mood",
@@ -94,10 +101,10 @@ def image_prompt(story, shot):
     text = " ".join(str(shot.get(k, "")) for k in ("prompt", "motion", "speaker")).lower()
     chars = [c for c in story["characters"] if any(w in text for w in c["name"].lower().split() if len(w) > 2)] or story["characters"]
     cast = "; ".join(f"{c['name']}: {c['look']}" for c in chars)
-    # pictures are square but the video is tall (9:16): keep the action in the centre column
-    framing = ("wide shot, characters full body in the centre of the picture, important action centred, "
-               "open space above and below" if shot.get("framing") == "wide"
-               else "medium close-up, head and shoulders centred in the picture with space around, "
+    # tall 9:16 pictures: keep the characters big and in the middle
+    framing = ("wide shot, characters full body in the centre of a tall vertical frame, important action centred"
+               if shot.get("framing") == "wide"
+               else "medium close-up in a tall vertical frame, head and shoulders big in the centre, "
                     "expressive face, shallow depth of field")
     # characters first: the image model follows the start of the prompt most closely,
     # which keeps the same character looking the same in every shot

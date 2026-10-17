@@ -37,6 +37,14 @@ class Shot:
         L = int(H * 1.12)  # square source; the 9:16 window travels across it
         self.L = L
         img = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
+        ih, iw = img.shape[:2]
+        if abs(ih - iw) > 2:  # tall 9:16 picture -> centre square (fallback puppet engine works on squares)
+            m = min(ih, iw)
+            y0, x0 = (ih - m) // 2, (iw - m) // 2
+            img = img[y0:y0 + m, x0:x0 + m]
+            tmp = f"/tmp/sq_{abs(hash(str(image_path)))}.jpg"
+            cv2.imwrite(tmp, img)
+            image_path = tmp
         img = cv2.resize(img, (L, L), interpolation=cv2.INTER_LANCZOS4)
         blur = cv2.GaussianBlur(img, (0, 0), 1.2)
         self.src = grade(cv2.addWeighted(img, 1.35, blur, -0.35, 0))
@@ -136,6 +144,11 @@ class ClipShot:
             ok, f = cap.read()
             if not ok:
                 break
+            h, w = f.shape[:2]
+            s = max(self.W / w, self.H / h)  # scale once to cover the output (saves memory and time)
+            if abs(s - 1) > 0.01:
+                f = cv2.resize(f, (int(w * s + 0.99), int(h * s + 0.99)),
+                               interpolation=cv2.INTER_AREA if s < 1 else cv2.INTER_CUBIC)
             frames.append(f)
         cap.release()
         if not frames:
@@ -144,8 +157,8 @@ class ClipShot:
         self.span = len(frames) / self.fps
         h, w = frames[0].shape[:2]
         self.base = max(self.W / w, self.H / h)
-        self.zoom = (1.0, rng.uniform(1.04, 1.08) if close else rng.uniform(1.02, 1.05))
-        self.drift = rng.uniform(-0.01, 0.01) * self.W
+        self.zoom = (1.0, rng.uniform(1.02, 1.045))  # the clip already moves; just a gentle push-in
+        self.drift = rng.uniform(-0.006, 0.006) * self.W
         self.cache = {}
 
     def _get(self, idx):
@@ -154,7 +167,7 @@ class ClipShot:
                 self.cache.pop(next(iter(self.cache)))
             f = self.frames[idx]
             blur = cv2.GaussianBlur(f, (0, 0), 1.0)
-            self.cache[idx] = grade(cv2.addWeighted(f, 1.4, blur, -0.4, 0))
+            self.cache[idx] = grade(cv2.addWeighted(f, 1.15, blur, -0.15, 0))
         return self.cache[idx]
 
     def frame(self, p, t=0.0, seg_secs=None):
