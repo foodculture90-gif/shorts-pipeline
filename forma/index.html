@@ -1159,7 +1159,7 @@ function petSVG(id, gid = "p") {
   const F = `url(#${gid}pf)`, B = `filter="url(#${gid}bl)"`;
   const eye = (x, y, r = 2.3, col = "#2a1c12") => `<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r * 1.05}" fill="${col}"/><circle cx="${x}" cy="${y}" r="${r * .55}" fill="#0b0705"/><circle cx="${x - r * .35}" cy="${y - r * .4}" r="${r * .32}" fill="#fff" opacity=".9"/>`;
   const shadow = `<ellipse cx="2" cy="0" rx="26" ry="4.5" fill="#000" opacity=".22" ${B}/>`;
-  if (p.kind === "pup") return at(198, 262, `${defs}${shadow}
+  if (p.kind === "pup") return at(203, 262, `${defs}${shadow}
     <path d="M16 -12 C30 -14 34 -26 30 -34" stroke="${d}" stroke-width="6" fill="none" stroke-linecap="round"/>
     <path d="M-14 -2 C-20 -22 -10 -40 4 -40 C18 -40 24 -24 20 -2 Z" fill="${F}"/>
     <ellipse cx="12" cy="-10" rx="11" ry="10" fill="${F}"/>
@@ -1171,7 +1171,7 @@ function petSVG(id, gid = "p") {
     <ellipse cx="-3" cy="-43" rx="7.5" ry="5.5" fill="${l}"/><ellipse cx="-3" cy="-46" rx="2.8" ry="2" fill="#1a1210"/><ellipse cx="-3.8" cy="-46.6" rx=".9" ry=".5" fill="#fff" opacity=".6"/>
     <path d="M-3 -44 V-41.5 M-6 -40.5 Q-3 -39 0 -40.5" stroke="#3a2a22" stroke-width=".8" fill="none"/>
     ${eye(-7.5, -52, 1.9)}${eye(2.5, -52, 1.9)}`);
-  if (p.kind === "cat") return at(200, 262, `${defs}${shadow}
+  if (p.kind === "cat") return at(204, 262, `${defs}${shadow}
     <path d="M14 -4 C34 -2 34 -26 24 -34" stroke="${c}" stroke-width="5" fill="none" stroke-linecap="round"/>
     <path d="M-12 0 C-18 -20 -10 -38 2 -38 C14 -38 20 -20 16 0 Z" fill="${F}"/>
     <path d="M-8 -22 C-10 -12 -10 -5 -9 0 L-4 0 C-4 -8 -4 -15 -3 -22Z" fill="${c}"/><path d="M1 -22 C0 -12 0 -5 1 0 L6 0 C6 -8 5 -15 5 -22Z" fill="${c}"/>
@@ -1181,14 +1181,14 @@ function petSVG(id, gid = "p") {
     <ellipse cx="-6.5" cy="-50" rx=".8" ry="2.4" fill="#111"/><ellipse cx="4.5" cy="-50" rx=".8" ry="2.4" fill="#111"/><circle cx="-7.3" cy="-51" r=".6" fill="#fff"/><circle cx="3.7" cy="-51" r=".6" fill="#fff"/>
     <path d="M-2.4 -45 L.4 -45 L-1 -43.5Z" fill="#b57b7b"/><path d="M-1 -43.5 V-42 M-3.5 -41.2 Q-1 -40 1.5 -41.2" stroke="#222" stroke-width=".6" fill="none"/>
     <path d="M-10 -44 L-20 -45 M-10 -42.5 L-19 -41 M8 -44 L18 -45 M8 -42.5 L17 -41" stroke="#ddd" stroke-width=".4" opacity=".8"/>`);
-  if (p.kind === "bunny") return at(200, 262, `${defs}${shadow}
+  if (p.kind === "bunny") return at(204, 262, `${defs}${shadow}
     <ellipse cx="2" cy="-14" rx="18" ry="14" fill="${F}"/><circle cx="19" cy="-14" r="5" fill="#fff"/>
     <ellipse cx="-10" cy="-2" rx="6" ry="2.6" fill="${l}"/><ellipse cx="8" cy="-1" rx="7" ry="3" fill="${l}"/>
     <ellipse cx="-14" cy="-54" rx="4.2" ry="14" fill="${F}" transform="rotate(-10 -14 -54)"/><ellipse cx="-4" cy="-55" rx="4.2" ry="14" fill="${F}" transform="rotate(8 -4 -55)"/>
     <ellipse cx="-14" cy="-54" rx="1.8" ry="10" fill="#e3b5b0" opacity=".7" transform="rotate(-10 -14 -54)"/><ellipse cx="-4" cy="-55" rx="1.8" ry="10" fill="#e3b5b0" opacity=".7" transform="rotate(8 -4 -55)"/>
     <ellipse cx="-9" cy="-32" rx="11" ry="10" fill="${F}"/>${eye(-13.5, -34, 1.9)}${eye(-4.5, -34, 1.9)}
     <path d="M-10.5 -28.5 L-7.5 -28.5 L-9 -27Z" fill="#c98a86"/><path d="M-9 -27 V-25.8" stroke="#8a6a64" stroke-width=".6"/>`);
-  return at(198, 262, `${defs}${shadow}
+  return at(203, 262, `${defs}${shadow}
     <path d="M14 -10 C34 -8 40 -30 30 -40 C38 -36 42 -44 38 -48 C32 -46 30 -42 28 -40" fill="${d}"/>
     <path d="M-4 -34 C-26 -62 -6 -78 10 -62 C14 -72 30 -70 28 -54 C22 -46 12 -40 6 -34Z" fill="${l}" opacity=".85"/>
     <path d="M-4 -34 L4 -66 M-4 -34 L18 -60" stroke="${d}" stroke-width="1" opacity=".6"/>
@@ -1203,12 +1203,13 @@ function petSVG(id, gid = "p") {
 }
 function avatarSVG(a, tier, eqOver, stk = 0) {
   const eq = {...a.eq, ...(eqOver || {})}, fem = S.profile?.sex === "female", t = tier, cx = 120;
-  const skin = SKINS[a.skin] || SKINS[1], skL = tint(skin, .2), skD = tint(skin, -.28), skDD = tint(skin, -.45), hc = HAIRC[a.hairColor] || HAIRC[0], hcL = tint(hc, .28), hcD = tint(hc, -.35);
+  const skin = SKINS[a.skin] || SKINS[1], skL = tint(skin, .2), skD = tint(skin, -.28), skDD = tint(skin, fem ? -.45 : -.55), hc = HAIRC[a.hairColor] || HAIRC[0], hcL = tint(hc, .28), hcD = tint(hc, -.35);
   const lip = mix(skin, "#a8524a", fem ? .45 : .28);
   const top = ITEMS[eq.top] || ITEMS.tee_white, bot = ITEMS[eq.bottom] || ITEMS.shorts_black, sh = ITEMS[eq.shoes] || ITEMS.shoes_white;
   const bg = ITEMS[eq.bg] || ITEMS.bg_plain, gid = "a" + Math.random().toString(36).slice(2, 7);
-  const SW = fem ? 23 + t * 2.4 : 26 + t * 4.4, WW = fem ? 15 : 19.5 - t * .9, HW = fem ? 22 + t * .4 : 18 + t * .3;
-  const A = fem ? 5 + t * .9 : 5.6 + t * 1.55, Fr = fem ? 4.2 + t * .6 : 4.6 + t * 1.05, LG = fem ? 10.5 + t * 1 : 10.5 + t * 1.8, CF = fem ? 5.6 + t * .6 : 5.8 + t * .9, NW = fem ? 5.2 : 6 + t * 1.2, jaw = fem ? 0 : t * .8;
+  const SW = fem ? 23 + t * 2.4 : 26 + t * 5.6, WW = fem ? 15 : 19.5 - t * .8, HW = fem ? 22 + t * .4 : 18 + t * .6;
+  const A = fem ? 5 + t * .9 : 5.6 + t * 2, Fr = fem ? 4.2 + t * .6 : 4.6 + t * 1.35, LG = fem ? 10.5 + t * 1 : 10.5 + t * 2.2, CF = fem ? 5.6 + t * .6 : 5.8 + t * 1.15, NW = fem ? 5.2 : 6 + t * 1.7, jaw = fem ? 0 : t * 1.3;
+  const HX = `url(#${gid}hx)`, vein = mix(skin, "#3d5a7a", .42), vo = fem ? 0 : Math.max(0, t - 1) * .2;
   const sk = `url(#${gid}s)`, B = `filter="url(#${gid}bl)"`, B2 = `filter="url(#${gid}bl2)"`;
   const bare = top.kind === "none", tank = top.kind === "tank", hood = top.kind === "hoodie", tee = top.kind === "tee";
   const cloth = bare ? (fem ? "#232323" : null) : top.c, cD = cloth ? tint(cloth, -.22) : null, cL = cloth ? tint(cloth, .15) : null;
@@ -1226,6 +1227,14 @@ function avatarSVG(a, tier, eqOver, stk = 0) {
     g += `<path d="M${j.s[0] + s * A * .6} ${j.s[1] + 4} Q${j.m[0] + s * A * 1.1} ${j.m[1]} ${j.e[0] + s * Fr * .6} ${j.e[1]}" stroke="${skDD}" stroke-width="${2 + t * .4}" fill="none" opacity=".45" ${B}/>`;
     if (t >= 1) g += `<ellipse cx="${j.m[0] - s * A * .25}" cy="${j.m[1] - 2}" rx="${A * .45}" ry="${A * 1.2}" fill="${skL}" opacity="${.25 + t * .08}" ${B}/>`;
     g += `<ellipse cx="${j.fm[0] - s * Fr * .2}" cy="${j.fm[1] - 4}" rx="${Fr * .4}" ry="${Fr * 1.4}" fill="${skL}" opacity=".3" ${B}/>`;
+    if (!fem) {
+      g += taper(j.s[0] + s * A * .55, j.s[1] + 8, A * .38, j.e[0] + s * Fr * .5, j.e[1] - 2, Fr * .28, HX, `opacity="${.25 + t * .07}"`) + taper(j.e[0] + s * Fr * .5, j.e[1] + 4, Fr * .3, j.w[0] + s * Fr * .3, j.w[1] - 6, Fr * .18, HX, `opacity="${.2 + t * .06}"`);
+      if (t >= 1) g += `<path d="M${j.s[0] + s * A * .25} ${j.s[1] + 12} Q${j.m[0] + s * A * .45} ${j.m[1] + 6} ${j.e[0] + s * Fr * .1} ${j.e[1] - 3}" stroke="${skDD}" stroke-width="1.2" fill="none" opacity="${.2 + t * .1}" ${B}/>
+        <path d="M${j.e[0] - s * Fr * .4} ${j.e[1] + 3} Q${j.fm[0] - s * Fr * .1} ${j.fm[1] + 2} ${j.w[0] - s * Fr * .2} ${j.w[1] - 4}" stroke="${skDD}" stroke-width="1" fill="none" opacity="${.15 + t * .08}" ${B}/>`;
+      if (vo) g += `<g opacity="${vo}" fill="none" stroke-linecap="round"><path d="M${j.m[0] - s * A * .35} ${j.m[1] - 8} q${-s * 1.5} 6 ${s * .5} 11 t${-s * .5} 9" stroke="${vein}" stroke-width="${.8 + t * .2}"/>
+        <path d="M${j.e[0] - s * Fr * .3} ${j.e[1] + 2} q${-s * 1.8} 9 ${s * .4} 17 t${-s * .8} 14 M${j.fm[0] - s * Fr * .3} ${j.fm[1] + 1} q${s * 1.6} 6 ${s * 1.2} 14" stroke="${vein}" stroke-width="${.75 + t * .18}"/>
+        <path d="M${j.e[0] - s * Fr * .3 - .5} ${j.e[1] + 2} q${-s * 1.8} 9 ${s * .4} 17" stroke="${skL}" stroke-width=".4" opacity=".7"/></g>`;
+    }
     return g; };
   const sleeve = s => { const j = arm(s); if (!cloth || bare || tank) return "";
     if (hood) return taper(...j.s, A * 1.05 + 3, ...j.e, Fr + 3, cloth) + taper(...j.e, Fr + 3, ...j.w, Fr + 1.6, cloth) + taper(j.w[0], j.w[1] - 3, Fr + 1.4, ...j.w, Fr + 1.4, cD)
@@ -1233,7 +1242,7 @@ function avatarSVG(a, tier, eqOver, stk = 0) {
     const k = .5, ex = j.s[0] + (j.e[0] - j.s[0]) * k, ey = j.s[1] + (j.e[1] - j.s[1]) * k;
     return taper(...j.s, A * 1.05 + 3, ex, ey, A + 2.4, cloth) + `<path d="M${ex - s * (A + 1)} ${ey + 1} L${ex + s * (A + 2)} ${ey - 1}" stroke="${cD}" stroke-width="1.4" opacity=".6"/>`; };
   const delt = s => { const j = arm(s), x = cx + s * (SW - 4), f = tee || hood ? cloth : sk, r = A * .95 + 1.5;
-    return taper(x, 80, r, j.m[0] - s * 1, j.m[1] - 6, A * .75, f) + (tee || hood ? "" : `<path d="M${j.m[0] - s * A * .9} ${j.m[1] - 2} Q${j.m[0]} ${j.m[1] - 9} ${j.m[0] + s * A * .9} ${j.m[1] - 7}" stroke="${skDD}" stroke-width="1.6" fill="none" opacity="${.15 + t * .06}" ${B}/><ellipse cx="${x - s * 1.5}" cy="81" rx="${A * .55}" ry="${A * .75}" fill="${skL}" opacity="${.2 + t * .06}" ${B2}/>`); };
+    return taper(x, 80, r, j.m[0] - s * 1, j.m[1] - 6, A * .75, f) + (tee || hood ? "" : `<path d="M${j.m[0] - s * A * .9} ${j.m[1] - 2} Q${j.m[0]} ${j.m[1] - 9} ${j.m[0] + s * A * .9} ${j.m[1] - 7}" stroke="${skDD}" stroke-width="1.6" fill="none" opacity="${.15 + t * .06}" ${B}/><ellipse cx="${x - s * 1.5}" cy="81" rx="${A * .55}" ry="${A * .75}" fill="${skL}" opacity="${.2 + t * .06}" ${B2}/>` + (!fem && t >= 2 ? `<path d="M${x - s * A * .2} 76 Q${x + s * A * .3} 86 ${x + s * A * .1} 96 M${x + s * A * .5} 79 Q${x + s * A * .9} 88 ${x + s * A * .6} 97" stroke="${skDD}" stroke-width=".9" fill="none" opacity="${.12 + t * .07}" ${B}/>` + taper(x + s * A * .6, 82, A * .35, x + s * A * .5, 98, A * .2, HX, `opacity="${.2 + t * .06}"`) : "")); };
   // legs
   const leg = s => { const hx = cx + s * (HW * .5 + 1.5), kx = cx + s * (10.5 + t * .5), ax = cx + s * 10;
     const jog = bot.kind === "joggers";
@@ -1242,6 +1251,9 @@ function avatarSVG(a, tier, eqOver, stk = 0) {
     let g = taper(hx, 156, LG, kx, 208, CF * .95, sk) + taper(kx, 208, CF * .95, kx + s * .5, 222, CF * 1.12, sk) + taper(kx + s * .5, 222, CF * 1.12, ax, 251, 3.6, sk);
     g += `<ellipse cx="${kx}" cy="208" rx="${CF * .7}" ry="3.5" fill="${skL}" opacity=".35" ${B}/><path d="M${kx + s * CF * .9} 212 Q${kx + s * CF * 1.4} 224 ${ax + s * 3} 244" stroke="${skDD}" stroke-width="2" fill="none" opacity=".4" ${B}/>`;
     if (t >= 1) g += `<ellipse cx="${kx - s * 1.5}" cy="221" rx="${CF * .45}" ry="7" fill="${skL}" opacity=".3" ${B}/>`;
+    if (!fem) { g += `<ellipse cx="${kx - s * CF * .55}" cy="${197}" rx="${LG * .32}" ry="${6 + t}" fill="${skL}" opacity="${.15 + t * .06}" ${B}/><path d="M${kx - s * CF * 1.1} 188 Q${kx - s * CF * .2} 200 ${kx - s * .5} 205" stroke="${skDD}" stroke-width="1.1" fill="none" opacity="${.15 + t * .08}" ${B}/>`
+      + taper(kx + s * CF * .75, 214, CF * .4, ax + s * 2.5, 244, 1.2, HX, `opacity="${.25 + t * .06}"`) + `<path d="M${kx - s * .5} 216 L${kx + s * 1} 230 L${kx - s * .5} 240" stroke="${skDD}" stroke-width=".9" fill="none" opacity="${.12 + t * .07}" ${B}/>`;
+      if (t >= 3) g += `<path d="M${kx - s * 2} 214 q${s * 1.4} 8 ${-s * .4} 16 t${s * .6} 12" stroke="${vein}" stroke-width=".8" fill="none" opacity="${vo * .8}"/>`; }
     return g; };
   const TW = HW * .5 + 1.5 + LG, sb = fem ? 176 : 184;
   const shortsP = `M${cx - WW - 1.5} 138 L${cx + WW + 1.5} 138 C${cx + TW + 1} 148 ${cx + TW + 2} 156 ${cx + TW + 2.5} ${sb} L${cx + 3} ${sb + 2} L${cx} 166 L${cx - 3} ${sb + 2} L${cx - TW - 2.5} ${sb} C${cx - TW - 2} 156 ${cx - TW - 1} 148 ${cx - WW - 1.5} 138 Z`;
@@ -1257,7 +1269,8 @@ function avatarSVG(a, tier, eqOver, stk = 0) {
       <circle cx="${x + s * .2}" cy="${hy - .1}" r="1.45" fill="#5b3a22"/><circle cx="${x + s * .2}" cy="${hy - .1}" r=".7" fill="#120b06"/><circle cx="${x + s * .2 - .5}" cy="${hy - .6}" r=".38" fill="#fff"/>
       <path d="M${x - 3.6} ${hy + .1} Q${x - .2} ${hy - 2.9} ${x + 3.6} ${hy - .1}" stroke="#2a1a12" stroke-width=".85" fill="none" opacity=".85"/>
       <path d="M${x - 3} ${hy + 1.3} Q${x} ${hy + 2.3} ${x + 3} ${hy + 1}" stroke="${skD}" stroke-width=".5" fill="none" opacity=".6"/>`; };
-  const brow = s => `<path d="M${cx + s * 2.2} ${hy - 4.8} Q${cx + s * 5.5} ${hy - (fem ? 7.3 : 6.4)} ${cx + s * 9.6} ${hy - 5}" stroke="${hcD}" stroke-width="${fem ? 1.1 : 1.7}" fill="none" stroke-linecap="round"/>`;
+  const brow = s => fem ? `<path d="M${cx + s * 2.2} ${hy - 4.8} Q${cx + s * 5.5} ${hy - 7.3} ${cx + s * 9.6} ${hy - 5}" stroke="${hcD}" stroke-width="1.1" fill="none" stroke-linecap="round"/>`
+    : `<path d="M${cx + s * 1.8} ${hy - 3.3 + t * .15} Q${cx + s * 5} ${hy - 5.6} ${cx + s * 10} ${hy - 6.4 - t * .2}" stroke="${hcD}" stroke-width="${1.9 + t * .25}" fill="none" stroke-linecap="round"/>`;
   const nose = `<path d="M${cx + 1.2} ${hy - 1} Q${cx + 2.6} ${hy + 5} ${cx + 2.6} ${hy + 7.5}" stroke="${skDD}" stroke-width="1.4" fill="none" opacity=".45" ${B}/>
     <ellipse cx="${cx}" cy="${hy + 8.6}" rx="3.6" ry="1.5" fill="${skDD}" opacity=".35" ${B}/><ellipse cx="${cx - .4}" cy="${hy + 6.6}" rx="1.4" ry="1" fill="${skL}" opacity=".6" ${B}/>
     <ellipse cx="${cx - 1.8}" cy="${hy + 8.4}" rx="1" ry=".55" fill="#2a1a12" opacity=".55"/><ellipse cx="${cx + 1.8}" cy="${hy + 8.4}" rx="1" ry=".55" fill="#2a1a12" opacity=".55"/>`;
@@ -1266,12 +1279,17 @@ function avatarSVG(a, tier, eqOver, stk = 0) {
     <path d="M${cx - 4.6} ${my} Q${cx} ${my + (fem ? 3 : 2.4)} ${cx + 4.6} ${my} Z" fill="${tint(lip, .08)}"/>
     <path d="M${cx - 4.8} ${my - .2} Q${cx} ${my + .7} ${cx + 4.8} ${my - .2}" stroke="${tint(lip, -.45)}" stroke-width=".7" fill="none"/>
     <ellipse cx="${cx}" cy="${my + 1.3}" rx="2" ry=".6" fill="#fff" opacity=".22"/><ellipse cx="${cx}" cy="${my + 4.4}" rx="3" ry="1" fill="${skD}" opacity=".35" ${B}/>`;
+  const faceX = fem ? "" : `<path d="M${cx - 11} ${hy - 3.2} Q${cx - 5} ${hy - 1.6} ${cx - 1.5} ${hy - 2.6} M${cx + 1.5} ${hy - 2.6} Q${cx + 5} ${hy - 1.6} ${cx + 11} ${hy - 3.2}" stroke="${skDD}" stroke-width="2.4" fill="none" opacity=".45" ${B}/>
+    <path d="M${cx - 13.5} ${hy + 3} Q${cx - 11} ${hy + 8} ${cx - 8} ${hy + 12} M${cx + 13.5} ${hy + 3} Q${cx + 11} ${hy + 8} ${cx + 8} ${hy + 12}" stroke="${skDD}" stroke-width="2" fill="none" opacity="${.12 + t * .04}" ${B}/>
+    <path d="M${cx - 3.6} ${hy + 8.5} q-2 3 -1.4 5.8 M${cx + 3.6} ${hy + 8.5} q2 3 1.4 5.8" stroke="${skDD}" stroke-width=".7" fill="none" opacity="${.25 + t * .06}"/>
+    <path d="M${cx + 14} ${hy + 6} Q${cx + 10 + jaw} ${hy + 19} ${cx} ${hy + 20.5}" stroke="${skDD}" stroke-width="3" fill="none" opacity=".3" ${B}/>
+    ${t >= 3 ? `<path d="M${cx} ${hy + 17.4} v1.8" stroke="${skDD}" stroke-width=".7" opacity=".5"/>` : ""}`;
   const faceShade = `<g clip-path="url(#${gid}f)">
     <ellipse cx="${cx + 13}" cy="${hy + 4}" rx="6" ry="20" fill="${skDD}" opacity=".35" ${B2}/>
     <ellipse cx="${cx - 9}" cy="${hy + 8}" rx="3" ry="6" fill="${skDD}" opacity="${.12 + t * .04}" ${B}/><ellipse cx="${cx + 9}" cy="${hy + 8}" rx="3" ry="6" fill="${skDD}" opacity="${.12 + t * .04}" ${B}/>
     <ellipse cx="${cx - 7}" cy="${hy + 4}" rx="3.4" ry="2" fill="${fem ? "#e8907c" : skL}" opacity="${fem ? .3 : .25}" ${B}/><ellipse cx="${cx + 7}" cy="${hy + 4}" rx="3.4" ry="2" fill="${fem ? "#e8907c" : skL}" opacity="${fem ? .3 : .2}" ${B}/>
     <ellipse cx="${cx - 4}" cy="${hy - 12}" rx="7" ry="4" fill="${skL}" opacity=".35" ${B2}/>
-    ${!fem && t >= 2 ? `<path d="M${cx - 12} ${hy + 10} Q${cx} ${hy + 26} ${cx + 12} ${hy + 10}" stroke="${hcD}" stroke-width="5" fill="none" opacity=".1" ${B}/>` : ""}</g>`;
+    ${!fem && t >= 2 ? `<path d="M${cx - 12} ${hy + 10} Q${cx} ${hy + 26} ${cx + 12} ${hy + 10}" stroke="${hcD}" stroke-width="5" fill="none" opacity=".1" ${B}/>` : ""}${faceX}</g>`;
   const ear = s => `<ellipse cx="${cx + s * 15}" cy="${hy + 1}" rx="2.6" ry="5" fill="${skin}"/><path d="M${cx + s * 15.4} ${hy - 2} q${s * 1.4} 3 0 6" stroke="${skD}" stroke-width=".8" fill="none"/>`;
   const hairG = `url(#${gid}h)`, strands = (pts, w = .5) => pts.map(p => `<path d="${p}" stroke="${hcL}" stroke-width="${w}" fill="none" opacity=".45"/>`).join("");
   const hairFront = {
@@ -1298,7 +1316,14 @@ function avatarSVG(a, tier, eqOver, stk = 0) {
       + [107, 118, 128].map(y => `<ellipse cx="${cx - 4.5}" cy="${y}" rx="3.2" ry="3.6" fill="${skL}" opacity="${.1 + t * .05}" ${B}/><ellipse cx="${cx + 4.5}" cy="${y}" rx="3.2" ry="3.6" fill="${skL}" opacity="${.1 + t * .05}" ${B}/>`).join("") : "")
     + (t >= 3 ? [-1, 1].map(s => `<path d="M${cx + s * (WW + 1)} 126 Q${cx + s * (WW - 3)} 142 ${cx + s * 6} 154" stroke="${skDD}" stroke-width="1.6" fill="none" opacity=".3" ${B}/><path d="M${cx + s * (SW - 9)} 100 l${-s * 3} 3 m${s * 3} 3 l${-s * 3} 3" stroke="${skDD}" stroke-width="1.2" opacity=".25" ${B}/>`).join("") : "")
     + (t === 0 ? `<ellipse cx="${cx}" cy="134" rx="${WW * .8}" ry="9" fill="${skL}" opacity=".18" ${B2}/>` : "");
-  const sideShade = `<path d="M${cx + SW - 4} 78 C${cx + SW + 2} 96 ${cx + WW + 4} 124 ${cx + WW + 2} 160" stroke="#000" stroke-width="10" fill="none" opacity=".16" ${B2}/><path d="M${cx - SW + 6} 82 C${cx - SW + 8} 100 ${cx - WW} 124 ${cx - WW + 2} 150" stroke="#fff" stroke-width="6" fill="none" opacity=".12" ${B2}/>`;
+  const anat = fem ? "" : (t >= 1 ? [-1, 1].map(s => `<path d="M${cx + s * (SW - 6)} 90 Q${cx + s * SW * .5} ${103 + t * 1.6} ${cx + s * 1} ${99 + t} L${cx + s * 1} ${103 + t * 1.3} Q${cx + s * SW * .5} ${108 + t * 1.9} ${cx + s * (SW - 8)} 96Z" fill="${HX}" opacity="${(.3 + t * .1) * mo}"/>`).join("") : "")
+    + (t >= 1 ? `<path d="M${cx} 78 V${100 + t}" stroke="${skDD}" stroke-width="1.2" opacity="${(.15 + t * .07) * mo}" ${B}/>` : "")
+    + (t >= 3 ? [-1, 1].map(s => [0, 1, 2].map(i => `<path d="M${cx + s * (SW - 9)} ${87 + i * 1.5} Q${cx + s * SW * .55} ${89 + i * 3} ${cx + s * SW * .3} ${88 + i * 4.5}" stroke="${skDD}" stroke-width=".4" fill="none" opacity="${.18 * mo}"/>`).join("")).join("") : "")
+    + (t >= 2 ? [-1, 1].map(s => [0, 1, 2].map(i => `<ellipse cx="${cx + s * (SW - 9 - i * 1.5)}" cy="${103 + i * 6}" rx="2.6" ry="1.7" fill="${skDD}" opacity="${(.12 + t * .06) * mo}" transform="rotate(${s * -25} ${cx + s * (SW - 9 - i * 1.5)} ${103 + i * 6})" ${B}/><ellipse cx="${cx + s * (SW - 10 - i * 1.5)}" cy="${101.5 + i * 6}" rx="2.2" ry="1.1" fill="${skL}" opacity="${(.1 + t * .05) * mo}" ${B}/>`).join("")).join("") : "")
+    + (t >= 3 ? `<path d="M${cx - 1} 106 V136 M${cx + 1} 106 V136" stroke="${HX}" stroke-width="1.6" opacity="${.5 * mo}"/>` : "")
+    + `<path d="M${cx + SW - 6} 84 C${cx + SW - 2} 100 ${cx + WW + 3} 124 ${cx + WW + 1} 150 L${cx + WW - 4} 150 C${cx + WW - 2} 126 ${cx + SW - 9} 102 ${cx + SW - 10} 86Z" fill="${HX}" opacity="${(.2 + t * .07) * mo}"/>`
+    + (t >= 4 ? `<path d="M${cx + WW - 4} 126 q-3 8 -8 14 t-4 12" stroke="${vein}" stroke-width=".9" fill="none" opacity="${vo * mo}"/>` : "");
+  const sideShade = `<path d="M${cx + SW - 4} 78 C${cx + SW + 2} 96 ${cx + WW + 4} 124 ${cx + WW + 2} 160" stroke="#000" stroke-width="10" fill="none" opacity=".16" ${B2}/><path d="M${cx - SW + 6} 82 C${cx - SW + 8} 100 ${cx - WW} 124 ${cx - WW + 2} 150" stroke="#fff" stroke-width="6" fill="none" opacity=".2" ${B2}/>`;
   const bust = fem ? [-1, 1].map(s => `<ellipse cx="${cx + s * 7.5}" cy="96" rx="${7.5}" ry="${6.5}" fill="${cloth ? cloth : sk}"/><path d="M${cx + s * 14} 98 Q${cx + s * 8} ${105} ${cx + s * 1} 100" stroke="#000" stroke-width="2" fill="none" opacity=".2" ${B}/><ellipse cx="${cx + s * 6}" cy="93" rx="3.6" ry="2.4" fill="#fff" opacity=".12" ${B}/>`).join("") : "";
   const clothFolds = cloth && !bare ? `<path d="M${cx - SW + 8} 104 Q${cx - 8} 112 ${cx - WW + 2} 128 M${cx + SW - 8} 106 Q${cx + 6} 118 ${cx + WW - 2} 134 M${cx - 6} 140 q4 -4 9 -2" stroke="${cD}" stroke-width="1.4" fill="none" opacity=".55" ${B}/>` : "";
   const neckline = tee ? `<path d="M${cx - NW - 2.5} 63 Q${cx} ${73} ${cx + NW + 2.5} 63" stroke="${cD}" stroke-width="2.2" fill="none"/>`
@@ -1323,6 +1348,7 @@ function avatarSVG(a, tier, eqOver, stk = 0) {
       <linearGradient id="fli" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#fff3c4" stop-opacity="0"/></linearGradient>
       <filter id="${gid}bl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1"/></filter>
       <filter id="${gid}bl2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+      <pattern id="${gid}hx" width="2.4" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="2.4" stroke="${tint(skin, -.72)}" stroke-width=".6"/></pattern>
       <clipPath id="${gid}t"><path d="${tank ? tankP : torso}"/></clipPath>
       <clipPath id="${gid}f"><path d="${faceP}"/></clipPath>
     </defs>
@@ -1338,9 +1364,10 @@ function avatarSVG(a, tier, eqOver, stk = 0) {
     <path d="M${cx - NW} 58 Q${cx} 66 ${cx + NW} 58 L${cx + NW} 52 L${cx - NW} 52Z" fill="${skDD}" opacity=".45" filter="url(#${gid}bl)"/>
     ${!fem && t >= 2 ? `<path d="M${cx - NW + 1} 54 L${cx - 1.5} 66 M${cx + NW - 1} 54 L${cx + 1.5} 66" stroke="${skDD}" stroke-width="1" opacity=".25" ${B}/>` : ""}
     <path d="${torso}" fill="${tee || hood ? cloth : sk}"/>
+    ${fem ? "" : [-1, 1].map(s => `<path d="M${cx + s * (NW - 1)} ${61 - t * .5} C${cx + s * (NW + 4 + t * 1.6)} ${62 - t * .9} ${cx + s * (SW - 10)} ${68 - t} ${cx + s * (SW - 3)} 77 L${cx + s * (NW + 2)} 72 Z" fill="${tee || hood ? cloth : sk}"/>` + (tee || hood ? "" : `<path d="M${cx + s * (NW + 1)} ${63 - t * .5} C${cx + s * (NW + 5 + t * 1.4)} ${65 - t * .8} ${cx + s * (SW - 11)} ${70 - t} ${cx + s * (SW - 4)} 78" stroke="${skL}" stroke-width="2" fill="none" opacity=".35" ${B}/><path d="M${cx + s * (NW + 1)} 70 Q${cx + s * (SW * .5)} 72 ${cx + s * (SW - 6)} 80" stroke="${skDD}" stroke-width="1.6" fill="none" opacity="${.2 + t * .06}" ${B}/>`)).join("")}
     ${tank ? `<path d="${tankP}" fill="${cloth}"/>` : ""}
     ${bare && fem ? `<path d="${braP}" fill="${cloth}"/><path d="M${cx - SW + 8} 105 H${cx + SW - 8}" stroke="#fff" stroke-width="1.6" opacity=".25"/>` : ""}
-    <g clip-path="url(#${gid}t)">${pec}${abs}${sideShade}${clothFolds}</g>
+    <g clip-path="url(#${gid}t)">${pec}${abs}${anat}${sideShade}${clothFolds}</g>
     ${bare ? bots : ""}
     ${tank || bare ? delt(-1) + delt(1) : (tee || hood ? delt(-1) + delt(1) : "")}
     ${bust}${neckline}${extra}
