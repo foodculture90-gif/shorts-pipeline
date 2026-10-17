@@ -66,8 +66,8 @@ GENERATED = {}  # pic_name -> local path of pictures drawn here
 
 
 def draw_pictures():
-    """Cloudflare's free picture limit was reached: draw the missing pictures here with an open 3D-cartoon
-    image model (one copy per GPU), save them for the app, and use them as the clips' first frames."""
+    """Draw the shorts' pictures here with an open 3D-cartoon image model (one copy per GPU); the first picture of
+    each short is the look reference (IP-Adapter) for its other shots. Saved for the app + used as first frames."""
     import gc, shutil, threading
     from diffusers import DiffusionPipeline
     todo = [s for s in JOB["shots"] if s.get("gen_prompt")]
@@ -75,31 +75,61 @@ def draw_pictures():
         return
     model = JOB.get("image_model", "playgroundai/playground-v2.5-1024px-aesthetic")
     log("drawing", len(todo), "pictures with", model)
-    n = max(1, min(torch.cuda.device_count(), 2, len(todo)))
-    pipes = []
+    # one short's pictures stay together on one GPU, first shot first: it is the look reference for the rest
+    groups = {}
+    for s in todo:
+        groups.setdefault(s["pic_name"].split("__")[0], []).append(s)
+    groups = [sorted(g, key=lambda s: s["pic_name"]) for g in groups.values()]
+    n = max(1, min(torch.cuda.device_count(), 2, len(groups)))
+    pipes, ipa = [], [False] * n
     for k in range(n):
         try:
             pp = DiffusionPipeline.from_pretrained(model, torch_dtype=torch.float16, variant="fp16")
         except Exception:  # noqa: BLE001  (no fp16 files)
             pp = DiffusionPipeline.from_pretrained(model, torch_dtype=torch.float16)
-        pipes.append(pp.to(f"cuda:{k}"))
+        pp = pp.to(f"cuda:{k}")
+        if JOB.get("ip_adapter", True):  # keeps the same characters across a short's shots
+            try:
+                pp.load_ip_adapter("h94/IP-Adapter", subfolder="sdxl_models", weight_name="ip-adapter_sdxl.bin")
+                pp.to(f"cuda:{k}")
+                ipa[k] = True
+            except Exception as e:  # noqa: BLE001
+                log("IP-Adapter unavailable:", str(e)[:200])
+        pipes.append(pp)
 
     def work(k):
-        for s in todo[k::n]:
-            t = time.time()
-            try:
-                g = torch.Generator(f"cuda:{k}").manual_seed(int(s.get("gen_seed", 1)))
-                im = pipes[k](prompt=s["gen_prompt"], negative_prompt=s.get("gen_negative"), width=768, height=1344,
-                              num_inference_steps=JOB.get("image_steps", 30), guidance_scale=JOB.get("image_guidance", 3.0),
-                              generator=g).images[0]
-                im = im.convert("RGB").resize((W, H), Image.LANCZOS)
-                path = f"{OUT}/{s['pic_name']}.jpg"
-                im.save(path, "JPEG", quality=93)
-                GENERATED[s["pic_name"]] = path
-                s["image_path"] = path
-                log(f"gpu{k} picture {s['pic_name']} in {time.time() - t:.0f}s")
-            except Exception:  # noqa: BLE001
-                log(f"picture {s['pic_name']} FAILED\n" + traceback.format_exc()[-1200:])
+        for grp in groups[k::n]:
+            ref = None
+            for s in grp:
+                t = time.time()
+                try:
+                    g = torch.Generator(f"cuda:{k}").manual_seed(int(s.get("gen_seed", 1)))
+                    extra = {}
+                    if ipa[k]:
+                        pipes[k].set_ip_adapter_scale(JOB.get("ip_scale", 0.45) if ref is not None else 0.0)
+                        extra["ip_adapter_image"] = ref if ref is not None else Image.new("RGB", (224, 224), "white")
+                    args = dict(prompt=s["gen_prompt"], negative_prompt=s.get("gen_negative"), width=768, height=1344,
+                                num_inference_steps=JOB.get("image_steps", 30), guidance_scale=JOB.get("image_guidance", 3.0))
+                    try:
+                        im = pipes[k](generator=g, **args, **extra).images[0]
+                    except Exception as e:  # noqa: BLE001  (IP-Adapter trouble -> carry on without it)
+                        if not ipa[k]:
+                            raise
+                        log("IP-Adapter failed, switching it off:", str(e)[:200])
+                        pipes[k].unload_ip_adapter()
+                        ipa[k] = False
+                        g = torch.Generator(f"cuda:{k}").manual_seed(int(s.get("gen_seed", 1)))
+                        im = pipes[k](generator=g, **args).images[0]
+                    if ref is None:
+                        ref = im.copy()
+                    im = im.convert("RGB").resize((W, H), Image.LANCZOS)
+                    path = f"{OUT}/{s['pic_name']}.jpg"
+                    im.save(path, "JPEG", quality=93)
+                    GENERATED[s["pic_name"]] = path
+                    s["image_path"] = path
+                    log(f"gpu{k} picture {s['pic_name']} in {time.time() - t:.0f}s")
+                except Exception:  # noqa: BLE001
+                    log(f"picture {s['pic_name']} FAILED\n" + traceback.format_exc()[-1200:])
 
     th = [threading.Thread(target=work, args=(k,)) for k in range(n)]
     [x.start() for x in th]
