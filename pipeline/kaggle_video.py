@@ -32,7 +32,11 @@ def _kaggle(*args, check=True):
     return out
 
 
-def run(job: dict, outdir: Path, timeout_min=170, log=print):
+class KaggleBusy(RuntimeError):
+    """Kaggle didn't start the job (no free GPU / weekly GPU hours used up) — try again later."""
+
+
+def run(job: dict, outdir: Path, timeout_min=170, log=print, max_queue_min=25):
     """Pushes the job, waits for it, downloads clips into outdir. Returns (log_text, result)."""
     user = _env()
     work = outdir / "_kernel"
@@ -56,6 +60,8 @@ def run(job: dict, outdir: Path, timeout_min=170, log=print):
             status = st
         if any(x in st.lower() for x in ("complete", "error", "cancel")):
             break
+        if "queued" in st.lower() and time.time() - t0 > max_queue_min * 60:
+            raise KaggleBusy(f"Kaggle kept the GPU job waiting for {max_queue_min} min")
     outdir.mkdir(parents=True, exist_ok=True)
     _kaggle("kernels", "output", f"{user}/{SLUG}", "-p", str(outdir), "--force", check=False)
     logs = ""

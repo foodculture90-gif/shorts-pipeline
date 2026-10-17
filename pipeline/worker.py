@@ -201,6 +201,14 @@ def cmd_animate(payload, cmd):
         if eps:
             clips = kaggle_video.animate_batch([(e["id"], e["story"], e["assets_path"]) for e in eps], work,
                                                log=lambda m: print(m))
+    except kaggle_video.KaggleBusy as e:  # no free GPU right now: put the whole batch back and retry later
+        later = (now() + timedelta(minutes=60)).isoformat()
+        for c in taken:
+            db.update("commands", f"id=eq.{c['id']}", {"status": "queued", "run_after": later,
+                                                       "note": "waiting for a free Kaggle GPU"})
+        shutil.rmtree(work, ignore_errors=True)
+        db.log(f"⏳ {e} — trying again in an hour", "warning")
+        raise Wait(now() + timedelta(minutes=60), "Waiting for a free Kaggle GPU — trying again in an hour")
     except Exception as e:  # noqa: BLE001
         traceback.print_exc()
         db.log(f"⚠️ AI animation failed, using built-in animation: {e}"[:300], "warning")
