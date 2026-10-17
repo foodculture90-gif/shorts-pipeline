@@ -79,17 +79,43 @@ try:
     #    then free it
     GUIDE = float(JOB.get("guidance", 3.0))
     CFG = any(float(s.get("guidance", GUIDE)) > 1.0 for s in JOB["shots"])  # guidance 1 = no negative pass = 2x faster
-    pipe.text_encoder.to("cpu", torch.float32)
-    embeds = []
-    for shot in JOB["shots"]:
-        with torch.no_grad():
-            pe, pm, ne, nm = pipe.encode_prompt(prompt=shot["prompt"], negative_prompt=NEG,
-                                                do_classifier_free_guidance=CFG, device="cpu",
-                                                max_sequence_length=256)
-        embeds.append((pe.to(dtype), pm, ne.to(dtype) if CFG else None, nm if CFG else None))
+    # bf16 on the 2nd GPU is ~20x faster than the CPU and doesn't overflow like fp16; CPU fp32 = fallback
+    enc_dev = "cpu"
+    if torch.cuda.device_count() > 1 and JOB.get("t5_gpu", True):
+        try:
+            pipe.text_encoder.to("cuda:1", torch.bfloat16)
+            enc_dev = "cuda:1"
+        except Exception as e:  # noqa: BLE001
+            log("T5 on GPU failed, using CPU:", str(e)[:200])
+            pipe.text_encoder.to("cpu", torch.float32)
+    else:
+        pipe.text_encoder.to("cpu", torch.float32)
+
+    def encode_all():
+        out = []
+        for shot in JOB["shots"]:
+            with torch.no_grad():
+                pe, pm, ne, nm = pipe.encode_prompt(prompt=shot["prompt"], negative_prompt=NEG,
+                                                    do_classifier_free_guidance=CFG, device=enc_dev,
+                                                    max_sequence_length=256)
+            out.append((pe.float().cpu().to(dtype), pm.cpu(),
+                        ne.float().cpu().to(dtype) if CFG else None, nm.cpu() if CFG else None))
+        return out
+
+    try:
+        embeds = encode_all()
+        if enc_dev != "cpu" and not all(torch.isfinite(e[0]).all() for e in embeds):
+            raise ValueError("non-finite prompt embeddings")
+    except Exception as e:  # noqa: BLE001
+        log("GPU text encoding failed -> CPU:", str(e)[:200])
+        enc_dev = "cpu"
+        pipe.text_encoder.to("cpu", torch.float32)
+        embeds = encode_all()
+    log("text encoder on", enc_dev)
     log("prompts encoded")
     pipe.text_encoder = None
     gc.collect()
+    torch.cuda.empty_cache()
 
     # 2) one copy of the video model per GPU (Kaggle gives 2 x T4) -> twice as many clips per hour
     ngpu = max(1, min(torch.cuda.device_count(), int(JOB.get("gpus", 2)), len(JOB["shots"])))
