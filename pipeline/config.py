@@ -52,6 +52,14 @@ FORMATS = [  # quick, funny, highly re-watchable moments (like the top kids' car
     "a surprise party moment", "copy-cat: one character copies another", "a tiny helper saves the day",
     "a 'how to' trick that goes wonderfully wrong", "a giant version of an everyday thing",
 ]
+TOPICS = [  # things kids (and parents) search for on YouTube — every short is built around one
+    "birthday cake", "ice cream", "candy", "pizza", "cookies", "donuts", "giant lollipop", "chocolate",
+    "dinosaur", "baby dinosaur", "puppy", "kitten", "unicorn", "dragon", "monkey", "shark", "penguin",
+    "baby", "giant", "tiny", "colours", "rainbow", "surprise egg", "balloons", "bubbles", "slime",
+    "fire truck", "monster truck", "police car", "train", "rocket", "bath time", "bedtime", "potty time",
+    "hide and seek", "playground", "swimming pool", "snowman", "pumpkin", "magic wand", "pirate treasure",
+    "toy car", "teddy bear", "brushing teeth", "healthy vegetables", "fruit", "superhero", "mermaid",
+]
 SPARKS = [
     "a lost balloon", "a sleepy volcano", "a hiccuping dragon", "a library at night", "a snail race",
     "a moon made of cheese rumours", "a shy lighthouse", "a rainbow that lost a colour", "a penguin who hates cold",

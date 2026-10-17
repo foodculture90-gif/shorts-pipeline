@@ -114,6 +114,9 @@ def animate_batch(episodes, workdir: Path, log=print):
                 shots.append({"image": db.signed_url(f"{assets}/s{i + 1}_{k + 1}.jpg"),
                               "prompt": video_prompt(st, sh), "name": f"{ep_id[:8]}__c{i + 1}_{k + 1}",
                               "seed": int(st.get("seed", 1)) + len(shots)})
+        # loop: the last clip ends on the first picture, so the replay flows straight back into the start
+        if len(st["scenes"]) > 1:
+            shots[-1].update(end_image=db.signed_url(f"{assets}/s1_1.jpg"), end_strength=0.5)
     job = dict(DEFAULTS, shots=shots)
     job.update(json.loads(os.environ.get("KAGGLE_JOB_EXTRA", "") or "{}"))
     out = workdir / "kaggle-out"

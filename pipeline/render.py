@@ -16,11 +16,11 @@ FADE = 0.4          # cross-fade between still-picture shots (seconds)
 CUT = 0.08          # AI-video shorts: quick cartoon cuts instead of slow fades
 
 
-MIN_SCENE = 3.3     # each scene shows most of its ~4 s AI clip
+MIN_SCENE = 3.9     # each scene shows its whole ~4 s AI clip -> shorts of ~16-20 s
 
 
 def scene_lengths(voice_secs):
-    return [max(s + 0.4, MIN_SCENE) + (0.6 if i == len(voice_secs) - 1 else 0.0) for i, s in enumerate(voice_secs)]
+    return [max(s + 0.4, MIN_SCENE) for s in voice_secs]  # no tail: the end loops straight back to the start
 
 
 def _decode(path: Path):
@@ -91,6 +91,11 @@ def _audio(story, voices, lengths, total, music_volume, seed, out: Path, segs=()
         st_ = int(max(0.0, a + fade / 2 + 0.3) * SR)
         seg = fx_[: max(0, n - st_)]
         mix[st_:st_ + len(seg)] += (seg * loud)[:, None]
+    k = int(0.06 * SR)  # tiny audio fade at both ends so the loop doesn't click
+    if len(mix) > 2 * k:
+        ramp = np.linspace(0, 1, k, dtype=np.float32)[:, None]
+        mix[:k] *= ramp
+        mix[-k:] *= ramp[::-1]
     peak = np.abs(mix).max() or 1
     if peak > 0.97:
         mix *= 0.97 / peak
@@ -175,8 +180,6 @@ def render(assets: Path, story, workdir: Path, frame, music_volume=0.12, use_dep
             parts.draw(img, t)
             title.draw(img, t)
             caps.draw(img, t)
-            if t > total - 0.5:  # soft fade to black at the very end
-                img = (img.astype(np.float32) * max(0.0, (total - t) / 0.5)).astype(np.uint8)
             proc.stdin.write(img.tobytes())
     finally:
         proc.stdin.close()

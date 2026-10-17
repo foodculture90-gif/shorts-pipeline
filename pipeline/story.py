@@ -12,9 +12,12 @@ Characters suit a bright 3D preschool TV cartoon: cute kids, toddlers, grandpare
 friendly creatures or vehicles, each with a bold signature colour, a simple outfit and one distinctive detail.
 
 Hard rules:
-- Exactly 4 scenes, each is ONE shot of about 3 seconds. Whole short: 12-16 seconds.
-- Scene 1 grabs attention instantly (something funny, odd or exciting is already happening).
+- Exactly 4 scenes, each is ONE shot of about 4 seconds. Whole short: 16-20 seconds.
+- HOOK: scene 1 starts in the MIDDLE of the action - something funny, odd or exciting is already happening in
+  the very first second (no intro, no establishing shot, no character just standing there).
 - Scene 4 is a clear, funny or heart-warming payoff (a twist, a big laugh, a hug, a happy surprise).
+- LOOP: scene 4 must end in the same place, framing and situation as scene 1 begins (e.g. the payoff sets up
+  the exact moment the short starts with), so when the short replays it flows straight back into scene 1.
 - Simple physical comedy and big expressions that a 3-year-old understands with no words.
 - Gentle and safe: no danger, no scary moments, no meanness, no unsafe behaviour to copy.
 - Title: a curiosity hook that makes kids AND parents tap - like "How To Get A FREE Cake!!",
@@ -68,11 +71,13 @@ def write_story(channel, past_titles, idea=None, feedback=None, previous=None, s
         style = random.choice(styles)
         fmt = random.choice(config.FORMATS)
         spark = random.choice(config.SPARKS)
+        topic = random.choice(config.TOPICS)
         recent = "\n".join(f"- {t}" for t in past_titles[-50:]) or "- (none yet)"
         prompt = (
             (SILENT_NOTE if silent else "")
             + f"Channel: {channel.get('name', '')}\nChannel niche: {niche}\n"
             + f"Format for this short: {fmt}\n"
+            f"Popular kids' topic this short is about (put it in the title): {topic}\n"
             f"Random spark (use it, or let it inspire something better): {spark}\n"
             f"Art style the artist will use: {style}\n"
             + (f"The owner's idea for this short: {idea}\n" if idea else "")
