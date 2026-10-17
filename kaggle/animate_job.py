@@ -181,7 +181,13 @@ try:
                 conds = [LTXVideoCondition(image=img, frame_index=0)]
                 end, gs = float(shot.get("end_strength", END)), float(shot.get("guidance", GUIDE))
                 if end > 0:
-                    conds.append(LTXVideoCondition(image=img, frame_index=FRAMES - 1, strength=end))
+                    end_img = img
+                    if shot.get("end_image"):  # loop back to the short's first picture
+                        try:
+                            end_img = prep(fetch(shot["end_image"], f"/tmp/end{i}.jpg"))
+                        except Exception as e:  # noqa: BLE001
+                            log("end image failed", e)
+                    conds.append(LTXVideoCondition(image=end_img, frame_index=FRAMES - 1, strength=end))
                 g = torch.Generator(dev).manual_seed(shot.get("seed", 1))
                 extra = dict(negative_prompt_embeds=ne.to(dev), negative_prompt_attention_mask=nm.to(dev)) if gs > 1.0 else {}
                 with torch.cuda.device(k):
