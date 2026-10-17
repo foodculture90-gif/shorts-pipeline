@@ -281,7 +281,8 @@ def cmd_connect(payload, cmd):
 def cmd_stats(payload=None, cmd=None):
     from . import youtube
 
-    eps = db.select("episodes", "select=id,channel_id,youtube_id,status&youtube_id=not.is.null")
+    eps = db.select("episodes", "select=id,channel_id,youtube_id,status,thumb_path,title"
+                                "&youtube_id=not.is.null&status=in.(published,scheduled)")
     by_ch = {}
     for e in eps:
         by_ch.setdefault(e["channel_id"], []).append(e)
@@ -293,6 +294,12 @@ def cmd_stats(payload=None, cmd=None):
             continue
         for e in items:
             s = data.get(e["youtube_id"])
+            if not s:  # removed on YouTube -> remove it here too
+                if e.get("thumb_path"):
+                    db.remove([e["thumb_path"]])
+                _set(e["id"], status="deleted", thumb_path=None)
+                db.log(f"🗑️ “{e.get('title')}” was deleted on YouTube — removed from the app")
+                continue
             if s:
                 v = {"views": s["views"], "likes": s["likes"], "stats_at": now().isoformat()}
                 if e["status"] == "scheduled" and s["privacy"] == "public":
