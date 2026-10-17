@@ -93,12 +93,13 @@ def cmd_generate(payload, cmd):
                                        "feedback": payload.get("feedback"), "parent_id": payload.get("parent_id")})["id"]
         payload["episode_id"] = ep_id
         db.update("commands", f"id=eq.{cmd['id']}", {"payload": payload})
-    if not db.rpc("reserve_images", n=PICS, cap=CAPACITY):
+    reserved = bool(db.rpc("reserve_images", n=PICS, cap=CAPACITY))
+    if not reserved and not USE_KAGGLE:
         _set(ep_id, status="queued", error=None)
         raise Wait(tomorrow_utc(), "Today's free pictures are used up — continues after midnight UTC")
     _set(ep_id, status="generating", error=None)
     work = WORK / ep_id
-    drawn = [0]  # pictures actually made; unused reservations are given back if this fails
+    drawn = [0 if reserved else PICS]  # pictures actually made; unused reservations are given back if this fails
     try:
         previous = None
         if payload.get("parent_id"):
@@ -110,7 +111,11 @@ def cmd_generate(payload, cmd):
             silent = bool(previous.get("silent"))
         st = make_assets(work, ch, past_titles=past, idea=payload.get("idea"), feedback=payload.get("feedback"),
                          previous=previous, log=lambda m: print("  ·", m), silent=bool(silent),
-                         on_image=lambda: drawn.__setitem__(0, drawn[0] + 1))
+                         on_image=lambda: drawn.__setitem__(0, drawn[0] + 1),
+                         cloud_pictures=reserved, kaggle_fallback=USE_KAGGLE)
+        if st.get("pics_needed") and reserved:
+            _refund(PICS - drawn[0])
+            drawn[0] = PICS
         base = f"episodes/{ep_id}"
         for f in asset_files(st):
             db.upload(work / f, f"{base}/assets/{f}", _mime(f))
@@ -204,6 +209,16 @@ def cmd_animate(payload, cmd):
             try:
                 st = _download(ep, ew, clips=False)
                 got = clips.get(ep["id"], {})
+                pics = st.get("pics_needed") or []
+                if pics:  # pictures drawn on the Kaggle GPU (Cloudflare limit was reached)
+                    if not all(p in got for p in pics):
+                        raise RuntimeError("the pictures couldn't be drawn on the free GPU — try Retry later")
+                    for p in pics:
+                        shutil.copy(got[p], ew / p)
+                        db.upload(ew / p, f"{ep['assets_path']}/{p}", "image/jpeg")
+                    st["pics_needed"] = []
+                    (ew / "story.json").write_text(json.dumps(st, indent=1, ensure_ascii=False))
+                    db.upload(ew / "story.json", f"{ep['assets_path']}/story.json", "application/json")
                 need = [f for f in asset_files(st, True) if f.startswith("c")]
                 if got and all(f in got for f in need):
                     for f in need:

@@ -16,7 +16,8 @@ from . import config, images, render, story as story_mod, voice
 
 
 def make_assets(workdir: Path, channel, *, past_titles=(), idea=None, feedback=None, previous=None,
-                voice_name=None, offline=False, on_image=None, log=print, silent=False):
+                voice_name=None, offline=False, on_image=None, log=print, silent=False,
+                cloud_pictures=True, kaggle_fallback=False):
     workdir.mkdir(parents=True, exist_ok=True)
     log("Writing the script")
     if offline:
@@ -26,7 +27,17 @@ def make_assets(workdir: Path, channel, *, past_titles=(), idea=None, feedback=N
                                   silent=silent)
     st["seed"] = random.randint(1, 1_000_000)
     log(f"Drawing {sum(len(sc['shots']) for sc in st['scenes'])} pictures for “{st['title']}”")
-    images.make_pictures(st, workdir, offline=offline, on_image=on_image)
+    try:
+        if not cloud_pictures:
+            raise images.QuotaExceeded("free picture budget used")
+        images.make_pictures(st, workdir, offline=offline, on_image=on_image)
+    except images.QuotaExceeded:
+        if not kaggle_fallback:
+            raise
+        # Cloudflare's free limit is used up: the Kaggle GPU draws the missing pictures in the animation job
+        st["pics_needed"] = [f"s{i + 1}_{k + 1}.jpg" for i, sc in enumerate(st["scenes"]) for k in range(len(sc["shots"]))
+                             if not (workdir / f"s{i + 1}_{k + 1}.jpg").exists()]
+        log(f"{len(st['pics_needed'])} pictures will be drawn on the Kaggle GPU")
     st["silent"] = bool(silent)
     log("Music-only short (no talking)" if silent else "Recording character voices")
     voice.make_narration(st, workdir, voice=voice_name or channel.get("voice"), offline=offline, silent=silent)
@@ -37,9 +48,9 @@ def make_assets(workdir: Path, channel, *, past_titles=(), idea=None, feedback=N
 def asset_files(story, clips=None):
     """Files that make up a short: script, pictures, voices (+ AI clips c{n}_{k}.mp4 once animated)."""
     clips = story.get("clips") if clips is None else clips
-    files = ["story.json"]
+    files, later = ["story.json"], set(story.get("pics_needed") or [])
     for i, sc in enumerate(story["scenes"]):
-        files += [f"s{i + 1}_{k + 1}.jpg" for k in range(len(sc["shots"]))]
+        files += [f"s{i + 1}_{k + 1}.jpg" for k in range(len(sc["shots"])) if f"s{i + 1}_{k + 1}.jpg" not in later]
         files.append(f"voice{i + 1}.mp3")
         if clips:
             files += [f"c{i + 1}_{k + 1}.mp4" for k in range(len(sc["shots"]))]

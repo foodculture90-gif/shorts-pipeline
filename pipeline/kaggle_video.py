@@ -109,14 +109,22 @@ def animate_batch(episodes, workdir: Path, log=print):
     from . import db
     shots = []
     for ep_id, st, assets in episodes:
+        later = set(st.get("pics_needed") or [])
         for i, sc in enumerate(st["scenes"]):
             for k, sh in enumerate(sc["shots"]):
-                shots.append({"image": db.signed_url(f"{assets}/s{i + 1}_{k + 1}.jpg"),
-                              "prompt": video_prompt(st, sh), "name": f"{ep_id[:8]}__c{i + 1}_{k + 1}",
-                              "seed": int(st.get("seed", 1)) + len(shots)})
+                pic = f"s{i + 1}_{k + 1}.jpg"
+                s = {"prompt": video_prompt(st, sh), "name": f"{ep_id[:8]}__c{i + 1}_{k + 1}",
+                     "seed": int(st.get("seed", 1)) + len(shots)}
+                if pic in later:  # draw the picture on the GPU first (same seed per short keeps the look)
+                    s.update(gen_prompt=picture_prompt(st, sh), gen_negative=PICTURE_NEG,
+                             pic_name=f"{ep_id[:8]}__{pic[:-4]}", gen_seed=int(st.get("seed", 1)))
+                else:
+                    s["image"] = db.signed_url(f"{assets}/{pic}")
+                shots.append(s)
         # loop: the last clip ends on the first picture, so the replay flows straight back into the start
         if len(st["scenes"]) > 1:
-            shots[-1].update(end_image=db.signed_url(f"{assets}/s1_1.jpg"), end_strength=0.5)
+            first = "gen:" + f"{ep_id[:8]}__s1_1" if "s1_1.jpg" in later else db.signed_url(f"{assets}/s1_1.jpg")
+            shots[-1].update(end_image=first, end_strength=0.5)
     job = dict(DEFAULTS, shots=shots)
     job.update(json.loads(os.environ.get("KAGGLE_JOB_EXTRA", "") or "{}"))
     out = workdir / "kaggle-out"
@@ -128,9 +136,26 @@ def animate_batch(episodes, workdir: Path, log=print):
         log(logs[-3000:])
     clips = {}
     for ep_id, _, _ in episodes:
-        got = {f.name.split("__", 1)[1]: f for f in out.glob(f"{ep_id[:8]}__c*.mp4") if f.stat().st_size > 1000}
+        got = {f.name.split("__", 1)[1]: f for f in out.glob(f"{ep_id[:8]}__*") if f.stat().st_size > 1000
+               and f.suffix in (".mp4", ".jpg")}
         clips[ep_id] = got
     return clips
+
+
+PICTURE_NEG = ("text, letters, words, writing, watermark, logo, signature, ugly, deformed, extra limbs, extra fingers, "
+               "blurry, low quality, photo, realistic, scary, dark, creepy")
+
+
+def picture_prompt(story, shot):
+    """Short prompt for the GPU picture model (it reads ~75 words): action first, then the cast, then the look."""
+    import re
+    text = " ".join(str(shot.get(k, "")) for k in ("prompt", "motion", "speaker")).lower()
+    cast = [c for c in story.get("characters", [])
+            if any(w in text for w in c["name"].lower().split() if len(w) > 2)] or story.get("characters", [])[:2]
+    looks = "; ".join(re.sub(r"\s+", " ", c["look"])[:140] for c in cast[:3])
+    frame = "full body, centered" if shot.get("framing") == "wide" else "close-up, big expressive face, centered"
+    return (f"3d animated kids cartoon, pixar style render, {shot['prompt']}. {looks}. {frame}, vertical composition, "
+            f"bright saturated colors, soft lighting, cute, high quality")[:600]
 
 
 ACTION_WORDS = {

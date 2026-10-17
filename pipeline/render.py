@@ -140,8 +140,7 @@ def render(assets: Path, story, workdir: Path, frame, music_volume=0.12, use_dep
         for j, w in enumerate(ws):  # 4th value: last word of a line -> captions never mix two lines
             words.append((w[0], t0 + 0.12 + float(w[1]), t0 + 0.12 + float(w[2]), j == len(ws) - 1))
         t0 += secs
-    caps = fx.Captions([] if story.get("silent") else words, frame)  # music-only shorts: no captions
-    title = fx.Title(story["title"], frame)
+    # no writing on screen: the audience is small kids who can't read yet (no title card, no captions)
     parts = fx.Particles(fx.particle_kind(story), frame, seed)
 
     audio = _audio(story, voices, lengths, total, music_volume, seed, workdir / "mix.f32", segs, fade)
@@ -178,8 +177,6 @@ def render(assets: Path, story, workdir: Path, frame, music_volume=0.12, use_dep
                 img = imgs[0][0]
             img = np.ascontiguousarray(img)
             parts.draw(img, t)
-            title.draw(img, t)
-            caps.draw(img, t)
             proc.stdin.write(img.tobytes())
     finally:
         proc.stdin.close()
@@ -195,7 +192,6 @@ def thumbnail(picture: Path, title: str, out: Path):
     w, h = img.size
     img = img.crop(((w - h * 9 // 16) // 2, 0, (w + h * 9 // 16) // 2, h)).resize((360, 640))
     arr = np.asarray(img)[..., ::-1].copy()
-    arr = motion.grade(arr)
-    fx.Title(title, (360, 640), secs=99).draw(arr, 1.0)
+    arr = motion.grade(arr)  # no text on the thumbnail either
     Image.fromarray(arr[..., ::-1]).save(out, "JPEG", quality=82)
     return out
