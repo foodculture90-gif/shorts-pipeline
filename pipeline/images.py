@@ -25,8 +25,11 @@ def _cloudflare(prompt, seed, out: Path):
         timeout=120,
     )
     body = r.text.lower()
-    if r.status_code == 429 or "neuron" in body and ("allocation" in body or "limit" in body):
+    if "neuron" in body and ("allocation" in body or "limit" in body or "daily" in body):
+        print("  cloudflare:", r.status_code, r.text[:300])
         raise QuotaExceeded("Cloudflare free daily picture limit reached")
+    if r.status_code == 429:  # too many requests at once (4 workers) -> slow down and retry
+        raise RuntimeError(f"Cloudflare busy (429): {r.text[:200]}")
     if r.status_code in (401, 403):
         raise PermissionError(f"Cloudflare refused the key ({r.status_code}): {r.text[:200]} — "
                               "re-copy CLOUDFLARE_API_TOKEN (Workers AI template) into GitHub secrets")
@@ -95,7 +98,7 @@ def make_pictures(story, workdir: Path, offline=False, on_image=None):
                         print(f"  picture {si + 1}.{hi + 1} attempt {attempt + 1}: {e}")
                         if attempt == 3:
                             raise
-                        time.sleep(5 * (attempt + 1))
+                        time.sleep(15 * (attempt + 1))
             shots.append(out)
         scenes.append(shots)
     return scenes
