@@ -134,6 +134,10 @@ def animate_batch(episodes, workdir: Path, log=print):
     log(f"  kaggle {status}: {res}")
     if not res.get("done"):
         log(logs[-3000:])
+    else:  # show problems and timings from the GPU job
+        for ln in logs.splitlines():
+            if any(w in ln for w in ("FAILED", "Error", "unavailable", "drawing", "picture ", "model on", "upscaler")):
+                log("  gpu> " + ln[:300])
     clips = {}
     for ep_id, _, _ in episodes:
         got = {f.name.split("__", 1)[1]: f for f in out.glob(f"{ep_id[:8]}__*") if f.stat().st_size > 1000
