@@ -62,6 +62,59 @@ except Exception as e:  # noqa: BLE001
     log("list models failed", e)
 
 NAMES = []
+GENERATED = {}  # pic_name -> local path of pictures drawn here
+
+
+def draw_pictures():
+    """Cloudflare's free picture limit was reached: draw the missing pictures here with an open 3D-cartoon
+    image model (one copy per GPU), save them for the app, and use them as the clips' first frames."""
+    import gc, shutil, threading
+    from diffusers import DiffusionPipeline
+    todo = [s for s in JOB["shots"] if s.get("gen_prompt")]
+    if not todo:
+        return
+    model = JOB.get("image_model", "playgroundai/playground-v2.5-1024px-aesthetic")
+    log("drawing", len(todo), "pictures with", model)
+    n = max(1, min(torch.cuda.device_count(), 2, len(todo)))
+    pipes = []
+    for k in range(n):
+        try:
+            pp = DiffusionPipeline.from_pretrained(model, torch_dtype=torch.float16, variant="fp16")
+        except Exception:  # noqa: BLE001  (no fp16 files)
+            pp = DiffusionPipeline.from_pretrained(model, torch_dtype=torch.float16)
+        pipes.append(pp.to(f"cuda:{k}"))
+
+    def work(k):
+        for s in todo[k::n]:
+            t = time.time()
+            try:
+                g = torch.Generator(f"cuda:{k}").manual_seed(int(s.get("gen_seed", 1)))
+                im = pipes[k](prompt=s["gen_prompt"], negative_prompt=s.get("gen_negative"), width=768, height=1344,
+                              num_inference_steps=JOB.get("image_steps", 30), guidance_scale=JOB.get("image_guidance", 3.0),
+                              generator=g).images[0]
+                im = im.convert("RGB").resize((W, H), Image.LANCZOS)
+                path = f"{OUT}/{s['pic_name']}.jpg"
+                im.save(path, "JPEG", quality=93)
+                GENERATED[s["pic_name"]] = path
+                s["image_path"] = path
+                log(f"gpu{k} picture {s['pic_name']} in {time.time() - t:.0f}s")
+            except Exception:  # noqa: BLE001
+                log(f"picture {s['pic_name']} FAILED\n" + traceback.format_exc()[-1200:])
+
+    th = [threading.Thread(target=work, args=(k,)) for k in range(n)]
+    [x.start() for x in th]
+    [x.join() for x in th]
+    del pipes
+    gc.collect()
+    torch.cuda.empty_cache()
+    shutil.rmtree(os.path.expanduser("~/.cache/huggingface/hub/models--" + model.replace("/", "--")), ignore_errors=True)
+
+
+try:
+    draw_pictures()
+except Exception:  # noqa: BLE001
+    log("picture step FAILED\n" + traceback.format_exc())
+
 try:
     import copy, gc, threading
     from diffusers import LTXConditionPipeline
@@ -176,7 +229,9 @@ try:
             name = shot.get("name", f"clip{i}")
             t = time.time()
             try:
-                img = prep(fetch(shot["image"], f"/tmp/in{i}.jpg"))
+                if not (shot.get("image_path") or shot.get("image")):
+                    raise RuntimeError("no picture for this shot")
+                img = prep(shot.get("image_path") or fetch(shot["image"], f"/tmp/in{i}.jpg"))
                 pe, pm, ne, nm = embeds[i]
                 conds = [LTXVideoCondition(image=img, frame_index=0)]
                 end, gs = float(shot.get("end_strength", END)), float(shot.get("guidance", GUIDE))
@@ -184,7 +239,8 @@ try:
                     end_img = img
                     if shot.get("end_image"):  # loop back to the short's first picture
                         try:
-                            end_img = prep(fetch(shot["end_image"], f"/tmp/end{i}.jpg"))
+                            e = shot["end_image"]
+                            end_img = prep(GENERATED[e[4:]] if e.startswith("gen:") else fetch(e, f"/tmp/end{i}.jpg"))
                         except Exception as e:  # noqa: BLE001
                             log("end image failed", e)
                     conds.append(LTXVideoCondition(image=end_img, frame_index=FRAMES - 1, strength=end))
