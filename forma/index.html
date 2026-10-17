@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>FORMA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#fbf6f0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FORMA">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script>window.FORMA_CONFIG = window.FORMA_CONFIG || {};</script>
+<script src="config.js" onerror="void 0"></script>
+<style>
+/* Layout: one phone-width column, sticky header, bottom tab bar; cards only for things you act on */
+:root{
+  --bg:#fbf6f0; --bg2:#f4ebe1; --card:#fffdfa; --ink:#1f1a17; --ink2:#6f6259; --ink3:#a3958a;
+  --line:#efe3d6; --accent:#f26b1d; --accent2:#ff9a52; --accentSoft:#fde6d5;
+  --green:#1f9d63; --greenSoft:#dcf3e7; --red:#d64545; --redSoft:#fbe1e1; --blue:#2f6fe0; --blueSoft:#e1ebfd;
+  --amber:#c98200; --amberSoft:#fbf0d3;
+  --shadow:0 1px 2px rgba(80,40,10,.05),0 6px 24px rgba(80,40,10,.07);
+  --font:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r:20px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#17120f; --bg2:#211a16; --card:#231c18; --ink:#f6eee7; --ink2:#c2b3a7; --ink3:#87786c;
+  --line:#352b25; --accentSoft:#3d2516; --greenSoft:#16352a; --redSoft:#3c1f1f; --blueSoft:#1b2840; --amberSoft:#3a2e12;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 24px rgba(0,0,0,.25); color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#17120f; --bg2:#211a16; --card:#231c18; --ink:#f6eee7; --ink2:#c2b3a7; --ink3:#87786c;
+  --line:#352b25; --accentSoft:#3d2516; --greenSoft:#16352a; --redSoft:#3c1f1f; --blueSoft:#1b2840; --amberSoft:#3a2e12;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 24px rgba(0,0,0,.25); color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45}
+body{background:radial-gradient(900px 420px at 95% -10%,rgba(242,107,29,.13),transparent 60%),var(--bg);min-height:100vh}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 calc(96px + env(safe-area-inset-bottom,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);display:flex;align-items:center;justify-content:space-between;padding:12px 0 10px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;letter-spacing:.06em}
+.mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;color:#fff}
+.avatar{width:34px;height:34px;border-radius:99px;background:var(--accentSoft);color:var(--accent);display:grid;place-items:center;font-weight:800;border:none}
+h1{font-size:27px;letter-spacing:-.03em;margin:6px 0 2px;font-weight:800;text-wrap:balance}
+h2{font-size:16px;margin:24px 2px 10px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sub{color:var(--ink2);font-size:13px}
+.eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
+.stack{display:grid;gap:12px}
+.row{display:flex;align-items:center;gap:10px;min-width:0}
+.row.between{justify-content:space-between}
+.grow{flex:1;min-width:0}
+.num{font-variant-numeric:tabular-nums}
+.btn{border:none;border-radius:14px;padding:12px 16px;font-weight:700;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.ghost{background:var(--bg2);color:var(--ink)}
+.btn.small{padding:8px 12px;border-radius:11px;font-size:13.5px}
+.btn.danger{background:var(--redSoft);color:var(--red)}
+.btn.block{width:100%}
+.btn:disabled{opacity:.55;cursor:default}
+.link{background:none;border:none;color:var(--accent);font-weight:700;padding:0;font-size:13.5px}
+label.f{display:grid;gap:5px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+input.in,select.in,textarea.in{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:11px 12px;font-size:15px;color:var(--ink)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg{display:flex;background:var(--bg2);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:none;background:none;padding:8px 6px;border-radius:9px;font-weight:600;font-size:13px;color:var(--ink2)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--bg2);color:var(--ink2);white-space:nowrap}
+.pill.green{background:var(--greenSoft);color:var(--green)}.pill.orange{background:var(--accentSoft);color:var(--accent)}
+.pill.blue{background:var(--blueSoft);color:var(--blue)}.pill.amber{background:var(--amberSoft);color:var(--amber)}
+.demo{display:flex;gap:10px;align-items:center;background:var(--amberSoft);color:var(--amber);border-radius:14px;padding:10px 12px;font-size:13px;font-weight:600;margin-top:4px}
+/* today ring */
+.hero{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:center}
+@media(max-width:380px){.hero{grid-template-columns:1fr;justify-items:center}}
+.ring{position:relative;width:150px;height:150px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .mid{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+.ring .big{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.macro{display:grid;gap:4px}
+.macro .lbl{display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.bar{height:7px;border-radius:9px;background:var(--bg2);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:9px}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.tile .n{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.tile .l{font-size:12px;color:var(--ink2);font-weight:600;display:flex;align-items:center;gap:6px}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.quick button{border:1px solid var(--line);background:var(--card);border-radius:16px;padding:14px 8px;display:grid;justify-items:center;gap:6px;font-weight:700;font-size:12.5px;box-shadow:var(--shadow)}
+.quick svg{color:var(--accent)}
+.coach{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none}
+.coach .sub{color:#fff;opacity:.9}
+.coach .btn{background:rgba(255,255,255,.22)}
+/* lists */
+.list{display:grid}
+.li{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.li:last-child{border-bottom:none}
+.li img,.li .ph{width:46px;height:46px;border-radius:12px;object-fit:cover;flex:none;background:var(--bg2);display:grid;place-items:center;color:var(--ink3)}
+.li .t{font-weight:700;font-size:14.5px;overflow-wrap:anywhere}
+.li .d{font-size:12.5px;color:var(--ink2)}
+.kcal{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.daynav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.icon-btn{width:36px;height:36px;border-radius:11px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--ink3);font-size:10px;font-family:var(--mono)}
+.empty{color:var(--ink2);font-size:13.5px;text-align:center;padding:18px 8px}
+.list-plain{margin:6px 0 0;padding-left:18px;display:grid;gap:4px;font-size:14px}
+.steps{counter-reset:s;display:grid;gap:10px;margin:8px 0 0;padding:0;list-style:none}
+.steps li{display:grid;grid-template-columns:26px 1fr;gap:10px;font-size:14px}
+.steps li::before{counter-increment:s;content:counter(s);width:24px;height:24px;border-radius:99px;background:var(--accentSoft);color:var(--accent);font-weight:800;font-size:12px;display:grid;place-items:center}
+code,.code{font-family:var(--mono);font-size:12.5px;background:var(--bg2);padding:2px 6px;border-radius:6px;overflow-wrap:anywhere}
+/* bottom nav */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--card);border-top:1px solid var(--line);
+  padding:6px max(10px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
+nav.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav.tabs button{border:none;background:none;display:grid;justify-items:center;gap:2px;padding:6px 0;font-size:11px;font-weight:700;color:var(--ink3)}
+nav.tabs button.on{color:var(--accent)}
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(20,12,6,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;
+  padding:18px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet h3{margin:0 0 4px;font-size:19px;letter-spacing:-.02em}
+.photo-prev{width:100%;max-height:260px;object-fit:cover;border-radius:16px;display:block}
+.item-edit{display:grid;grid-template-columns:1fr 64px 56px 56px 56px 28px;gap:6px;align-items:center}
+.item-edit input{padding:8px 6px;font-size:13.5px;text-align:center;min-width:0}
+.item-edit input:first-child{text-align:left}
+.item-edit .h{font-size:10.5px;font-weight:700;color:var(--ink3);text-align:center;text-transform:uppercase;letter-spacing:.05em}
+.item-edit .h:first-child{text-align:left}
+.x{border:none;background:none;color:var(--ink3);font-size:18px;padding:0}
+.spinner{width:22px;height:22px;border:3px solid var(--accentSoft);border-top-color:var(--accent);border-radius:99px;animation:sp 0.8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.spinner{animation-duration:3s}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:13.5px;z-index:60;max-width:calc(100% - 32px)}
+.bf{font-size:34px;font-weight:800;letter-spacing:-.03em}
+.auth{max-width:420px;margin:8vh auto 0;display:grid;gap:14px}
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand"><span class="mark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 20V4h12M6 12h9"/></svg></span>FORMA</div>
+    <button class="avatar" id="avatarBtn" aria-label="Profile">A</button>
+  </header>
+  <main id="view"></main>
+</div>
+<nav class="tabs" id="tabs" hidden><div class="in"></div></nav>
+<input type="file" id="fileIn" accept="image/*" capture="environment" hidden>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" onerror="void 0"></script>
+<script>
+"use strict";
+/* ---------------- helpers ---------------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const r0 = n => Math.round(Number(n) || 0);
+const r1 = n => Math.round((Number(n) || 0) * 10) / 10;
+const dayStr = (d = new Date()) => { const z = new Date(d); z.setMinutes(z.getMinutes() - z.getTimezoneOffset()); return z.toISOString().slice(0, 10); };
+const addDays = (s, n) => { const d = new Date(s + "T12:00:00"); d.setDate(d.getDate() + n); return dayStr(d); };
+const niceDay = s => { const t = dayStr(); if (s === t) return "Today"; if (s === addDays(t, -1)) return "Yesterday";
+  return new Date(s + "T12:00:00").toLocaleDateString(undefined, {weekday: "short", day: "numeric", month: "short"}); };
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+const ls = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+             set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const ICON = {
+  today: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
+  food: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 3v8a3 3 0 0 0 6 0V3M8 3v18M17 3c-2 2-2 6 0 8v10"/></svg>',
+  body: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="5" r="2.5"/><path d="M5 9h14M12 9v6M8 21l4-6 4 6"/></svg>',
+  activity: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>',
+  profile: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+  camera: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  scale: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M9 9a4 4 0 0 1 6 0M12 9l1.5-2"/></svg>',
+  watch: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6V3h6v3M9 18v3h6v-3"/></svg>',
+  left: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  right: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>',
+};
+
+/* ---------------- targets (Mifflin-St Jeor) ---------------- */
+const ACT = {low: [1.2, "Mostly sitting"], light: [1.375, "Light (1-3 workouts/wk)"], active: [1.55, "Active (3-5/wk)"], very: [1.725, "Very active (6-7/wk)"]};
+const GOALS = {lose: "Lose fat", maintain: "Stay in shape", gain: "Build muscle"};
+function targets(p) {
+  const w = +p.weight || 75, h = +p.height || 175, a = +p.age || 30;
+  const bmr = 10 * w + 6.25 * h - 5 * a + (p.sex === "female" ? -161 : 5);
+  const tdee = bmr * (ACT[p.activity] || ACT.light)[0];
+  const floor = p.sex === "female" ? 1400 : 1700;           // never suggest crash diets
+  let kcal = p.goal === "lose" ? Math.max(floor, tdee - 450) : p.goal === "gain" ? tdee + 250 : tdee;
+  if (p.kcal_override) kcal = +p.kcal_override;
+  kcal = Math.round(kcal / 10) * 10;
+  const protein = Math.round(w * (p.goal === "maintain" ? 1.6 : 2.0));
+  const fat = Math.round(kcal * 0.27 / 9);
+  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
+  return {kcal, protein, carbs, fat, tdee: Math.round(tdee), steps: 8000};
+}
+
+/* ---------------- data layer: demo (this device) or live (Supabase) ---------------- */
+const CFG = window.FORMA_CONFIG || {};
+const LIVE = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase);
+const sb = LIVE ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
+const S = { user: null, profile: null, entries: [], tab: ls.get("forma.tab", "today"), foodDay: dayStr(), demo: !LIVE };
+
+function demoSeed() {
+  const t = dayStr(), E = [];
+  const add = (kind, day, data) => E.push({id: uid(), kind, day, data, created_at: new Date(day + "T12:00:00").toISOString()});
+  let w = 82.4;
+  for (let i = 60; i >= 0; i -= 2) { w -= 0.06 + (Math.sin(i) * 0.12); add("weight", addDays(t, -i), {kg: r1(w)}); }
+  for (let i = 13; i >= 0; i--) {
+    const d = addDays(t, -i), s = 5200 + Math.round(4800 * Math.abs(Math.sin(i * 1.7)));
+    add("health", d, {steps: s, active_kcal: Math.round(s * 0.045 + 120), exercise_min: Math.round(s / 300), resting_hr: 58 + (i % 4), sleep_h: r1(6.4 + (i % 3) * 0.5),
+      workouts: i % 2 ? [] : [{type: ["Strength training", "Running", "Cycling"][i % 3], minutes: 35 + (i % 3) * 10, kcal: 260 + (i % 3) * 60}]});
+  }
+  add("meal", t, {meal: "breakfast", name: "Greek yogurt bowl", items: [
+    {name: "Greek yogurt", grams: 200, kcal: 146, p: 20, c: 8, f: 4}, {name: "Blueberries", grams: 80, kcal: 46, p: 1, c: 12, f: 0},
+    {name: "Granola", grams: 40, kcal: 180, p: 4, c: 26, f: 7}]});
+  add("meal", t, {meal: "lunch", name: "Chicken rice bowl", items: [
+    {name: "Grilled chicken breast", grams: 150, kcal: 248, p: 46, c: 0, f: 5}, {name: "White rice", grams: 180, kcal: 234, p: 5, c: 51, f: 1},
+    {name: "Broccoli", grams: 100, kcal: 34, p: 3, c: 7, f: 0}, {name: "Teriyaki sauce", grams: 30, kcal: 45, p: 1, c: 9, f: 0}]});
+  add("scan", addDays(t, -28), {bf_low: 19, bf_high: 22, summary: "Solid base with good shoulder width. Midsection holds most of the body fat.",
+    strengths: ["Broad shoulders", "Good leg development"], focus: ["Upper chest", "Core and waist"], plan: ["Keep protein near 160 g a day", "Add 2 incline press sessions a week", "Walk 8-10k steps daily"]});
+  return {profile: {name: "Alex", sex: "male", age: 29, height: 180, weight: 79, goal: "lose", activity: "active", sync_token: "demo-" + uid().slice(0, 12)}, entries: E};
+}
+
+const DB = {
+  async init() {
+    if (!LIVE) {
+      let st = ls.get("forma.demo", null);
+      if (!st) { st = demoSeed(); ls.set("forma.demo", st); }
+      S.user = {id: "demo", email: "demo"}; S.profile = st.profile; S.entries = st.entries; return;
+    }
+    const {data} = await sb.auth.getSession();
+    S.user = data.session?.user || null;
+    if (S.user) await DB.load();
+  },
+  async load() {
+    const [{data: prof}, {data: ents, error}] = await Promise.all([
+      sb.from("profiles").select("*").eq("user_id", S.user.id).maybeSingle(),
+      sb.from("entries").select("*").gte("day", addDays(dayStr(), -120)).order("created_at")]);
+    if (error) throw error;
+    S.profile = prof ? {...prof.data, sync_token: prof.sync_token} : null;
+    S.entries = ents || [];
+  },
+  saveDemo() { ls.set("forma.demo", {profile: S.profile, entries: S.entries}); },
+  async saveProfile(p) {
+    S.profile = {...S.profile, ...p};
+    if (!LIVE) return DB.saveDemo();
+    const {sync_token, ...data} = S.profile;
+    const {data: row, error} = await sb.from("profiles").upsert({user_id: S.user.id, data}, {onConflict: "user_id"}).select().single();
+    if (error) throw error;
+    S.profile.sync_token = row.sync_token;
+  },
+  async add(kind, day, data) {
+    const e = {id: uid(), kind, day, data, created_at: new Date().toISOString()};
+    if (LIVE) { const {data: row, error} = await sb.from("entries").insert({user_id: S.user.id, kind, day, data}).select().single(); if (error) throw error; Object.assign(e, row); }
+    S.entries.push(e); if (!LIVE) DB.saveDemo(); return e;
+  },
+  async remove(id) {
+    if (LIVE) { const {error} = await sb.from("entries").delete().eq("id", id); if (error) throw error; }
+    S.entries = S.entries.filter(e => e.id !== id); if (!LIVE) DB.saveDemo();
+  },
+  async wipe() {
+    if (LIVE) { await sb.from("entries").delete().eq("user_id", S.user.id); await sb.from("profiles").delete().eq("user_id", S.user.id); }
+    S.entries = []; S.profile = null; if (!LIVE) ls.set("forma.demo", {profile: null, entries: []});
+  },
+};
+const of = (kind, day) => S.entries.filter(e => e.kind === kind && (!day || e.day === day));
+const healthOf = day => { const h = of("health", day); return h.length ? h[h.length - 1].data : null; };
+const mealTotals = m => (m.data.items || []).reduce((a, i) => ({kcal: a.kcal + (+i.kcal || 0), p: a.p + (+i.p || 0), c: a.c + (+i.c || 0), f: a.f + (+i.f || 0)}), {kcal: 0, p: 0, c: 0, f: 0});
+const dayTotals = day => of("meal", day).map(mealTotals).reduce((a, t) => ({kcal: a.kcal + t.kcal, p: a.p + t.p, c: a.c + t.c, f: a.f + t.f}), {kcal: 0, p: 0, c: 0, f: 0});
+const latestWeight = () => { const w = of("weight").sort((a, b) => a.day < b.day ? -1 : 1); return w.length ? w[w.length - 1].data.kg : +S.profile?.weight; };
+
+/* ---------------- AI (Gemini via the app's server; demo answers on this device) ---------------- */
+async function ai(type, payload) {
+  if (!LIVE) {
+    await sleep(1400);
+    if (type === "food") return {name: "Pasta with tomato sauce", meal: guessMeal(), items: [
+      {name: "Spaghetti (cooked)", grams: 220, kcal: 348, p: 13, c: 68, f: 2}, {name: "Tomato basil sauce", grams: 120, kcal: 90, p: 2, c: 13, f: 3},
+      {name: "Parmesan", grams: 15, kcal: 62, p: 5, c: 0, f: 4}, {name: "Olive oil", grams: 7, kcal: 62, p: 0, c: 0, f: 7}], note: "Demo result: sign in to analyse your own photos."};
+    if (type === "physique") return {bf_low: 17, bf_high: 20, summary: "Demo result: steady progress since your last check, with a leaner waist and more visible shoulders.",
+      strengths: ["Shoulders and arms", "Posture looks upright"], focus: ["Upper chest", "Lower abs and obliques"], plan: ["Stay near your calorie target 5-6 days a week", "Progressive overload on presses", "Keep 8k+ steps a day"]};
+    return {tip: "You're 34 g short on protein today. A shake or 200 g of skyr closes the gap before dinner.", demo: true};
+  }
+  const {data} = await sb.auth.getSession();
+  const r = await fetch(CFG.SUPABASE_URL + "/functions/v1/ai", {method: "POST",
+    headers: {"Content-Type": "application/json", Authorization: "Bearer " + data.session.access_token, apikey: CFG.SUPABASE_ANON_KEY},
+    body: JSON.stringify({type, ...payload})});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "The AI is busy, try again in a minute");
+  return j;
+}
+const guessMeal = () => { const h = new Date().getHours(); return h < 11 ? "breakfast" : h < 15 ? "lunch" : h < 18 ? "snack" : "dinner"; };
+function shrink(file, max = 1024, q = 0.82) {
+  return new Promise((res, rej) => { const img = new Image(); img.onload = () => {
+    const s = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement("canvas");
+    c.width = Math.round(img.width * s); c.height = Math.round(img.height * s); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    res(c.toDataURL("image/jpeg", q)); URL.revokeObjectURL(img.src); }; img.onerror = () => rej(new Error("Couldn't read that photo")); img.src = URL.createObjectURL(file); });
+}
+function pickPhoto() { return new Promise(res => { const f = $("#fileIn"); f.value = ""; f.onchange = () => res(f.files[0] || null); f.click(); }); }
+
+/* ---------------- charts ---------------- */
+function lineChart(pts, {w = 520, h = 150, unit = ""} = {}) {
+  if (pts.length < 2) return '<div class="empty">Log at least two days to see your trend.</div>';
+  const ys = pts.map(p => p.y), lo = Math.min(...ys), hi = Math.max(...ys), pad = Math.max(0.5, (hi - lo) * 0.15);
+  const y0 = lo - pad, y1 = hi + pad, L = 34, R = 10, T = 10, B = 22;
+  const xs = pts.map(p => p.x), x0 = Math.min(...xs), x1 = Math.max(...xs) || 1;
+  const X = x => L + (x - x0) / ((x1 - x0) || 1) * (w - L - R), Y = y => T + (1 - (y - y0) / (y1 - y0)) * (h - T - B);
+  const d = pts.map((p, i) => (i ? "L" : "M") + X(p.x).toFixed(1) + " " + Y(p.y).toFixed(1)).join(" ");
+  const area = d + ` L${X(pts.at(-1).x).toFixed(1)} ${h - B} L${X(pts[0].x).toFixed(1)} ${h - B} Z`;
+  const grid = [y0 + pad, (y0 + y1) / 2, y1 - pad].map(v => `<line x1="${L}" x2="${w - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${r1(v)}</text>`).join("");
+  const last = pts.at(-1);
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Trend chart">${grid}
+    <path d="${area}" fill="var(--accentSoft)" opacity=".7"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${X(last.x)}" cy="${Y(last.y)}" r="4.5" fill="var(--accent)" stroke="var(--card)" stroke-width="2"/>
+    <text x="${L}" y="${h - 6}">${esc(pts[0].label || "")}</text><text x="${w - R}" y="${h - 6}" text-anchor="end">${esc(last.label || "")}</text></svg>`;
+}
+function barChart(vals, labels, goal, {w = 520, h = 150} = {}) {
+  const mx = Math.max(goal || 0, ...vals, 1) * 1.1, L = 8, R = 8, T = 10, B = 22, bw = (w - L - R) / vals.length;
+  const Y = v => T + (1 - v / mx) * (h - T - B);
+  const bars = vals.map((v, i) => `<rect x="${(L + i * bw + bw * 0.18).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${(bw * 0.64).toFixed(1)}" height="${(h - B - Y(v)).toFixed(1)}" rx="5"
+     fill="${v >= goal ? "var(--accent)" : "var(--accent2)"}" opacity="${v >= goal ? 1 : .55}"/><text x="${(L + i * bw + bw / 2).toFixed(1)}" y="${h - 6}" text-anchor="middle">${esc(labels[i])}</text>`).join("");
+  const g = goal ? `<line x1="${L}" x2="${w - R}" y1="${Y(goal)}" y2="${Y(goal)}" stroke="var(--ink3)" stroke-dasharray="4 4"/><text x="${w - R}" y="${Y(goal) - 4}" text-anchor="end">goal ${goal.toLocaleString()}</text>` : "";
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Steps per day">${bars}${g}</svg>`;
+}
+function ring(eaten, target) {
+  const R = 64, C = 2 * Math.PI * R, p = Math.min(1, eaten / (target || 1)), over = eaten > target;
+  return `<div class="ring"><svg viewBox="0 0 150 150"><circle cx="75" cy="75" r="${R}" fill="none" stroke="var(--bg2)" stroke-width="13"/>
+    <circle cx="75" cy="75" r="${R}" fill="none" stroke="${over ? "var(--red)" : "var(--accent)"}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${(C * p).toFixed(1)} ${C.toFixed(1)}"/></svg>
+    <div class="mid"><span class="big num">${r0(Math.abs(target - eaten)).toLocaleString()}</span><span class="sub">${over ? "kcal over" : "kcal left"}</span></div></div>`;
+}
+
+/* ---------------- screens ---------------- */
+const TABS = [["today", "Today"], ["food", "Food"], ["body", "Body"], ["activity", "Activity"], ["profile", "Me"]];
+function nav() {
+  const n = $("#tabs"); n.hidden = false;
+  n.firstElementChild.innerHTML = TABS.map(([k, l]) => `<button class="${S.tab === k ? "on" : ""}" data-tab="${k}">${ICON[k]}${l}</button>`).join("");
+}
+function go(tab) { S.tab = tab; ls.set("forma.tab", tab); render(); scrollTo({top: 0}); }
+const demoBanner = () => S.demo ? `<div class="demo"><span class="grow">Example data: this is a demo with a sample person. Your own data starts when the app is connected.</span></div>` : "";
+
+function render() {
+  const v = $("#view");
+  $("#avatarBtn").textContent = (S.profile?.name || "A")[0].toUpperCase();
+  $("#avatarBtn").hidden = !S.profile;
+  if (LIVE && !S.user) { $("#tabs").hidden = true; return renderAuth(v); }
+  if (!S.profile) { $("#tabs").hidden = true; return renderOnboarding(v); }
+  nav();
+  ({today: renderToday, food: renderFood, body: renderBody, activity: renderActivity, profile: renderProfile}[S.tab] || renderToday)(v);
+}
+
+function renderAuth(v) {
+  let mode = "in";
+  const draw = () => { v.innerHTML = `<form class="auth card" id="authForm">
+    <div><div class="eyebrow">Welcome to FORMA</div><h1>${mode === "in" ? "Sign in" : "Create your account"}</h1>
+    <div class="sub">Calories from a photo, physique check-ins and your Apple Watch, in one place.</div></div>
+    <label class="f">Email<input class="in" id="em" type="email" autocomplete="email" required></label>
+    <label class="f">Password<input class="in" id="pw" type="password" minlength="8" autocomplete="${mode === "in" ? "current-password" : "new-password"}" required></label>
+    <button class="btn block" id="authGo">${mode === "in" ? "Sign in" : "Create account"}</button>
+    <button type="button" class="link" id="authSwap">${mode === "in" ? "New here? Create an account" : "Already have an account? Sign in"}</button>
+    <div class="sub" id="authMsg"></div></form>`;
+    $("#authSwap").onclick = () => { mode = mode === "in" ? "up" : "in"; draw(); };
+    $("#authForm").onsubmit = async e => { e.preventDefault(); const b = $("#authGo"); b.disabled = true; $("#authMsg").textContent = "";
+      const cred = {email: $("#em").value.trim(), password: $("#pw").value};
+      const {data, error} = mode === "in" ? await sb.auth.signInWithPassword(cred) : await sb.auth.signUp(cred);
+      b.disabled = false;
+      if (error) { $("#authMsg").textContent = error.message; return; }
+      if (!data.session) { $("#authMsg").textContent = "Check your email to confirm your account, then sign in."; return; }
+      S.user = data.session.user; await DB.load(); render(); };
+  };
+  draw();
+}
+
+function profileForm(p = {}) {
+  return `<div class="fgrid">
+    <label class="f" style="grid-column:1/-1">Your name<input class="in" id="pName" value="${esc(p.name || "")}" required></label>
+    <label class="f">Sex<select class="in" id="pSex"><option value="male"${p.sex !== "female" ? " selected" : ""}>Male</option><option value="female"${p.sex === "female" ? " selected" : ""}>Female</option></select></label>
+    <label class="f">Age<input class="in num" id="pAge" type="number" min="13" max="100" value="${esc(p.age || "")}" required></label>
+    <label class="f">Height (cm)<input class="in num" id="pH" type="number" min="120" max="230" value="${esc(p.height || "")}" required></label>
+    <label class="f">Weight (kg)<input class="in num" id="pW" type="number" step="0.1" min="35" max="300" value="${esc(p.weight || "")}" required></label>
+    <label class="f" style="grid-column:1/-1">Goal<select class="in" id="pGoal">${Object.entries(GOALS).map(([k, l]) => `<option value="${k}"${p.goal === k ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+    <label class="f" style="grid-column:1/-1">How active are you?<select class="in" id="pAct">${Object.entries(ACT).map(([k, [, l]]) => `<option value="${k}"${(p.activity || "light") === k ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+  </div>`;
+}
+const readProfileForm = () => ({name: $("#pName").value.trim(), sex: $("#pSex").value, age: +$("#pAge").value, height: +$("#pH").value,
+  weight: +$("#pW").value, goal: $("#pGoal").value, activity: $("#pAct").value});
+
+function renderOnboarding(v) {
+  v.innerHTML = `<form class="stack" id="ob"><div><div class="eyebrow">Step 1 of 1</div><h1>Let's set your targets</h1>
+    <div class="sub">FORMA works out your daily calories and protein from this. You can change it any time.</div></div>
+    <div class="card">${profileForm()}</div><button class="btn block">Start</button></form>`;
+  $("#ob").onsubmit = async e => { e.preventDefault(); const p = readProfileForm();
+    try { await DB.saveProfile(p); await DB.add("weight", dayStr(), {kg: p.weight}); go("today"); } catch (err) { toast(err.message); } };
+}
+
+function renderToday(v) {
+  const t = dayStr(), tg = targets(S.profile), tot = dayTotals(t), h = healthOf(t);
+  const hello = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening";
+  const macro = (l, val, goal, col) => `<div class="macro"><div class="lbl"><span>${l}</span><span class="num">${r0(val)} / ${goal} g</span></div><div class="bar"><i style="width:${Math.min(100, val / goal * 100)}%;background:${col}"></i></div></div>`;
+  const tile = (l, n, unit = "") => `<div class="tile"><div class="l">${l}</div><div class="n num">${n}<span class="sub"> ${unit}</span></div></div>`;
+  v.innerHTML = `${demoBanner()}
+    <div><div class="sub">${new Date().toLocaleDateString(undefined, {weekday: "long", day: "numeric", month: "long"})}</div><h1>${hello}, ${esc(S.profile.name)}</h1></div>
+    <div class="card hero" style="margin-top:12px">${ring(tot.kcal, tg.kcal)}
+      <div class="stack" style="gap:10px"><div class="row between"><span class="eyebrow">Eaten</span><span class="num" style="font-weight:800">${r0(tot.kcal).toLocaleString()} / ${tg.kcal.toLocaleString()} kcal</span></div>
+      ${macro("Protein", tot.p, tg.protein, "var(--accent)")}${macro("Carbs", tot.c, tg.carbs, "var(--blue)")}${macro("Fat", tot.f, tg.fat, "var(--amber)")}</div></div>
+    <div class="quick" style="margin-top:12px">
+      <button id="qMeal">${ICON.camera}Snap a meal</button><button id="qWeight">${ICON.scale}Log weight</button><button id="qBody">${ICON.body}Body check</button></div>
+    <h2>From your Apple Watch <span class="pill ${h ? "green" : "amber"}">${ICON.watch}${h ? "Synced" : "Not synced today"}</span></h2>
+    ${h ? `<div class="tiles">${tile("Steps", r0(h.steps).toLocaleString())}${tile("Active energy", r0(h.active_kcal), "kcal")}${tile("Exercise", r0(h.exercise_min), "min")}${tile("Resting heart rate", r0(h.resting_hr) || "–", "bpm")}</div>`
+        : `<div class="card"><div class="sub">Your Watch data arrives once a day through a free Apple Shortcut.</div><button class="btn ghost small" style="margin-top:10px" id="toSync">Set up Apple Watch sync</button></div>`}
+    <h2>Coach</h2>
+    <div class="card coach"><div class="stack" style="gap:10px"><div id="tipText" style="font-weight:600">Get one clear thing to do today, based on what you've eaten and how much you've moved.</div>
+      <div><button class="btn small" id="tipGo">Get today's tip</button></div></div></div>`;
+  $("#qMeal").onclick = snapMeal; $("#qWeight").onclick = weightSheet; $("#qBody").onclick = physiqueCheck;
+  if ($("#toSync")) $("#toSync").onclick = () => go("activity");
+  $("#tipGo").onclick = async () => { const b = $("#tipGo"); b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
+    try { const r = await ai("coach", {context: coachContext()}); $("#tipText").textContent = r.tip; }
+    catch (e) { toast(e.message); } b.disabled = false; b.textContent = "New tip"; };
+}
+function coachContext() {
+  const t = dayStr(), tg = targets(S.profile), tot = dayTotals(t);
+  const week = [...Array(7)].map((_, i) => healthOf(addDays(t, -i))).filter(Boolean);
+  return {goal: GOALS[S.profile.goal], targets: tg, eaten_today: tot, hour: new Date().getHours(), weight_now: latestWeight(),
+    avg_steps_7d: week.length ? r0(week.reduce((a, h) => a + (h.steps || 0), 0) / week.length) : null,
+    workouts_7d: week.reduce((a, h) => a + (h.workouts || []).length, 0)};
+}
+
+/* ---- food ---- */
+function renderFood(v) {
+  const d = S.foodDay, tot = dayTotals(d), tg = targets(S.profile), meals = of("meal", d);
+  const order = ["breakfast", "lunch", "snack", "dinner"];
+  const groups = order.map(m => [m, meals.filter(x => (x.data.meal || "snack") === m)]).filter(([, l]) => l.length);
+  v.innerHTML = `${demoBanner()}
+    <div class="daynav" style="margin-top:6px"><button class="icon-btn" id="dPrev" aria-label="Previous day">${ICON.left}</button>
+      <div style="text-align:center"><h1 style="margin:0">${niceDay(d)}</h1><div class="sub num">${r0(tot.kcal).toLocaleString()} of ${tg.kcal.toLocaleString()} kcal · ${r0(tot.p)} g protein</div></div>
+      <button class="icon-btn" id="dNext" aria-label="Next day" ${d >= dayStr() ? "disabled" : ""}>${ICON.right}</button></div>
+    <div class="row" style="margin-top:14px"><button class="btn grow" id="snap">${ICON.camera}Snap a meal</button><button class="btn ghost" id="manual">Add manually</button></div>
+    ${groups.length ? groups.map(([m, list]) => `<h2>${m[0].toUpperCase() + m.slice(1)}<span class="sub num">${r0(list.map(mealTotals).reduce((a, t) => a + t.kcal, 0))} kcal</span></h2>
+      <div class="card list">${list.map(x => { const t = mealTotals(x); return `<div class="li">${x.data.thumb ? `<img src="${x.data.thumb}" alt="">` : `<div class="ph">${ICON.food}</div>`}
+        <div class="grow"><div class="t">${esc(x.data.name || "Meal")}</div><div class="d num">P ${r0(t.p)} · C ${r0(t.c)} · F ${r0(t.f)} · ${(x.data.items || []).length} items</div></div>
+        <span class="kcal">${r0(t.kcal)}</span><button class="x" data-del="${x.id}" aria-label="Delete meal">×</button></div>`; }).join("")}</div>`).join("")
+      : `<div class="card empty" style="margin-top:14px">Nothing logged for ${niceDay(d).toLowerCase()}. Snap a photo of your plate and FORMA works out the calories.</div>`}`;
+  $("#dPrev").onclick = () => { S.foodDay = addDays(d, -1); render(); };
+  $("#dNext").onclick = () => { if (d < dayStr()) { S.foodDay = addDays(d, 1); render(); } };
+  $("#snap").onclick = snapMeal;
+  $("#manual").onclick = () => mealSheet({name: "", meal: guessMeal(), items: [{name: "", grams: 100, kcal: 0, p: 0, c: 0, f: 0}]}, null);
+  v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => confirmSheet("Delete this meal?", async () => { await DB.remove(b.dataset.del); render(); }));
+}
+async function snapMeal() {
+  const f = await pickPhoto(); if (!f) return;
+  const img = await shrink(f), thumb = await shrink(f, 160, 0.7);
+  sheet(`<h3>Reading your plate…</h3><img class="photo-prev" src="${img}" alt="Your meal"><div class="row" style="margin-top:14px"><span class="spinner"></span><span class="sub">Spotting each food and estimating portions</span></div>`);
+  try { const r = await ai("food", {image: img}); closeSheet(); mealSheet({name: r.name, meal: r.meal || guessMeal(), items: r.items || [], note: r.note, thumb}, img); }
+  catch (e) { closeSheet(); toast(e.message); }
+}
+function mealSheet(m, img) {
+  const rows = () => m.items.map((it, i) => `<input class="in" data-i="${i}" data-k="name" value="${esc(it.name)}" placeholder="Food" aria-label="Food name">
+    <input class="in num" data-i="${i}" data-k="grams" type="number" value="${r0(it.grams)}" aria-label="Grams">
+    <input class="in num" data-i="${i}" data-k="kcal" type="number" value="${r0(it.kcal)}" aria-label="Calories">
+    <input class="in num" data-i="${i}" data-k="p" type="number" value="${r0(it.p)}" aria-label="Protein">
+    <input class="in num" data-i="${i}" data-k="c" type="number" value="${r0(it.c)}" aria-label="Carbs">
+    <button class="x" data-rm="${i}" aria-label="Remove">×</button>`).join("");
+  const draw = () => {
+    const t = m.items.reduce((a, i) => ({kcal: a.kcal + (+i.kcal || 0), p: a.p + (+i.p || 0)}), {kcal: 0, p: 0});
+    sheet(`<h3>${img ? "Here's what I see" : "Add a meal"}</h3>${m.note ? `<div class="sub">${esc(m.note)}</div>` : `<div class="sub">Check the portions and fix anything that looks off.</div>`}
+      ${img ? `<img class="photo-prev" src="${img}" alt="Your meal" style="margin-top:10px;max-height:170px">` : ""}
+      <div class="fgrid" style="margin-top:12px"><label class="f">Name<input class="in" id="mName" value="${esc(m.name)}"></label>
+      <label class="f">Meal<select class="in" id="mMeal">${["breakfast", "lunch", "snack", "dinner"].map(x => `<option${m.meal === x ? " selected" : ""}>${x}</option>`).join("")}</select></label></div>
+      <div style="overflow-x:auto;margin-top:12px"><div class="item-edit" style="min-width:330px"><span class="h">Food</span><span class="h">g</span><span class="h">kcal</span><span class="h">P</span><span class="h">C</span><span></span>${rows()}</div></div>
+      <button class="link" id="addItem" style="margin-top:10px">+ Add a food</button>
+      <div class="row between" style="margin-top:14px"><span class="num" style="font-weight:800">${r0(t.kcal)} kcal · ${r0(t.p)} g protein</span></div>
+      <div class="row" style="margin-top:12px"><button class="btn ghost grow" id="mCancel">Cancel</button><button class="btn grow" id="mSave">Save meal</button></div>`);
+    document.querySelectorAll(".item-edit input").forEach(inp => inp.onchange = () => {
+      const it = m.items[+inp.dataset.i], k = inp.dataset.k, old = {...it};
+      it[k] = k === "name" ? inp.value : +inp.value;
+      if (k === "grams" && old.grams > 0) { const s = it.grams / old.grams; ["kcal", "p", "c", "f"].forEach(q => it[q] = r1(old[q] * s)); }
+      m.name = $("#mName").value; m.meal = $("#mMeal").value; draw(); });
+    document.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { m.items.splice(+b.dataset.rm, 1); draw(); });
+    $("#addItem").onclick = () => { m.name = $("#mName").value; m.meal = $("#mMeal").value; m.items.push({name: "", grams: 100, kcal: 0, p: 0, c: 0, f: 0}); draw(); };
+    $("#mCancel").onclick = closeSheet;
+    $("#mSave").onclick = async () => { const items = m.items.filter(i => i.name && (+i.kcal || 0) >= 0);
+      if (!items.length) return toast("Add at least one food");
+      try { await DB.add("meal", S.foodDay || dayStr(), {name: $("#mName").value || items[0].name, meal: $("#mMeal").value, items, thumb: m.thumb || null});
+        closeSheet(); toast("Meal saved"); render(); } catch (e) { toast(e.message); } };
+  };
+  draw();
+}
+
+/* ---- body ---- */
+function renderBody(v) {
+  const ws = of("weight").sort((a, b) => a.day < b.day ? -1 : 1), now = latestWeight();
+  const t = dayStr(), since = ws.filter(w => w.day >= addDays(t, -30)), ch = since.length > 1 ? r1(since.at(-1).data.kg - since[0].data.kg) : null;
+  const pts = ws.filter(w => w.day >= addDays(t, -90)).map(w => ({x: new Date(w.day).getTime() / 864e5, y: +w.data.kg, label: niceDay(w.day)}));
+  const scans = of("scan").sort((a, b) => a.day < b.day ? 1 : -1);
+  v.innerHTML = `${demoBanner()}<h1>Body</h1>
+    <div class="card" style="margin-top:10px"><div class="row between"><div><div class="eyebrow">Weight</div><div class="bf num">${r1(now)} <span class="sub">kg</span></div></div>
+      ${ch !== null ? `<span class="pill ${(S.profile.goal === "gain" ? ch >= 0 : ch <= 0) ? "green" : "amber"} num">${ch > 0 ? "+" : ""}${ch} kg in 30 days</span>` : ""}</div>
+      <div style="margin-top:8px">${lineChart(pts)}</div><button class="btn ghost small" id="logW" style="margin-top:8px">${ICON.scale}Log today's weight</button></div>
+    <h2>Physique check-ins <button class="btn small" id="newScan">${ICON.camera}New check-in</button></h2>
+    <div class="sub" style="margin:-4px 2px 10px">Take a front photo in good light, same spot each time. Every 2-4 weeks is ideal. Photos stay private to your account.</div>
+    ${scans.length ? `<div class="stack">${scans.map(scanCard).join("")}</div>` : `<div class="card empty">No check-ins yet. Your first one becomes the baseline for tracking progress.</div>`}`;
+  $("#logW").onclick = weightSheet; $("#newScan").onclick = physiqueCheck;
+  v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => confirmSheet("Delete this check-in?", async () => { await DB.remove(b.dataset.del); render(); }));
+}
+const scanCard = s => `<div class="card"><div class="row">${s.data.thumb ? `<img src="${s.data.thumb}" alt="" style="width:64px;height:84px;object-fit:cover;border-radius:12px">` : ""}
+  <div class="grow"><div class="eyebrow">${niceDay(s.day)}</div><div style="font-weight:800;font-size:20px" class="num">${s.data.bf_low}–${s.data.bf_high}% <span class="sub">est. body fat</span></div>
+  <div class="sub">${esc(s.data.summary)}</div></div><button class="x" data-del="${s.id}" aria-label="Delete check-in">×</button></div>
+  <div class="fgrid" style="margin-top:10px"><div><div class="eyebrow">Strong points</div><ul class="list-plain">${(s.data.strengths || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
+  <div><div class="eyebrow">Focus next</div><ul class="list-plain">${(s.data.focus || []).map(x => `<li>${esc(x)}</li>`).join("")}</ul></div></div>
+  ${(s.data.plan || []).length ? `<div style="margin-top:10px"><div class="eyebrow">Plan</div><ul class="list-plain">${s.data.plan.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}</div>`;
+async function physiqueCheck() {
+  const f = await pickPhoto(); if (!f) return;
+  const img = await shrink(f, 1024), thumb = await shrink(f, 200, 0.7);
+  sheet(`<h3>Checking your progress…</h3><img class="photo-prev" src="${img}" alt="Your check-in photo"><div class="row" style="margin-top:14px"><span class="spinner"></span><span class="sub">Comparing with your goal and last check-in</span></div>`);
+  try {
+    const prev = of("scan").sort((a, b) => a.day < b.day ? 1 : -1)[0];
+    const r = await ai("physique", {image: img, context: {goal: GOALS[S.profile.goal], sex: S.profile.sex, age: S.profile.age, height: S.profile.height, weight: latestWeight(),
+      previous: prev ? {day: prev.day, bf_low: prev.data.bf_low, bf_high: prev.data.bf_high, focus: prev.data.focus} : null}});
+    await DB.add("scan", dayStr(), {...r, thumb}); closeSheet(); toast("Check-in saved"); go("body");
+  } catch (e) { closeSheet(); toast(e.message); }
+}
+function weightSheet() {
+  sheet(`<h3>Log weight</h3><div class="sub">Weigh in the morning, before breakfast, for the clearest trend.</div>
+    <form id="wf" class="stack" style="margin-top:12px"><label class="f">Weight (kg)<input class="in num" id="wIn" type="number" step="0.1" min="35" max="300" value="${r1(latestWeight())}" required></label>
+    <div class="row"><button type="button" class="btn ghost grow" id="wC">Cancel</button><button class="btn grow">Save</button></div></form>`);
+  $("#wC").onclick = closeSheet;
+  $("#wf").onsubmit = async e => { e.preventDefault(); const kg = r1($("#wIn").value);
+    try { for (const w of of("weight", dayStr())) await DB.remove(w.id); await DB.add("weight", dayStr(), {kg}); await DB.saveProfile({weight: kg}); closeSheet(); toast("Weight saved"); render(); }
+    catch (err) { toast(err.message); } };
+}
+
+/* ---- activity ---- */
+function renderActivity(v) {
+  const t = dayStr(), days = [...Array(7)].map((_, i) => addDays(t, i - 6));
+  const hs = days.map(healthOf), steps = hs.map(h => r0(h?.steps)), tg = targets(S.profile);
+  const wk = [];
+  days.forEach((d, i) => (hs[i]?.workouts || []).forEach(w => wk.push({...w, day: d, src: "watch"})));
+  of("workout").forEach(w => { if (w.day >= days[0]) wk.push({...w.data, day: w.day, id: w.id, src: "manual"}); });
+  wk.sort((a, b) => a.day < b.day ? 1 : -1);
+  const avg = steps.filter(Boolean).length ? r0(steps.reduce((a, b) => a + b, 0) / steps.filter(Boolean).length) : 0;
+  const tok = S.profile.sync_token || "";
+  const url = LIVE ? CFG.SUPABASE_URL + "/functions/v1/health-sync" : "https://your-project.supabase.co/functions/v1/health-sync";
+  v.innerHTML = `${demoBanner()}<h1>Activity</h1>
+    <div class="card" style="margin-top:10px"><div class="row between"><div><div class="eyebrow">Steps, last 7 days</div><div class="bf num">${avg.toLocaleString()} <span class="sub">a day on average</span></div></div></div>
+      ${barChart(steps, days.map(d => new Date(d + "T12:00:00").toLocaleDateString(undefined, {weekday: "narrow"})), tg.steps)}</div>
+    <h2>Workouts this week <button class="btn ghost small" id="addW">+ Add</button></h2>
+    <div class="card list">${wk.length ? wk.map(w => `<div class="li"><div class="ph">${ICON.activity}</div><div class="grow"><div class="t">${esc(w.type)}</div>
+      <div class="d">${niceDay(w.day)} · ${r0(w.minutes)} min${w.kcal ? " · " + r0(w.kcal) + " kcal" : ""}</div></div>
+      ${w.src === "watch" ? `<span class="pill blue">${ICON.watch}Watch</span>` : `<button class="x" data-del="${w.id}" aria-label="Delete workout">×</button>`}</div>`).join("")
+      : `<div class="empty">No workouts yet this week. Workouts you record on your Apple Watch appear here after the daily sync.</div>`}</div>
+    <h2>Apple Watch sync</h2>
+    <div class="card"><div class="sub">Your Watch saves everything to Apple Health. This free Shortcut sends today's numbers to FORMA every evening, with no app to install.</div>
+      <ol class="steps">
+        <li><span>On your iPhone, open <b>Shortcuts</b> and create a new shortcut called <b>FORMA Sync</b>.</span></li>
+        <li><span>Add <b>Find Health Samples</b> for each of: Steps, Active Energy, Exercise Minutes, Resting Heart Rate, Sleep and Workouts, with <i>Start Date is today</i>. Use <b>Calculate Statistics → Sum</b> on each list.</span></li>
+        <li><span>Add <b>Get Contents of URL</b>: method <b>POST</b>, request body <b>JSON</b>, to the address below, with fields <code>token</code>, <code>date</code>, <code>steps</code>, <code>active_kcal</code>, <code>exercise_min</code>, <code>resting_hr</code>, <code>sleep_h</code>, <code>workouts</code>.</span></li>
+        <li><span>In <b>Automation</b>, add <b>Time of Day → 21:30, daily</b>, choose <b>Run Immediately</b>, and pick FORMA Sync.</span></li>
+      </ol>
+      <div class="stack" style="margin-top:14px;gap:8px">
+        <div><div class="eyebrow">Address</div><div class="row"><span class="code grow" id="syncUrl">${esc(url)}</span><button class="btn ghost small" data-copy="syncUrl">Copy</button></div></div>
+        <div><div class="eyebrow">Your private token</div><div class="row"><span class="code grow" id="syncTok">${esc(tok || "appears after you sign in")}</span><button class="btn ghost small" data-copy="syncTok">Copy</button></div></div>
+      </div></div>`;
+  $("#addW").onclick = workoutSheet;
+  v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => confirmSheet("Delete this workout?", async () => { await DB.remove(b.dataset.del); render(); }));
+  v.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => { const el = $("#" + b.dataset.copy);
+    navigator.clipboard?.writeText(el.textContent).then(() => toast("Copied"), () => { getSelection().selectAllChildren(el); toast("Selected, copy it from the menu"); }); });
+}
+function workoutSheet() {
+  sheet(`<h3>Add a workout</h3><form id="wkf" class="stack" style="margin-top:12px">
+    <label class="f">Type<select class="in" id="wkT">${["Strength training", "Running", "Walking", "Cycling", "Swimming", "HIIT", "Yoga", "Football", "Other"].map(x => `<option>${x}</option>`).join("")}</select></label>
+    <div class="fgrid"><label class="f">Minutes<input class="in num" id="wkM" type="number" min="1" max="600" value="45" required></label>
+    <label class="f">Calories (optional)<input class="in num" id="wkK" type="number" min="0" max="4000"></label></div>
+    <div class="row"><button type="button" class="btn ghost grow" id="wkC">Cancel</button><button class="btn grow">Save</button></div></form>`);
+  $("#wkC").onclick = closeSheet;
+  $("#wkf").onsubmit = async e => { e.preventDefault();
+    try { await DB.add("workout", dayStr(), {type: $("#wkT").value, minutes: +$("#wkM").value, kcal: +$("#wkK").value || null}); closeSheet(); toast("Workout saved"); render(); }
+    catch (err) { toast(err.message); } };
+}
+
+/* ---- profile ---- */
+function renderProfile(v) {
+  const tg = targets(S.profile);
+  v.innerHTML = `${demoBanner()}<h1>${esc(S.profile.name)}</h1><div class="sub">${LIVE ? esc(S.user.email) : "Demo account on this device"}</div>
+    <h2>Your daily targets</h2>
+    <div class="tiles"><div class="tile"><div class="l">Calories</div><div class="n num">${tg.kcal.toLocaleString()}</div></div>
+      <div class="tile"><div class="l">Protein</div><div class="n num">${tg.protein} g</div></div>
+      <div class="tile"><div class="l">Carbs</div><div class="n num">${tg.carbs} g</div></div>
+      <div class="tile"><div class="l">Fat</div><div class="n num">${tg.fat} g</div></div></div>
+    <div class="sub" style="margin:8px 2px 0">Your body burns about ${tg.tdee.toLocaleString()} kcal a day. ${S.profile.goal === "lose" ? "The target sits a little under that for steady fat loss of roughly 0.3-0.5 kg a week." : S.profile.goal === "gain" ? "The target sits a little over that so new muscle has fuel." : "The target matches it."}</div>
+    <h2>Details</h2><form class="card stack" id="pf">${profileForm(S.profile)}
+      <label class="f">Calorie target (leave empty to use the suggestion)<input class="in num" id="pK" type="number" min="1200" max="6000" value="${esc(S.profile.kcal_override || "")}"></label>
+      <button class="btn">Save changes</button></form>
+    <h2>Account</h2><div class="card stack">
+      ${LIVE ? `<button class="btn ghost" id="out">Sign out</button>` : `<button class="btn ghost" id="reset">Reset demo data</button>`}
+      <button class="btn danger" id="wipe">Delete all my data</button></div>
+    <div class="sub" style="margin:14px 2px">FORMA gives general fitness guidance, not medical advice. Talk to a doctor before big changes to diet or training.</div>`;
+  $("#pf").onsubmit = async e => { e.preventDefault(); try { await DB.saveProfile({...readProfileForm(), kcal_override: +$("#pK").value || null}); toast("Saved"); render(); } catch (err) { toast(err.message); } };
+  if ($("#out")) $("#out").onclick = async () => { await sb.auth.signOut(); S.user = null; S.profile = null; S.entries = []; render(); };
+  if ($("#reset")) $("#reset").onclick = () => { const st = demoSeed(); ls.set("forma.demo", st); S.profile = st.profile; S.entries = st.entries; toast("Demo data reset"); render(); };
+  $("#wipe").onclick = () => confirmSheet("Delete everything? Meals, weights, check-ins and workouts are removed for good.", async () => { await DB.wipe(); render(); });
+}
+
+/* ---- sheets ---- */
+function sheet(html) { closeSheet(); const s = document.createElement("div"); s.className = "scrim"; s.id = "scrim";
+  s.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`; s.onclick = e => { if (e.target === s) closeSheet(); }; document.body.appendChild(s); }
+function closeSheet() { $("#scrim")?.remove(); }
+function confirmSheet(msg, fn) {
+  sheet(`<h3>${esc(msg)}</h3><div class="row" style="margin-top:16px"><button class="btn ghost grow" id="cN">Keep</button><button class="btn danger grow" id="cY">Delete</button></div>`);
+  $("#cN").onclick = closeSheet; $("#cY").onclick = async () => { try { await fn(); toast("Deleted"); } catch (e) { toast(e.message); } closeSheet(); };
+}
+
+/* ---------------- start ---------------- */
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) go(b.dataset.tab); });
+$("#avatarBtn").onclick = () => go("profile");
+(async () => {
+  try { await DB.init(); } catch (e) { toast("Couldn't load your data: " + e.message); }
+  if (LIVE) sb.auth.onAuthStateChange((ev, session) => { if (ev === "SIGNED_OUT") { S.user = null; render(); } });
+  render();
+})();
+</script>
+
+</body>
+</html>
