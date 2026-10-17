@@ -264,6 +264,17 @@ code,.code{background:rgba(17,17,17,.06)}
 .item .dot{width:34px;height:34px;border-radius:12px;border:1px solid rgba(20,20,20,.12)}
 .iname{font-size:12.5px;font-weight:600;text-align:center;line-height:1.2}
 .iprice{font-size:11.5px;color:var(--ink2)}
+.streakline{display:flex;gap:8px;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--ink2);margin-top:-4px}
+.streakline.hot{color:#d0601a}
+.erow2{padding:10px 0;border-bottom:1px solid var(--line)}
+.erow2:last-child{border-bottom:none}
+.erow2 .el{font-weight:600;font-size:14px}
+.erow2 .ep{font-weight:700}
+.flame .fl{transform-box:fill-box;transform-origin:50% 100%;animation:flick 1.6s ease-in-out infinite alternate}
+@keyframes flick{0%{transform:scaleY(.92) skewX(-2deg)}50%{transform:scaleY(1.06) skewX(2deg)}100%{transform:scaleY(.97) skewX(-1deg)}}
+.pet{animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion: reduce){.flame .fl,.pet{animation:none}}
 .qa{display:flex;gap:8px;background:var(--glass);border:1px solid var(--glassLine);border-radius:18px;padding:6px;box-shadow:var(--shadow);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px)}
 .qa input.in{border:none;background:transparent;flex:1;min-width:0}
 .qa .btn{padding:10px 16px}
@@ -1034,145 +1045,248 @@ function bindWatch() {
   document.querySelectorAll("[data-sync]").forEach(b => b.onclick = () => { ls.set("forma.syncmode", b.dataset.sync); render(); });
 }
 
-/* ---------------- avatar: points, levels, shop ---------------- */
-const SKINS = ["#f2d3b8", "#e0b48f", "#c48b62", "#8d5a3b", "#5e3a24"];
-const HAIRC = ["#141414", "#4a2e1c", "#8a6a3e", "#d8c08c", "#9a9184"];
-const HAIRS = {short: "Short", buzz: "Buzz", curly: "Curly", long: "Long", bun: "Bun"};
+/* ---------------- avatar: points, levels, streaks, pets, shop ---------------- */
+const SKINS = ["#f4d4b8", "#e2b48c", "#c68c62", "#8f5b3b", "#5d3a25"];
+const HAIRC = ["#1d1814", "#4a2e1c", "#8a6a3e", "#d9bf87", "#a19a8f"];
+const HAIRS = {short: "Short", fade: "Fade", curly: "Curly", long: "Long", bun: "Bun", spiky: "Spiky"};
 const TIERS = ["Beginner", "Active", "Fit", "Athletic", "Elite"];
-const SLOTS = {top: "Top", bottom: "Bottoms", shoes: "Shoes", head: "Head", face: "Face", extra: "Extra", bg: "Background"};
 const ITEMS = {
+  shirtless: {slot: "top", name: "Shirtless", price: 0, c: "transparent", kind: "none"},
   tee_white: {slot: "top", name: "White tee", price: 0, c: "#fbf8f2", kind: "tee"},
-  tee_black: {slot: "top", name: "Black tee", price: 60, c: "#1c1c1c", kind: "tee"},
-  tee_sage: {slot: "top", name: "Sage tee", price: 120, c: "#8fa58a", kind: "tee"},
-  tank_black: {slot: "top", name: "Black tank", price: 90, c: "#1c1c1c", kind: "tank"},
-  tank_cream: {slot: "top", name: "Cream tank", price: 90, c: "#e9dfcc", kind: "tank"},
-  hoodie_sand: {slot: "top", name: "Sand hoodie", price: 220, c: "#c9b593", kind: "hoodie"},
-  hoodie_black: {slot: "top", name: "Black hoodie", price: 260, c: "#232323", kind: "hoodie"},
-  shorts_black: {slot: "bottom", name: "Black shorts", price: 0, c: "#1c1c1c", kind: "shorts"},
-  shorts_sand: {slot: "bottom", name: "Sand shorts", price: 60, c: "#bfa983", kind: "shorts"},
-  joggers_grey: {slot: "bottom", name: "Grey joggers", price: 150, c: "#7d776d", kind: "joggers"},
+  tee_black: {slot: "top", name: "Black tee", price: 300, c: "#222", kind: "tee"},
+  tee_sage: {slot: "top", name: "Sage tee", price: 600, c: "#8fa58a", kind: "tee"},
+  tank_black: {slot: "top", name: "Black tank", price: 450, c: "#222", kind: "tank"},
+  tank_cream: {slot: "top", name: "Cream tank", price: 450, c: "#eadfc9", kind: "tank"},
+  hoodie_sand: {slot: "top", name: "Sand hoodie", price: 1100, c: "#c9b593", kind: "hoodie"},
+  hoodie_black: {slot: "top", name: "Black hoodie", price: 1300, c: "#2a2a2a", kind: "hoodie"},
+  shorts_black: {slot: "bottom", name: "Black shorts", price: 0, c: "#222", kind: "shorts"},
+  shorts_sand: {slot: "bottom", name: "Sand shorts", price: 300, c: "#bfa983", kind: "shorts"},
+  joggers_grey: {slot: "bottom", name: "Grey joggers", price: 750, c: "#7d776d", kind: "joggers"},
   shoes_white: {slot: "shoes", name: "White sneakers", price: 0, c: "#fbf8f2"},
-  shoes_black: {slot: "shoes", name: "Black sneakers", price: 80, c: "#1c1c1c"},
-  shoes_sand: {slot: "shoes", name: "Sand runners", price: 120, c: "#c9b593"},
-  cap_black: {slot: "head", name: "Black cap", price: 120, c: "#1c1c1c", kind: "cap"},
-  beanie_cream: {slot: "head", name: "Cream beanie", price: 100, c: "#e9dfcc", kind: "beanie"},
-  band_white: {slot: "head", name: "Headband", price: 60, c: "#fbf8f2", kind: "band"},
-  shades: {slot: "face", name: "Sunglasses", price: 150, c: "#141414"},
-  chain_gold: {slot: "extra", name: "Gold chain", price: 300, c: "#c9a45c", kind: "chain"},
-  watch_black: {slot: "extra", name: "Sport watch", price: 180, c: "#141414", kind: "watch"},
-  band_wrist: {slot: "extra", name: "Wristband", price: 60, c: "#fbf8f2", kind: "wrist"},
-  bg_plain: {slot: "bg", name: "Cream", price: 0, c: "#f6f1e8", g: ["#fbf8f2", "#ece4d6"]},
-  bg_sunset: {slot: "bg", name: "Sunset", price: 150, c: "#e9b98f", g: ["#f6d7b6", "#e3a989"]},
-  bg_beach: {slot: "bg", name: "Beach", price: 250, c: "#9fc3c9", g: ["#bcd9dc", "#efe0c2"]},
-  bg_night: {slot: "bg", name: "Night gym", price: 250, c: "#2a2a2a", g: ["#3a3632", "#141414"]},
-  bg_gold: {slot: "bg", name: "Gold", price: 500, c: "#d6b56f", g: ["#f1dca5", "#c9a45c"]},
+  shoes_black: {slot: "shoes", name: "Black sneakers", price: 400, c: "#222"},
+  shoes_sand: {slot: "shoes", name: "Sand runners", price: 600, c: "#c9b593"},
+  cap_black: {slot: "head", name: "Black cap", price: 600, c: "#222", kind: "cap"},
+  beanie_cream: {slot: "head", name: "Cream beanie", price: 500, c: "#eadfc9", kind: "beanie"},
+  band_white: {slot: "head", name: "Headband", price: 300, c: "#fbf8f2", kind: "band"},
+  shades: {slot: "face", name: "Sunglasses", price: 750, c: "#141414"},
+  chain_gold: {slot: "extra", name: "Gold chain", price: 1500, c: "#d1a957", kind: "chain"},
+  watch_black: {slot: "extra", name: "Sport watch", price: 900, c: "#141414", kind: "watch"},
+  band_wrist: {slot: "extra", name: "Wristband", price: 300, c: "#fbf8f2", kind: "wrist"},
+  pup: {slot: "pet", name: "Pup", price: 1500, c: "#c99a62", kind: "pup"},
+  cat: {slot: "pet", name: "Cat", price: 1500, c: "#3a3633", kind: "cat"},
+  bunny: {slot: "pet", name: "Bunny", price: 1200, c: "#f4efe6", kind: "bunny"},
+  dragon: {slot: "pet", name: "Baby dragon", price: 4000, c: "#6fae7d", kind: "dragon"},
+  bg_plain: {slot: "bg", name: "Cream", price: 0, c: "#f6f1e8", g: ["#fbf8f2", "#e9e0d0"]},
+  bg_sunset: {slot: "bg", name: "Sunset", price: 750, c: "#e9b98f", g: ["#f8dcbc", "#e2a582"]},
+  bg_beach: {slot: "bg", name: "Beach", price: 1200, c: "#9fc3c9", g: ["#bfdde0", "#efe0c2"]},
+  bg_night: {slot: "bg", name: "Night gym", price: 1200, c: "#2a2a2a", g: ["#46403a", "#16130f"]},
+  bg_gold: {slot: "bg", name: "Gold", price: 2500, c: "#d6b56f", g: ["#f3dfaa", "#c9a45c"]},
 };
-const FREE = ["tee_white", "shorts_black", "shoes_white", "bg_plain"];
-const avDefault = () => ({skin: 1, hair: S.profile?.sex === "female" ? "long" : "short", hairColor: 0, owned: [...FREE], spent: 0, days: {},
-  eq: {top: "tee_white", bottom: "shorts_black", shoes: "shoes_white", head: null, face: null, extra: null, bg: "bg_plain"}});
-const av = () => { const a = {...avDefault(), ...(S.profile.avatar || {})}; a.eq = {...avDefault().eq, ...(a.eq || {})}; a.owned = [...new Set([...FREE, ...(a.owned || [])])]; return a; };
+const FREE = ["shirtless", "tee_white", "shorts_black", "shoes_white", "bg_plain"];
+const OPTIONAL = ["head", "face", "extra", "pet"];
+const avDefault = () => ({skin: 1, hair: S.profile?.sex === "female" ? "long" : "short", hairColor: 0, owned: [...FREE], spent: 0, days: {}, v: 2,
+  eq: {top: "tee_white", bottom: "shorts_black", shoes: "shoes_white", head: null, face: null, extra: null, pet: null, bg: "bg_plain"}});
+const av = () => {
+  const saved = S.profile.avatar || {}, a = {...avDefault(), ...saved};
+  if (S.profile.avatar && saved.v !== 2) { a.days = {}; a.spent = 0; } // points scale changed: recount, keep clothes
+  a.v = 2;
+  a.eq = {...avDefault().eq, ...(a.eq || {})}; a.owned = [...new Set([...FREE, ...(a.owned || [])])]; return a;
+};
 
-// points earned on one day
+// training streak: days in a row with training, counting today or yesterday
+function trainStreak() { const m = trainingMap(); let d = dayStr(); if (!m.has(d)) d = addDays(d, -1); let n = 0; while (m.has(d)) { n++; d = addDays(d, -1); } return n; }
+function streakOn(day, m) { let n = 0, d = day; while (m.has(d)) { n++; d = addDays(d, -1); } return n; }
+
+// progressive points for one day: [label, detail, points, max]
 function dayPoints(d) {
-  const tg = targets(S.profile), meals = of("meal", d), tot = dayTotals(d), h = healthOf(d), out = [];
-  if (meals.length) out.push(["Logged food", 10]);
-  if (meals.length >= 3) out.push(["Logged 3 meals", 5]);
-  if (meals.length && tot.p >= tg.protein * 0.9) out.push(["Hit your protein", 10]);
-  if (meals.length && Math.abs(tot.kcal - tg.kcal) <= tg.kcal * 0.1) out.push(["Calories on target", 10]);
-  if (trainingMap().has(d)) out.push(["Trained", 20]);
-  if ((+h?.steps || 0) >= 8000) out.push(["8,000+ steps", 10]);
-  if (of("weight", d).length) out.push(["Weighed in", 5]);
-  if (of("scan", d).length) out.push(["Body check-in", 25]);
-  return out;
+  const tg = targets(S.profile), meals = of("meal", d), tot = dayTotals(d), h = healthOf(d) || {}, m = trainingMap();
+  const steps = +h.steps || 0, burn = +h.active_kcal || 0, mins = m.get(d) || 0, stk = streakOn(d, m);
+  const off = tg.kcal ? Math.abs(tot.kcal - tg.kcal) / tg.kcal : 1;
+  return [
+    ["Steps", `${r0(steps).toLocaleString()} steps, 1 point per 100`, Math.min(200, Math.floor(steps / 100)), 200],
+    ["Calories burned", `${r0(burn)} kcal, 1 point per 10`, Math.min(100, Math.floor(burn / 10)), 100],
+    ["Training", `${mins} min, 1 point per minute`, Math.min(120, mins), 120],
+    ["Training streak", stk ? `${stk} days in a row, 5 points per day` : "Train today to start one", Math.min(50, stk * 5), 50],
+    ["Food logged", `${meals.length} logged, 5 points each`, Math.min(25, meals.length * 5), 25],
+    ["Protein", `${r0(tot.p)} of ${tg.protein} g`, meals.length ? r0(Math.min(1, tot.p / tg.protein) * 20) : 0, 20],
+    ["Calories on target", meals.length ? `${r0(off * 100)}% from your target` : "Log food to score", meals.length ? Math.max(0, 20 - r0(off * 100)) : 0, 20],
+    ["Weigh-in", of("weight", d).length ? "Done" : "Not yet", of("weight", d).length ? 10 : 0, 10],
+    ["Body check-in", of("scan", d).length ? "Done" : "Not yet", of("scan", d).length ? 30 : 0, 30],
+  ];
 }
-// total points: days still on this phone are recounted, older days stay banked in the profile
+const dayTotal = d => dayPoints(d).reduce((s, x) => s + x[2], 0);
 function avatarPoints() {
   const a = av(), days = {...(a.days || {})}, t = dayStr();
   const seen = new Set(S.entries.map(e => e.day).filter(d => d >= addDays(t, -119) && d <= t));
-  let changed = false;
-  for (const d of seen) { const p = dayPoints(d).reduce((s, x) => s + x[1], 0); if ((days[d] || 0) !== p) { days[d] = p; changed = true; } }
+  let changed = (S.profile.avatar || {}).v !== 2;
+  for (const d of seen) { const p = dayTotal(d); if ((days[d] || 0) !== p) { days[d] = p; changed = true; } }
   const xp = Object.values(days).reduce((s, x) => s + x, 0);
   return {xp, coins: Math.max(0, xp - (a.spent || 0)), days, changed};
 }
-function levelOf(xp) { let L = 1; while (xp >= 50 * L * (L + 1)) L++; const lo = 50 * L * (L - 1), hi = 50 * L * (L + 1); return {L, lo, hi, pct: Math.min(100, (xp - lo) / (hi - lo) * 100)}; }
+function levelOf(xp) { let L = 1; while (xp >= 100 * L * (L + 1)) L++; const lo = 100 * L * (L - 1), hi = 100 * L * (L + 1); return {L, lo, hi, pct: Math.min(100, (xp - lo) / (hi - lo) * 100)}; }
 const tierOf = L => L < 3 ? 0 : L < 6 ? 1 : L < 10 ? 2 : L < 15 ? 3 : 4;
 
-function avatarSVG(a, tier, eqOver) {
-  const eq = {...a.eq, ...(eqOver || {})}, skin = SKINS[a.skin] || SKINS[1], hc = HAIRC[a.hairColor] || HAIRC[0];
-  const fem = S.profile?.sex === "female";
-  const sw = [30, 34, 38, 43, 48][tier] - (fem ? 4 : 0), ww = fem ? 22 : [25, 25, 24, 23, 23][tier], hip = fem ? 28 : ww + 1;
-  const arm = [10, 12, 14, 17, 20][tier], leg = [13, 14, 16, 18, 20][tier];
+/* ---- drawing ---- */
+function tint(hex, amt) { // amt > 0 lighter, < 0 darker
+  const n = parseInt(hex.slice(1), 16), f = c => Math.max(0, Math.min(255, Math.round(amt > 0 ? c + (255 - c) * amt : c * (1 + amt))));
+  return "#" + [n >> 16, (n >> 8) & 255, n & 255].map(f).map(v => v.toString(16).padStart(2, "0")).join("");
+}
+const INK = "#2a221c";
+function limb(x1, y1, x2, y2, w, fill) { // cartoon limb with ink outline
+  return `<path d="M${x1} ${y1} L${x2} ${y2}" stroke="${INK}" stroke-width="${w + 5}" stroke-linecap="round"/><path d="M${x1} ${y1} L${x2} ${y2}" stroke="${fill}" stroke-width="${w}" stroke-linecap="round"/>`;
+}
+function flameSVG(stk) {
+  if (stk < 3) return "";
+  const big = stk >= 10, s = big ? 1.18 : stk >= 5 ? 1 : .8, op = stk >= 5 ? 1 : .55;
+  const tongue = (x, h, w, d) => `<path class="fl" style="animation-delay:${d}s" d="M${x} 262 C${x - w} ${262 - h * .45} ${x - w * .3} ${262 - h * .7} ${x} ${262 - h} C${x + w * .3} ${262 - h * .7} ${x + w} ${262 - h * .45} ${x} 262Z"/>`;
+  return `<g class="flame" opacity="${op}" transform="translate(120 262) scale(${s}) translate(-120 -262)">
+    <g fill="url(#flo)">${tongue(62, 150, 30, 0)}${tongue(178, 160, 30, .3)}${tongue(84, 210, 34, .6)}${tongue(156, 220, 34, .15)}${tongue(120, 245, 44, .45)}</g>
+    <g fill="url(#fli)">${tongue(90, 120, 22, .2)}${tongue(150, 130, 22, .5)}${tongue(120, 165, 30, 0)}</g></g>`;
+}
+function petSVG(id) {
+  const p = ITEMS[id]; if (!p) return "";
+  const c = p.c, d = tint(c, -.25), l = tint(c, .35), eye = `<circle r="2.6" fill="${INK}"/><circle r=".9" cx=".8" cy="-.8" fill="#fff"/>`;
+  const at = (x, y, inner) => `<g transform="translate(${x} ${y})"><g class="pet">${inner}</g></g>`;
+  const o = `stroke="${INK}" stroke-width="2.4" stroke-linejoin="round"`;
+  if (p.kind === "pup") return at(200, 236, `<path d="M18 -14 q14 -10 10 -22" stroke="${INK}" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M18 -14 q14 -10 10 -22" stroke="${c}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="4" cy="-10" rx="20" ry="13" fill="${c}" ${o}/><ellipse cx="-12" cy="-2" rx="5" ry="6" fill="${d}" ${o}/><ellipse cx="14" cy="-1" rx="5" ry="6" fill="${d}" ${o}/>
+    <circle cx="-14" cy="-26" r="14" fill="${c}" ${o}/><ellipse cx="-26" cy="-24" rx="6" ry="11" fill="${d}" ${o} transform="rotate(20 -26 -24)"/><ellipse cx="-3" cy="-26" rx="5" ry="10" fill="${d}" ${o} transform="rotate(-15 -3 -26)"/>
+    <ellipse cx="-17" cy="-20" rx="7" ry="5" fill="${l}"/><ellipse cx="-19" cy="-23" rx="2.6" ry="2" fill="${INK}"/><g transform="translate(-11 -30)">${eye}</g><g transform="translate(-20 -30)">${eye}</g>`);
+  if (p.kind === "cat") return at(200, 236, `<path d="M20 -8 C38 -10 36 -34 26 -38" stroke="${INK}" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M20 -8 C38 -10 36 -34 26 -38" stroke="${c}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="4" cy="-12" rx="18" ry="14" fill="${c}" ${o}/><path d="M-26 -36 L-24 -54 L-14 -42 Z M-2 -42 L6 -54 L6 -36 Z" fill="${c}" ${o}/>
+    <circle cx="-10" cy="-32" r="15" fill="${c}" ${o}/><ellipse cx="-16" cy="-33" rx="3.2" ry="4" fill="#d8c070"/><ellipse cx="-4" cy="-33" rx="3.2" ry="4" fill="#d8c070"/>
+    <ellipse cx="-16" cy="-33" rx="1.2" ry="3.2" fill="${INK}"/><ellipse cx="-4" cy="-33" rx="1.2" ry="3.2" fill="${INK}"/><path d="M-12 -27 L-8 -27 L-10 -25 Z" fill="#e3a0a0"/>
+    <path d="M-30 -28 H-20 M-30 -24 L-20 -26 M10 -28 H0 M10 -24 L0 -26" stroke="${l}" stroke-width="1"/>`);
+  if (p.kind === "bunny") return at(200, 236, `<ellipse cx="2" cy="-12" rx="17" ry="14" fill="${c}" ${o}/><circle cx="18" cy="-12" r="5" fill="#fff" ${o}/>
+    <ellipse cx="-18" cy="-52" rx="5.5" ry="16" fill="${c}" ${o} transform="rotate(-12 -18 -52)"/><ellipse cx="-6" cy="-53" rx="5.5" ry="16" fill="${c}" ${o} transform="rotate(10 -6 -53)"/>
+    <ellipse cx="-18" cy="-52" rx="2.4" ry="11" fill="#eab8b8" transform="rotate(-12 -18 -52)"/><ellipse cx="-6" cy="-53" rx="2.4" ry="11" fill="#eab8b8" transform="rotate(10 -6 -53)"/>
+    <circle cx="-12" cy="-28" r="13" fill="${c}" ${o}/><g transform="translate(-17 -30)">${eye}</g><g transform="translate(-7 -30)">${eye}</g><path d="M-14 -23 L-10 -23 L-12 -21Z" fill="#e3a0a0"/>`);
+  return at(198, 238, `<path d="M16 -16 C40 -14 40 -40 30 -44 L34 -50 L24 -46" fill="${c}" ${o}/>
+    <path d="M-2 -30 C-22 -60 18 -66 14 -40 C26 -50 34 -40 22 -30 Z" fill="${l}" ${o}/>
+    <ellipse cx="2" cy="-14" rx="18" ry="15" fill="${c}" ${o}/><ellipse cx="2" cy="-10" rx="10" ry="9" fill="${l}"/>
+    <circle cx="-12" cy="-34" r="14" fill="${c}" ${o}/><path d="M-20 -46 L-22 -56 L-14 -48 M-6 -47 L-2 -57 L-2 -47" fill="${l}" ${o}/>
+    <g transform="translate(-16 -36)">${eye}</g><g transform="translate(-6 -36)">${eye}</g><circle cx="-20" cy="-28" r="1.2" fill="${INK}"/><circle cx="-16" cy="-28" r="1.2" fill="${INK}"/>`);
+}
+function avatarSVG(a, tier, eqOver, stk = 0) {
+  const eq = {...a.eq, ...(eqOver || {})}, fem = S.profile?.sex === "female";
+  const skin = SKINS[a.skin] || SKINS[1], skL = tint(skin, .22), skD = tint(skin, -.22), hc = HAIRC[a.hairColor] || HAIRC[0];
+  const t = tier, cx = 120;
+  const S_ = (fem ? 32 : 36) + t * (fem ? 4 : 6.5), W = fem ? 21 : 25 - (t >= 3 ? 2 : 0), HIP = fem ? 30 + t : W + 3;
+  const A = 13 + t * 3.4, F = 11 + t * 2.4, N = 12 + t * 2, LG = 16 + t * 2.2, HR = 27, jaw = t * .9;
   const top = ITEMS[eq.top] || ITEMS.tee_white, bot = ITEMS[eq.bottom] || ITEMS.shorts_black, sh = ITEMS[eq.shoes] || ITEMS.shoes_white;
-  const bg = ITEMS[eq.bg] || ITEMS.bg_plain, ink = "#141414", line = "rgba(20,20,20,.18)";
-  const L = 100 - sw, R = 100 + sw;
-  const torso = `M${L} 90 Q${L} 82 ${L + 9} 82 L${R - 9} 82 Q${R} 82 ${R} 90 L${100 + ww} 148 L${100 - ww} 148 Z`;
-  const armL = `M${L + 2} 88 L${L - 6} 146`, armR = `M${R - 2} 88 L${R + 6} 146`;
-  const sleeveEnd = top.kind === "hoodie" ? 146 : 108, sl = t => (sleeveEnd - 88) / 58 * t;
-  const sleeve = top.kind === "tank" ? "" : `<path d="M${L + 2} 88 L${L + 2 - sl(8)} ${sleeveEnd}" stroke="${top.c}" stroke-width="${arm + 5}" stroke-linecap="round"/><path d="M${R - 2} 88 L${R - 2 + sl(8)} ${sleeveEnd}" stroke="${top.c}" stroke-width="${arm + 5}" stroke-linecap="round"/>`;
-  const bicep = tier >= 3 && top.kind === "tank" ? `<ellipse cx="${L - 2}" cy="104" rx="${arm / 2 + 2}" ry="9" fill="${skin}"/><ellipse cx="${R + 2}" cy="104" rx="${arm / 2 + 2}" ry="9" fill="${skin}"/>` : "";
-  const defs = tier >= 2 ? `<path d="M${100 - sw * .55} 104 Q100 ${110 + tier} ${100 + sw * .55} 104" stroke="${line}" stroke-width="2" fill="none"/><path d="M100 106 V140" stroke="${line}" stroke-width="1.6"/>${tier >= 3 ? `<path d="M90 120 H110 M91 130 H109" stroke="${line}" stroke-width="1.4"/>` : ""}` : "";
-  const pants = bot.kind === "joggers"
-    ? `<path d="M${100 - hip} 146 H${100 + hip} L${100 + hip - 3} 212 H${103} L100 160 L${97} 212 H${100 - hip + 3} Z" fill="${bot.c}"/>`
-    : `<path d="M${100 - hip} 146 H${100 + hip} L${100 + hip + 1} 180 H${103} L100 164 L${97} 180 H${100 - hip - 1} Z" fill="${bot.c}"/>`;
-  const legs = bot.kind === "joggers" ? "" : `<path d="M${100 - hip / 2 - 1} 178 V210 M${100 + hip / 2 + 1} 178 V210" stroke="${skin}" stroke-width="${leg}" stroke-linecap="round"/>`;
-  const shoes = `<rect x="${100 - hip / 2 - 13}" y="208" width="24" height="11" rx="5.5" fill="${sh.c}" stroke="${line}"/><rect x="${100 + hip / 2 - 11}" y="208" width="24" height="11" rx="5.5" fill="${sh.c}" stroke="${line}"/>`;
-  const hair = {
-    short: `<path d="M75 52 Q74 24 100 24 Q126 24 125 52 Q120 37 100 37 Q80 37 75 52Z" fill="${hc}"/>`,
-    buzz: `<path d="M77 48 Q78 27 100 27 Q122 27 123 48 Q117 38 100 38 Q83 38 77 48Z" fill="${hc}" opacity=".75"/>`,
-    curly: [80, 88, 96, 104, 112, 120, 84, 116].map((x, i) => `<circle cx="${x}" cy="${i > 5 ? 38 : 30 + Math.abs(100 - x) / 6}" r="8" fill="${hc}"/>`).join(""),
-    long: `<path d="M74 54 Q72 24 100 24 Q128 24 126 54 L128 92 Q120 96 116 90 L118 50 Q112 37 100 37 Q88 37 82 50 L84 90 Q80 96 72 92 Z" fill="${hc}"/>`,
-    bun: `<circle cx="100" cy="22" r="9" fill="${hc}"/><path d="M75 52 Q74 26 100 26 Q126 26 125 52 Q120 38 100 38 Q80 38 75 52Z" fill="${hc}"/>`,
+  const bg = ITEMS[eq.bg] || ITEMS.bg_plain, gid = "a" + Math.random().toString(36).slice(2, 7);
+  const L = cx - S_, R = cx + S_, shY = 104, waistY = 172;
+  // torso outline
+  const torso = `M${L} ${shY + 8} C${L} ${shY - 4} ${L + 12} ${shY - 8} ${cx - N} ${shY - 10} L${cx + N} ${shY - 10} C${R - 12} ${shY - 8} ${R} ${shY - 4} ${R} ${shY + 8}
+    C${R - 2} ${shY + 34} ${cx + W + 8} ${waistY - 26} ${cx + W} ${waistY} L${cx - W} ${waistY} C${cx - W - 8} ${waistY - 26} ${L + 2} ${shY + 34} ${L} ${shY + 8} Z`;
+  const bare = top.kind === "none", tank = top.kind === "tank", hood = top.kind === "hoodie";
+  const shirtFill = bare ? `url(#${gid}s)` : top.c, shirtShade = bare ? skD : tint(top.c === "transparent" ? "#888888" : top.c, -.18);
+  // arms: shoulder -> elbow -> wrist
+  const eL = [L - 8, shY + 40], wL = [L - 6, shY + 76], eR = [R + 8, shY + 40], wR = [R + 6, shY + 76];
+  const sleeveCol = hood ? top.c : (bare || tank) ? null : top.c;
+  const arm = (sx, e, w, side) => {
+    let g = limb(sx, shY + 4, e[0], e[1], A, `url(#${gid}s)`) + limb(e[0], e[1], w[0], w[1], F, `url(#${gid}s)`);
+    if (t >= 2 && !hood) g += `<ellipse cx="${(sx + e[0]) / 2 + side * 2}" cy="${shY + 20}" rx="${A * .62}" ry="${A * .95}" fill="${skL}" opacity=".55"/>`; // bicep highlight
+    if (sleeveCol) g += hood ? limb(sx, shY + 4, e[0], e[1], A + 4, sleeveCol) + limb(e[0], e[1], w[0], w[1] - 6, F + 4, sleeveCol)
+      : limb(sx, shY + 4, sx + (e[0] - sx) * .45, shY + 4 + (e[1] - shY - 4) * .45, A + 5, sleeveCol);
+    g += `<circle cx="${w[0]}" cy="${w[1] + 3}" r="${F * .62}" fill="${skin}" stroke="${INK}" stroke-width="2.4"/>`; // fist
+    return g;
+  };
+  const delts = (bare || tank) ? `<circle cx="${L + 3}" cy="${shY + 6}" r="${A * .78}" fill="url(#${gid}s)" stroke="${INK}" stroke-width="2.4"/><circle cx="${R - 3}" cy="${shY + 6}" r="${A * .78}" fill="url(#${gid}s)" stroke="${INK}" stroke-width="2.4"/>` : "";
+  // muscle definition (stronger when shirtless)
+  const mo = bare ? .5 : .16;
+  const pecs = t >= 1 ? `<path d="M${cx - S_ * .78} ${shY + 10} Q${cx - S_ * .4} ${shY + 34 + t * 2} ${cx - 2} ${shY + 26 + t} M${cx + S_ * .78} ${shY + 10} Q${cx + S_ * .4} ${shY + 34 + t * 2} ${cx + 2} ${shY + 26 + t}" stroke="${INK}" stroke-width="2" fill="none" opacity="${mo}"/>` : "";
+  const abs = (t >= 2 && (bare || t >= 4)) ? [0, 1, 2].map(i => `<rect x="${cx - 13}" y="${shY + 38 + i * 13}" width="11" height="10" rx="4" fill="${INK}" opacity="${mo * .55}"/><rect x="${cx + 2}" y="${shY + 38 + i * 13}" width="11" height="10" rx="4" fill="${INK}" opacity="${mo * .55}"/>`).join("") : "";
+  const bust = fem && !bare ? `<path d="M${cx - 22} ${shY + 26} Q${cx - 11} ${shY + 40} ${cx} ${shY + 28} Q${cx + 11} ${shY + 40} ${cx + 22} ${shY + 26}" stroke="${INK}" stroke-width="1.6" fill="none" opacity=".25"/>` : "";
+  const neckline = bare ? "" : tank ? `<path d="M${cx - N - 4} ${shY - 10} Q${cx} ${shY + 18} ${cx + N + 4} ${shY - 10}" fill="url(#${gid}s)" stroke="${INK}" stroke-width="2"/>`
+    : hood ? `<path d="M${cx - N - 8} ${shY - 8} Q${cx} ${shY + 16} ${cx + N + 8} ${shY - 8}" fill="${tint(top.c, -.12)}" stroke="${INK}" stroke-width="2"/><path d="M${cx - 5} ${shY + 6} V${shY + 26} M${cx + 5} ${shY + 6} V${shY + 24}" stroke="${INK}" stroke-width="1.8"/>`
+    : `<path d="M${cx - N} ${shY - 10} Q${cx} ${shY + 4} ${cx + N} ${shY - 10}" fill="url(#${gid}s)" stroke="${INK}" stroke-width="2"/>`;
+  const shirtShadow = bare ? "" : `<path d="M${cx + W} ${waistY} C${cx + W + 8} ${waistY - 26} ${R - 2} ${shY + 34} ${R} ${shY + 8} L${R - 10} ${shY + 12} C${R - 14} ${shY + 40} ${cx + W} ${waistY - 30} ${cx + W - 8} ${waistY} Z" fill="${shirtShade}" opacity=".7"/>`;
+  // legs, bottoms, shoes
+  const lx = cx - HIP / 2 - 1, rx = cx + HIP / 2 + 1, knee = 236;
+  const legs = bot.kind === "joggers" ? limb(lx, 196, lx - 1, knee + 12, LG + 4, bot.c) + limb(rx, 196, rx + 1, knee + 12, LG + 4, bot.c)
+    : limb(lx, 200, lx - 1, knee + 12, LG, `url(#${gid}s)`) + limb(rx, 200, rx + 1, knee + 12, LG, `url(#${gid}s)`);
+  const shorts = `<path d="M${cx - HIP - 2} ${waistY - 4} H${cx + HIP + 2} L${cx + HIP + 6} ${bot.kind === "joggers" ? 214 : 210} H${cx + 3} L${cx} ${190} L${cx - 3} ${bot.kind === "joggers" ? 214 : 210} H${cx - HIP - 6} Z" fill="${bot.c}" stroke="${INK}" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M${cx - HIP - 2} ${waistY + 3} H${cx + HIP + 2}" stroke="${INK}" stroke-width="1.6" opacity=".35"/><path d="M${cx + HIP - 4} ${waistY + 6} L${cx + HIP} 208" stroke="${tint(bot.c, -.25)}" stroke-width="5" opacity=".5"/>`;
+  const shoe = x => `<path d="M${x - 14} ${knee + 22} Q${x - 14} ${knee + 10} ${x - 2} ${knee + 10} L${x + 6} ${knee + 10} Q${x + 18} ${knee + 12} ${x + 20} ${knee + 22} Z" fill="${sh.c}" stroke="${INK}" stroke-width="2.4" stroke-linejoin="round"/><path d="M${x - 15} ${knee + 22} H${x + 21}" stroke="${INK}" stroke-width="4" stroke-linecap="round"/><path d="M${x - 15} ${knee + 22} H${x + 21}" stroke="#f3eee6" stroke-width="2" stroke-linecap="round"/>`;
+  // head
+  const hy = 60, hx = cx;
+  const face = `<path d="M${hx - HR} ${hy - 4} C${hx - HR} ${hy - 30} ${hx + HR} ${hy - 30} ${hx + HR} ${hy - 4} C${hx + HR} ${hy + 14 + jaw} ${hx + 12 + jaw} ${hy + 27} ${hx} ${hy + 27} C${hx - 12 - jaw} ${hy + 27} ${hx - HR} ${hy + 14 + jaw} ${hx - HR} ${hy - 4} Z" fill="url(#${gid}s)" stroke="${INK}" stroke-width="2.6"/>`;
+  const ears = `<ellipse cx="${hx - HR}" cy="${hy + 2}" rx="5.5" ry="8" fill="${skin}" stroke="${INK}" stroke-width="2.4"/><ellipse cx="${hx + HR}" cy="${hy + 2}" rx="5.5" ry="8" fill="${skin}" stroke="${INK}" stroke-width="2.4"/>`;
+  const eyes = eq.face ? `<path d="M${hx - 21} ${hy - 5} H${hx + 21} L${hx + 19} ${hy + 6} Q${hx + 12} ${hy + 10} ${hx + 4} ${hy + 5} L${hx} ${hy + 1} L${hx - 4} ${hy + 5} Q${hx - 12} ${hy + 10} ${hx - 19} ${hy + 6} Z" fill="${INK}"/><path d="M${hx - 16} ${hy - 2} L${hx - 10} ${hy - 2}" stroke="#fff" stroke-width="1.6" opacity=".6"/>`
+    : `<ellipse cx="${hx - 10}" cy="${hy}" rx="5.4" ry="6.4" fill="#fff" stroke="${INK}" stroke-width="1.8"/><ellipse cx="${hx + 10}" cy="${hy}" rx="5.4" ry="6.4" fill="#fff" stroke="${INK}" stroke-width="1.8"/>
+       <circle cx="${hx - 9}" cy="${hy + 1}" r="3.2" fill="${INK}"/><circle cx="${hx + 11}" cy="${hy + 1}" r="3.2" fill="${INK}"/><circle cx="${hx - 8}" cy="${hy}" r="1.1" fill="#fff"/><circle cx="${hx + 12}" cy="${hy}" r="1.1" fill="#fff"/>`;
+  const brows = `<path d="M${hx - 17} ${hy - 11 + (t >= 3 ? 1 : 0)} L${hx - 4} ${hy - 9}" stroke="${hc}" stroke-width="${3.4 + t * .3}" stroke-linecap="round"/><path d="M${hx + 17} ${hy - 11 + (t >= 3 ? 1 : 0)} L${hx + 4} ${hy - 9}" stroke="${hc}" stroke-width="${3.4 + t * .3}" stroke-linecap="round"/>`;
+  const nose = `<path d="M${hx + 1} ${hy + 3} Q${hx + 5} ${hy + 10} ${hx} ${hy + 11}" stroke="${skD}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  const mouth = `<path d="M${hx - 9} ${hy + 15} Q${hx} ${hy + 22} ${hx + 9} ${hy + 15} Z" fill="#fff" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>`;
+  const cheeks = `<ellipse cx="${hx - 17}" cy="${hy + 10}" rx="5" ry="3" fill="#e88f7a" opacity=".25"/><ellipse cx="${hx + 17}" cy="${hy + 10}" rx="5" ry="3" fill="#e88f7a" opacity=".25"/>`;
+  const o = `stroke="${INK}" stroke-width="2.4" stroke-linejoin="round"`;
+  const hairFront = {
+    short: `<path d="M${hx - HR - 1} ${hy - 2} C${hx - HR - 4} ${hy - 36} ${hx + HR + 4} ${hy - 36} ${hx + HR + 1} ${hy - 2} C${hx + HR - 4} ${hy - 16} ${hx + 6} ${hy - 22} ${hx - 6} ${hy - 16} C${hx - 14} ${hy - 20} ${hx - HR + 4} ${hy - 14} ${hx - HR - 1} ${hy - 2}Z" fill="${hc}" ${o}/>`,
+    fade: `<path d="M${hx - HR} ${hy - 6} C${hx - HR} ${hy - 32} ${hx + HR} ${hy - 32} ${hx + HR} ${hy - 6} C${hx + 14} ${hy - 20} ${hx - 14} ${hy - 20} ${hx - HR} ${hy - 6}Z" fill="${hc}" ${o}/>`,
+    curly: [-22, -13, -4, 5, 14, 23, -18, 18, -8, 8].map((x, i) => `<circle cx="${hx + x}" cy="${hy - (i > 5 ? 26 : 20 + Math.abs(x) * -.15 + 12) }" r="${i > 5 ? 9 : 8}" fill="${hc}" ${o}/>`).join(""),
+    long: `<path d="M${hx - HR - 1} ${hy} C${hx - HR - 4} ${hy - 38} ${hx + HR + 4} ${hy - 38} ${hx + HR + 1} ${hy} C${hx + 10} ${hy - 20} ${hx - 10} ${hy - 20} ${hx - HR - 1} ${hy}Z" fill="${hc}" ${o}/>`,
+    bun: `<circle cx="${hx}" cy="${hy - 36}" r="10" fill="${hc}" ${o}/><path d="M${hx - HR} ${hy - 2} C${hx - HR - 2} ${hy - 34} ${hx + HR + 2} ${hy - 34} ${hx + HR} ${hy - 2} C${hx + 10} ${hy - 18} ${hx - 10} ${hy - 18} ${hx - HR} ${hy - 2}Z" fill="${hc}" ${o}/>`,
+    spiky: `<path d="M${hx - HR} ${hy - 4} L${hx - 24} ${hy - 30} L${hx - 14} ${hy - 22} L${hx - 8} ${hy - 40} L${hx} ${hy - 24} L${hx + 8} ${hy - 42} L${hx + 12} ${hy - 22} L${hx + 24} ${hy - 32} L${hx + HR} ${hy - 4} C${hx + 10} ${hy - 18} ${hx - 10} ${hy - 18} ${hx - HR} ${hy - 4}Z" fill="${hc}" ${o}/>`,
   }[a.hair] || "";
-  const head = ITEMS[eq.head];
-  const hat = !head ? "" : head.kind === "cap" ? `<path d="M74 44 Q74 20 100 20 Q126 20 126 44 Z" fill="${head.c}"/><path d="M100 42 H138 Q140 47 132 48 H100 Z" fill="${head.c}"/>`
-    : head.kind === "beanie" ? `<path d="M74 46 Q73 16 100 16 Q127 16 126 46 Z" fill="${head.c}"/><rect x="72" y="40" width="56" height="9" rx="4.5" fill="${head.c}" stroke="${line}"/><circle cx="100" cy="15" r="5" fill="${head.c}"/>`
-    : `<rect x="75" y="38" width="50" height="7" rx="3.5" fill="${head.c}" stroke="${line}"/>`;
-  const face = eq.face ? `<rect x="83" y="47" width="15" height="9" rx="4" fill="${ink}"/><rect x="102" y="47" width="15" height="9" rx="4" fill="${ink}"/><path d="M98 50 H102" stroke="${ink}" stroke-width="2"/>`
-    : `<circle cx="91" cy="52" r="2.3" fill="${ink}"/><circle cx="109" cy="52" r="2.3" fill="${ink}"/>`;
+  const hairBack = a.hair === "long" ? `<path d="M${hx - HR - 4} ${hy - 6} C${hx - HR - 8} ${hy + 30} ${hx - HR} ${hy + 50} ${hx - HR + 6} ${hy + 54} L${hx + HR - 6} ${hy + 54} C${hx + HR} ${hy + 50} ${hx + HR + 8} ${hy + 30} ${hx + HR + 4} ${hy - 6}Z" fill="${hc}" ${o}/>` : "";
+  const hd = ITEMS[eq.head];
+  const hat = !hd ? "" : hd.kind === "cap" ? `<path d="M${hx - HR - 2} ${hy - 8} C${hx - HR - 2} ${hy - 40} ${hx + HR + 2} ${hy - 40} ${hx + HR + 2} ${hy - 8} Z" fill="${hd.c}" ${o}/><path d="M${hx - 4} ${hy - 10} L${hx + HR + 22} ${hy - 9} Q${hx + HR + 24} ${hy - 3} ${hx + HR + 12} ${hy - 2} L${hx - 4} ${hy - 4} Z" fill="${tint(hd.c, .08)}" ${o}/><circle cx="${hx}" cy="${hy - 37}" r="3" fill="${hd.c}" ${o}/>`
+    : hd.kind === "beanie" ? `<path d="M${hx - HR - 2} ${hy - 8} C${hx - HR - 2} ${hy - 46} ${hx + HR + 2} ${hy - 46} ${hx + HR + 2} ${hy - 8} Z" fill="${hd.c}" ${o}/><rect x="${hx - HR - 4}" y="${hy - 16}" width="${HR * 2 + 8}" height="11" rx="5" fill="${tint(hd.c, -.08)}" ${o}/><circle cx="${hx}" cy="${hy - 44}" r="6" fill="${hd.c}" ${o}/>`
+    : `<rect x="${hx - HR - 1}" y="${hy - 20}" width="${HR * 2 + 2}" height="8" rx="4" fill="${hd.c}" ${o}/>`;
   const ex = ITEMS[eq.extra];
-  const extra = !ex ? "" : ex.kind === "chain" ? `<path d="M88 84 Q100 104 112 84" stroke="${ex.c}" stroke-width="2.6" fill="none"/><circle cx="100" cy="98" r="3" fill="${ex.c}"/>`
-    : ex.kind === "watch" ? `<rect x="${L - 6 - arm / 2 - 1}" y="134" width="${arm + 2}" height="7" rx="2" fill="${ex.c}"/>`
-    : `<rect x="${R + 6 - arm / 2 - 1}" y="134" width="${arm + 2}" height="7" rx="2" fill="${ex.c}" stroke="${line}"/>`;
-  const gid = "g" + Math.random().toString(36).slice(2, 7);
-  return `<svg viewBox="0 0 200 240" class="avsvg" role="img" aria-label="Your avatar">
-    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${bg.g[0]}"/><stop offset="1" stop-color="${bg.g[1]}"/></linearGradient></defs>
-    <rect x="0" y="0" width="200" height="240" rx="26" fill="url(#${gid})"/>
-    <ellipse cx="100" cy="222" rx="${hip + 22}" ry="6" fill="rgba(20,20,20,.12)"/>
-    ${legs}${pants}${shoes}
-    <path d="${armL}" stroke="${skin}" stroke-width="${arm}" stroke-linecap="round"/><path d="${armR}" stroke="${skin}" stroke-width="${arm}" stroke-linecap="round"/>${bicep}
-    <circle cx="${L - 6}" cy="147" r="${arm / 2 + 1.5}" fill="${skin}"/><circle cx="${R + 6}" cy="147" r="${arm / 2 + 1.5}" fill="${skin}"/>
-    <rect x="93" y="70" width="14" height="16" rx="5" fill="${skin}"/>
-    <path d="${torso}" fill="${top.c}" stroke="${line}"/>${top.kind === "tank" ? `<path d="M88 82 Q100 96 112 82" fill="${skin}"/>` : top.kind === "hoodie" ? `<path d="M86 82 Q100 98 114 82" stroke="${line}" stroke-width="2" fill="none"/>` : `<path d="M91 82 Q100 90 109 82" fill="${skin}"/>`}
-    ${sleeve}${defs}${extra}
-    ${a.hair === "long" ? hair : ""}<circle cx="100" cy="52" r="24" fill="${skin}"/>${a.hair !== "long" ? hair : `<path d="M76 50 Q76 30 100 30 Q124 30 124 50 Q116 38 100 38 Q84 38 76 50Z" fill="${hc}"/>`}
-    ${face}<path d="M93 61 Q100 66 107 61" stroke="${ink}" stroke-width="2" fill="none" stroke-linecap="round"/>${hat}
+  const extra = !ex ? "" : ex.kind === "chain" ? `<path d="M${cx - N - 2} ${shY - 8} Q${cx} ${shY + 26} ${cx + N + 2} ${shY - 8}" stroke="${INK}" stroke-width="5" fill="none"/><path d="M${cx - N - 2} ${shY - 8} Q${cx} ${shY + 26} ${cx + N + 2} ${shY - 8}" stroke="${ex.c}" stroke-width="3" fill="none"/><circle cx="${cx}" cy="${shY + 10}" r="5" fill="${ex.c}" ${o}/>`
+    : ex.kind === "watch" ? `<rect x="${wL[0] - F / 2 - 1}" y="${wL[1] - 10}" width="${F + 2}" height="8" rx="2.5" fill="${ex.c}" ${o}/>`
+    : `<rect x="${wR[0] - F / 2 - 1}" y="${wR[1] - 10}" width="${F + 2}" height="8" rx="2.5" fill="${ex.c}" ${o}/>`;
+  return `<svg viewBox="0 0 240 280" class="avsvg" role="img" aria-label="Your avatar">
+    <defs>
+      <linearGradient id="${gid}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${bg.g[0]}"/><stop offset="1" stop-color="${bg.g[1]}"/></linearGradient>
+      <linearGradient id="${gid}s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${skL}"/><stop offset=".55" stop-color="${skin}"/><stop offset="1" stop-color="${skD}"/></linearGradient>
+      <linearGradient id="flo" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff7a1a"/><stop offset=".6" stop-color="#ffb02e"/><stop offset="1" stop-color="#ffd166" stop-opacity=".2"/></linearGradient>
+      <linearGradient id="fli" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#fff3c4" stop-opacity="0"/></linearGradient>
+    </defs>
+    <rect x="0" y="0" width="240" height="280" rx="28" fill="url(#${gid}b)"/>
+    ${flameSVG(stk)}
+    <ellipse cx="${cx}" cy="${knee + 24}" rx="${HIP + 30}" ry="7" fill="rgba(20,20,20,.14)"/>
+    ${legs}${shoe(lx - 2)}${shoe(rx + 2)}${shorts}
+    ${hairBack}
+    ${arm(L + 4, eL, wL, -1)}${arm(R - 4, eR, wR, 1)}
+    <path d="M${cx - N} ${shY - 26} L${cx - N} ${shY - 6} L${cx + N} ${shY - 6} L${cx + N} ${shY - 26} Z" fill="${skD}" stroke="${INK}" stroke-width="2.4"/>
+    ${delts}<path d="${torso}" fill="${shirtFill}" stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"/>${shirtShadow}${neckline}${pecs}${abs}${bust}${extra}
+    ${ears}${face}${cheeks}${brows}${eyes}${nose}${mouth}${hairFront}${hat}
+    ${petSVG(eq.pet)}
   </svg>`;
 }
+
 let avTab = ls.get("forma.avtab", "top");
 function avatarSection() {
-  const a = av(), P = avatarPoints(), lv = levelOf(P.xp), tier = tierOf(lv.L), today = dayPoints(dayStr());
+  const a = av(), P = avatarPoints(), lv = levelOf(P.xp), tier = tierOf(lv.L), today = dayPoints(dayStr()), stk = trainStreak();
   if (P.changed) { S.profile.avatar = {...a, days: P.days}; DB.saveProfile({avatar: S.profile.avatar}).catch(() => {}); }
-  const nextTier = [3, 6, 10, 15][tier];
-  const tabs = [["top", "Tops"], ["bottom", "Bottoms"], ["shoes", "Shoes"], ["head", "Head"], ["face", "Face"], ["extra", "Extras"], ["bg", "Backdrop"], ["look", "Look"]];
+  const nextTier = [3, 6, 10, 15][tier], todayPts = today.reduce((s, x) => s + x[2], 0);
+  const tabs = [["top", "Tops"], ["bottom", "Bottoms"], ["shoes", "Shoes"], ["pet", "Pets"], ["head", "Head"], ["face", "Face"], ["extra", "Extras"], ["bg", "Backdrop"], ["look", "Look"]];
+  const flameNote = stk >= 10 ? "Blazing: 10+ days of training in a row" : stk >= 5 ? "On fire: 5+ days of training in a row" : stk >= 3 ? `Warming up: ${stk} days in a row. Reach 5 for the full flame.` : `Train 5 days in a row to light the flame${stk ? ` (${stk} so far)` : ""}.`;
   const grid = avTab === "look" ? `<div class="stack" style="gap:14px">
       <div><div class="eyebrow">Skin</div><div class="swatches">${SKINS.map((c, i) => `<button class="sw ${a.skin === i ? "on" : ""}" style="background:${c}" data-skin="${i}" aria-label="Skin tone ${i + 1}"></button>`).join("")}</div></div>
       <div><div class="eyebrow">Hair</div><div class="chips">${Object.entries(HAIRS).map(([k, l]) => `<button class="chip ${a.hair === k ? "on" : ""}" data-hair="${k}">${l}</button>`).join("")}</div></div>
       <div><div class="eyebrow">Hair colour</div><div class="swatches">${HAIRC.map((c, i) => `<button class="sw ${a.hairColor === i ? "on" : ""}" style="background:${c}" data-hc="${i}" aria-label="Hair colour ${i + 1}"></button>`).join("")}</div></div></div>`
-    : `<div class="shop">${(["head", "face", "extra"].includes(avTab) ? [[null, {name: "None", price: 0, c: "transparent"}]] : []).concat(Object.entries(ITEMS).filter(([, it]) => it.slot === avTab)).map(([id, it]) => {
+    : `<div class="shop">${(OPTIONAL.includes(avTab) ? [[null, {name: "None", price: 0, c: "transparent"}]] : []).concat(Object.entries(ITEMS).filter(([, it]) => it.slot === avTab)).map(([id, it]) => {
         const owned = !id || a.owned.includes(id), wearing = a.eq[avTab] === id;
         return `<button class="item ${wearing ? "on" : ""}" data-item="${id || ""}"><span class="dot" style="background:${it.c}"></span><span class="iname">${esc(it.name)}</span>
-          <span class="iprice">${wearing ? "Wearing" : owned ? "Owned" : `${it.price} pts`}</span></button>`; }).join("")}</div>`;
+          <span class="iprice">${wearing ? "Wearing" : owned ? "Owned" : `${it.price.toLocaleString()} pts`}</span></button>`; }).join("")}</div>`;
   return `<div class="card avcard">
-      <div class="avwrap">${avatarSVG(a, tier)}</div>
+      <div class="avwrap">${avatarSVG(a, tier, null, stk)}</div>
+      <div class="streakline ${stk >= 5 ? "hot" : ""}">${ICON.flame}<span>${flameNote}</span></div>
       <div class="avinfo">
         <div class="row between"><div><div class="avlvl">Level ${lv.L}</div><div class="sub">${TIERS[tier]} body${tier < 4 ? `, next body at level ${nextTier}` : ", max body"}</div></div>
           <div class="coins"><b class="num">${P.coins.toLocaleString()}</b><span>points to spend</span></div></div>
         <div class="bar" style="margin-top:12px;height:8px"><i style="width:${lv.pct}%;background:var(--ink)"></i></div>
         <div class="sub num" style="margin-top:6px">${(P.xp - lv.lo).toLocaleString()} / ${(lv.hi - lv.lo).toLocaleString()} to level ${lv.L + 1}</div>
       </div></div>
-    <h2>Today's points <span class="sub num">+${today.reduce((s, x) => s + x[1], 0)}</span></h2>
-    <div class="card"><div class="earn">${[["Logged food", 10], ["Logged 3 meals", 5], ["Hit your protein", 10], ["Calories on target", 10], ["Trained", 20], ["8,000+ steps", 10], ["Weighed in", 5], ["Body check-in", 25]].map(([l, p]) => {
-      const got = today.some(x => x[0] === l); return `<div class="erow ${got ? "got" : ""}"><span class="tick">${got ? ICON.check : ""}</span><span class="grow">${l}</span><span class="num">+${p}</span></div>`; }).join("")}</div></div>
+    <h2>Today's points <span class="sub num">+${todayPts}</span></h2>
+    <div class="card"><div class="earn">${today.map(([l, det, p, max]) => `<div class="erow2">
+      <div class="row between"><span class="el">${l}</span><span class="num ep">+${p}</span></div>
+      <div class="bar" style="height:5px;margin-top:6px"><i style="width:${Math.min(100, p / max * 100)}%;background:var(--ink)"></i></div>
+      <div class="sub" style="font-size:12px;margin-top:4px">${esc(det)}</div></div>`).join("")}</div></div>
     <h2>Shop</h2>
     <div class="chips scrollx">${tabs.map(([k, l]) => `<button class="chip ${avTab === k ? "on" : ""}" data-avtab="${k}">${l}</button>`).join("")}</div>
     <div style="margin-top:12px">${grid}</div>`;
@@ -1185,12 +1299,12 @@ function bindAvatar() {
   document.querySelectorAll("[data-hair]").forEach(b => b.onclick = () => save({hair: b.dataset.hair}));
   document.querySelectorAll("[data-item]").forEach(b => b.onclick = () => {
     const id = b.dataset.item || null, a = av(), slot = avTab;
-    if (!id || a.owned.includes(id)) return save({eq: {...a.eq, [slot]: a.eq[slot] === id && ["head", "face", "extra"].includes(slot) ? null : id}});
+    if (!id || a.owned.includes(id)) return save({eq: {...a.eq, [slot]: a.eq[slot] === id && OPTIONAL.includes(slot) ? null : id}});
     const it = ITEMS[id], P = avatarPoints(), lv = levelOf(P.xp);
-    sheet(`<h3>${esc(it.name)}</h3><div class="sub">${it.price} points. You have ${P.coins.toLocaleString()}.</div>
-      <div class="avwrap" style="max-width:220px;margin:14px auto 0">${avatarSVG(a, tierOf(lv.L), {[slot]: id})}</div>
+    sheet(`<h3>${esc(it.name)}</h3><div class="sub">${it.price.toLocaleString()} points. You have ${P.coins.toLocaleString()}.</div>
+      <div class="avwrap" style="max-width:230px;margin:14px auto 0">${avatarSVG(a, tierOf(lv.L), {[slot]: id}, trainStreak())}</div>
       <div class="row" style="margin-top:16px"><button class="btn ghost grow" id="bC">Not now</button>
-      <button class="btn grow" id="bY" ${P.coins < it.price ? "disabled" : ""}>${P.coins < it.price ? `Need ${it.price - P.coins} more` : `Buy for ${it.price}`}</button></div>`);
+      <button class="btn grow" id="bY" ${P.coins < it.price ? "disabled" : ""}>${P.coins < it.price ? `Need ${(it.price - P.coins).toLocaleString()} more` : `Buy for ${it.price.toLocaleString()}`}</button></div>`);
     $("#bC").onclick = closeSheet;
     $("#bY").onclick = async () => { closeSheet(); await save({owned: [...a.owned, id], spent: (a.spent || 0) + it.price, eq: {...a.eq, [slot]: id}}); toast(`${it.name} unlocked`); };
   });
