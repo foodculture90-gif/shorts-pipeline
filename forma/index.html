@@ -281,6 +281,7 @@ const DB = {
       sb.from("entries").select("*").gte("day", addDays(dayStr(), -120)).order("created_at")]);
     if (error) throw error;
     S.profile = prof ? {...prof.data, sync_token: prof.sync_token} : null;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone; if (S.profile && tz && S.profile.tz !== tz) DB.saveProfile({tz}).catch(() => {});
     S.entries = ents || [];
   },
   saveDemo() { ls.set("forma.demo", {profile: S.profile, entries: S.entries}); },
@@ -601,19 +602,8 @@ function renderActivity(v) {
       <div class="d">${niceDay(w.day)} · ${r0(w.minutes)} min${w.kcal ? " · " + r0(w.kcal) + " kcal" : ""}${w.sets ? " · " + w.sets + " sets" : ""}</div></div>
       ${w.src === "watch" ? `<span class="pill blue">${ICON.watch}Watch</span>` : `<button class="x" data-del="${w.id}" aria-label="Delete workout">×</button>`}</div>`).join("")
       : `<div class="empty">No workouts yet this week. Workouts you record on your Apple Watch appear here after the daily sync.</div>`}</div>
-    <h2>Apple Watch sync</h2>
-    <div class="card"><div class="sub">Your Watch saves everything to Apple Health. This free Shortcut sends today's numbers to FORMA every evening, with no app to install.</div>
-      <ol class="steps">
-        <li><span>On your iPhone, open <b>Shortcuts</b> and create a new shortcut called <b>FORMA Sync</b>.</span></li>
-        <li><span>Add <b>Find Health Samples</b> for each of: Steps, Active Energy, Exercise Minutes, Resting Heart Rate, Sleep and Workouts, with <i>Start Date is today</i>. Use <b>Calculate Statistics → Sum</b> on each list.</span></li>
-        <li><span>Add <b>Get Contents of URL</b>: method <b>POST</b>, request body <b>JSON</b>, to the address below, with fields <code>token</code>, <code>date</code>, <code>steps</code>, <code>active_kcal</code>, <code>exercise_min</code>, <code>resting_hr</code>, <code>sleep_h</code>, <code>workouts</code>.</span></li>
-        <li><span>In <b>Automation</b>, add <b>Time of Day → 21:30, daily</b>, choose <b>Run Immediately</b>, and pick FORMA Sync.</span></li>
-      </ol>
-      <div class="stack" style="margin-top:14px;gap:8px">
-        <div><div class="eyebrow">Address</div><div class="row"><span class="code grow" id="syncUrl">${esc(url)}</span><button class="btn ghost small" data-copy="syncUrl">Copy</button></div></div>
-        <div><div class="eyebrow">Your private token</div><div class="row"><span class="code grow" id="syncTok">${esc(tok || "appears after you sign in")}</span><button class="btn ghost small" data-copy="syncTok">Copy</button></div></div>
-      </div></div>`;
-  $("#addW").onclick = workoutSheet;
+    ${watchSection(tok, url)}`;
+  $("#addW").onclick = workoutSheet; bindWatch();
   $("#mkPlan").onclick = planSheet;
   v.querySelectorAll("[data-start]").forEach(b => b.onclick = () => startWorkout(S.profile.plan.sessions[+b.dataset.start]));
   v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => confirmSheet("Delete this workout?", async () => { await DB.remove(b.dataset.del); render(); }));
@@ -984,6 +974,42 @@ function bindReminders() {
     catch (e) { tg.disabled = false; toast(e.message); } };
   const ts = $("#remTest");
   if (ts) ts.onclick = async () => { ts.disabled = true; try { const r = await pushCall({action: "test"}); toast(r.sent ? "Sent. It arrives in a few seconds." : "No device found, turn reminders off and on again"); } catch (e) { toast(e.message); } ts.disabled = false; };
+}
+
+/* ---------------- Apple Watch sync helpers ---------------- */
+function watchSection(tok, url) {
+  const base = `${url}?token=${tok || "SIGN-IN-FIRST"}`, sc = `${base}&steps=&kcal=&min=`;
+  const last = of("health").map(h => h.data.synced_at).filter(Boolean).sort().at(-1);
+  const mode = ls.get("forma.syncmode", "free");
+  const copyRow = (id, label, val) => `<div><div class="eyebrow">${label}</div><div class="row" style="margin-top:4px"><span class="code grow" id="${id}">${esc(val)}</span><button class="btn ghost small" data-copy="${id}">Copy</button></div></div>`;
+  const free = CFG.SHORTCUT_URL ? `<ol class="steps">
+      <li><span>Copy your sync link below, then tap <b>Add the FORMA shortcut</b> and choose <b>Add Shortcut</b>. When it asks for your link, paste it.</span></li>
+      <li><span>In Shortcuts, open <b>Automation</b> → <b>+</b> → <b>Time of Day</b> → 21:30, Daily → <b>Run Immediately</b> → pick <b>FORMA Sync</b>.</span></li></ol>
+      <a class="btn block" style="margin-top:12px;text-decoration:none" href="${esc(CFG.SHORTCUT_URL)}" target="_blank" rel="noopener">Add the FORMA shortcut</a>
+      <div style="margin-top:12px">${copyRow("syncSc", "Your sync link", sc)}</div>`
+    : `<div class="sub" style="margin-top:8px">Three short steps, once. No fields or maths to set up.</div>
+      <ol class="steps">
+        <li><span>Open <b>Shortcuts</b>, tap <b>+</b>, add <b>Find Health Samples</b>. Set <b>Type</b> to <b>Steps</b> and <b>Start Date</b> to <b>Today</b>.</span></li>
+        <li><span>Add <b>Get Contents of URL</b>. Tap the URL and paste your sync link (below). Put the cursor right after <code>steps=</code> and tap <b>Health Samples</b> in the bar above the keyboard. Name the shortcut <b>FORMA Sync</b> and tap ▶ once to test.</span></li>
+        <li><span>Open <b>Automation</b> → <b>+</b> → <b>Time of Day</b> → 21:30, Daily → <b>Run Immediately</b> → pick <b>FORMA Sync</b>.</span></li>
+      </ol>
+      <div style="margin-top:12px">${copyRow("syncSc", "Your sync link", sc)}</div>
+      <div class="sub" style="margin-top:8px">Want calories and exercise too? Add two more <b>Find Health Samples</b> (Active Energy, Exercise Minutes) and put them after <code>kcal=</code> and <code>min=</code> the same way.</div>`;
+  const auto = `<div class="sub" style="margin-top:8px">The <b>Health Auto Export</b> app sends everything in the background, including workouts, heart rate and sleep, with nothing to build. Background sync needs its Premium plan ($6.99 a year or $24.99 once).</div>
+      <ol class="steps">
+        <li><span>Install <b>Health Auto Export</b> from the App Store and allow Health access.</span></li>
+        <li><span>Go to <b>Automations</b> → <b>+</b> → <b>REST API</b>. Paste your link (below) as the URL. Data type <b>Health Metrics</b>: pick Step Count, Active Energy, Exercise Time, Resting Heart Rate and Sleep Analysis. Format <b>JSON</b>, aggregate by <b>Day</b>. Turn it on.</span></li>
+        <li><span>Add a second REST API automation with the same link and data type <b>Workouts</b>.</span></li>
+      </ol>
+      <div style="margin-top:12px">${copyRow("syncBase", "Your link", base)}</div>`;
+  return `<h2>Apple Watch sync <span class="pill ${last ? "green" : "amber"}">${ICON.watch}${last ? "Last sync " + niceDay(dayStr(new Date(last))).toLowerCase() + " " + new Date(last).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "Not set up"}</span></h2>
+    <div class="card"><div class="sub">Your Watch saves to Apple Health. A web app can't read Apple Health by itself, so a small helper on your iPhone sends the numbers once a day.</div>
+      <div class="seg" style="margin-top:12px" role="tablist"><button class="${mode === "free" ? "on" : ""}" data-sync="free">Free shortcut</button><button class="${mode === "auto" ? "on" : ""}" data-sync="auto">Automatic app</button></div>
+      ${mode === "auto" ? auto : free}
+      <div class="sub" style="margin-top:10px">Keep your link private: it lets anyone send numbers to your account.</div></div>`;
+}
+function bindWatch() {
+  document.querySelectorAll("[data-sync]").forEach(b => b.onclick = () => { ls.set("forma.syncmode", b.dataset.sync); render(); });
 }
 
 /* ---- sheets ---- */
