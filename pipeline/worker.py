@@ -93,7 +93,8 @@ def cmd_generate(payload, cmd):
                                        "feedback": payload.get("feedback"), "parent_id": payload.get("parent_id")})["id"]
         payload["episode_id"] = ep_id
         db.update("commands", f"id=eq.{cmd['id']}", {"payload": payload})
-    reserved = bool(db.rpc("reserve_images", n=PICS, cap=CAPACITY))
+    # with the Kaggle GPU on, pictures are drawn there (better 3D-cartoon model, no daily picture limit)
+    reserved = (not USE_KAGGLE) and bool(db.rpc("reserve_images", n=PICS, cap=CAPACITY))
     if not reserved and not USE_KAGGLE:
         _set(ep_id, status="queued", error=None)
         raise Wait(tomorrow_utc(), "Today's free pictures are used up — continues after midnight UTC")
