@@ -124,7 +124,8 @@ def cmd_generate(payload, cmd):
     except QuotaExceeded:
         _refund(PICS - drawn[0])
         _set(ep_id, status="queued")
-        raise Wait(tomorrow_utc(), "Cloudflare's free limit was reached — continues after midnight UTC")
+        raise Wait(min(tomorrow_utc(), now() + timedelta(hours=3)),
+                   "Cloudflare's free picture limit was reached — retrying in a few hours")
     except Busy:
         _refund(PICS - drawn[0])
         _set(ep_id, status="queued", error=None)
