@@ -236,6 +236,37 @@ code,.code{background:rgba(17,17,17,.06)}
 .l1{background:rgba(17,17,17,.3)!important}.l2{background:rgba(17,17,17,.6)!important}.l3{background:var(--ink)!important}
 .ylegend{display:flex;align-items:center;gap:4px;justify-content:flex-end;font-size:11px;color:var(--ink3);margin-top:6px}
 .ylegend span{margin:0 4px}
+/* avatar */
+.avcard{display:grid;gap:16px}
+.avwrap{max-width:250px;width:100%;margin:0 auto}
+.avsvg{width:100%;height:auto;display:block;filter:drop-shadow(0 10px 24px rgba(70,52,28,.12))}
+.avlvl{font-family:var(--disp);font-size:24px;font-weight:600;letter-spacing:-.02em}
+.coins{text-align:right;display:grid}
+.coins b{font-family:var(--disp);font-size:24px;font-weight:600}
+.coins span{font-size:11.5px;color:var(--ink2)}
+.earn{display:grid}
+.erow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink2)}
+.erow:last-child{border-bottom:none}
+.erow.got{color:var(--ink);font-weight:600}
+.tick{width:22px;height:22px;border-radius:99px;border:1.5px solid rgba(20,20,20,.2);display:grid;place-items:center;flex:none}
+.erow.got .tick{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chips.scrollx{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.chips.scrollx::-webkit-scrollbar{display:none}
+.chip{border:1px solid var(--glassLine);background:var(--glass);border-radius:99px;padding:8px 14px;font-weight:600;font-size:13px;white-space:nowrap;color:var(--ink2);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.swatches{display:flex;gap:10px;margin-top:8px}
+.sw{width:34px;height:34px;border-radius:99px;border:2px solid rgba(255,255,255,.9);box-shadow:0 0 0 1px rgba(20,20,20,.12)}
+.sw.on{box-shadow:0 0 0 2px var(--ink)}
+.shop{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.item{background:var(--glass);border:1px solid var(--glassLine);border-radius:18px;padding:12px 6px;display:grid;justify-items:center;gap:6px;box-shadow:var(--shadow);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+.item.on{box-shadow:0 0 0 2px var(--ink)}
+.item .dot{width:34px;height:34px;border-radius:12px;border:1px solid rgba(20,20,20,.12)}
+.iname{font-size:12.5px;font-weight:600;text-align:center;line-height:1.2}
+.iprice{font-size:11.5px;color:var(--ink2)}
+.qa{display:flex;gap:8px;background:var(--glass);border:1px solid var(--glassLine);border-radius:18px;padding:6px;box-shadow:var(--shadow);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px)}
+.qa input.in{border:none;background:transparent;flex:1;min-width:0}
+.qa .btn{padding:10px 16px}
 /* calories */
 .kbig{font-size:36px;font-weight:600;letter-spacing:-.03em;line-height:1}
 .kbig span{font-family:var(--font);font-size:14px;font-weight:500;color:var(--ink2);margin-left:6px;letter-spacing:0}
@@ -392,6 +423,9 @@ const latestWeight = () => { const w = of("weight").sort((a, b) => a.day < b.day
 async function ai(type, payload) {
   if (!LIVE) {
     await sleep(1400);
+    if (type === "text") { const t = (payload.context?.text || "").toLowerCase();
+      if (/energy|monster|red ?bull/.test(t)) return {name: "Energy drink (500 ml)", meal: guessMeal(), items: [{name: "Energy drink", grams: 500, kcal: 230, p: 0, c: 55, f: 0}]};
+      return {name: payload.context?.text || "Snack", meal: guessMeal(), items: [{name: payload.context?.text || "Snack", grams: 150, kcal: 250, p: 8, c: 30, f: 10}]}; }
     if (type === "calories") { const b = targets({...S.profile, kcal_mode: "auto"}); return {kcal: b.kcal, protein: b.protein, why: "Demo: about 450 kcal under what you burn, for steady fat loss of roughly 0.4 kg a week while keeping muscle."}; }
     if (type === "food") return {name: "Pasta with tomato sauce", meal: guessMeal(), items: [
       {name: "Spaghetti (cooked)", grams: 220, kcal: 348, p: 13, c: 68, f: 2}, {name: "Tomato basil sauce", grams: 120, kcal: 90, p: 2, c: 13, f: 3},
@@ -449,7 +483,7 @@ function ring(eaten, target) {
 }
 
 /* ---------------- screens ---------------- */
-const TABS = [["today", "Today"], ["food", "Food"], ["body", "Body"], ["activity", "Train"], ["profile", "Me"]];
+const TABS = [["today", "Today"], ["food", "Food"], ["body", "Avatar"], ["activity", "Train"], ["profile", "Me"]];
 const TAB_ICON = {activity: "train"};
 function nav() {
   const n = $("#tabs"); n.hidden = false;
@@ -525,8 +559,10 @@ function renderToday(v) {
     <div><div class="sub">${new Date().toLocaleDateString(undefined, {weekday: "long", day: "numeric", month: "long"})}</div><h1>${hello}, ${esc(S.profile.name)}</h1></div>
     <div class="card hero" style="margin-top:12px">${ring(tot.kcal, tg.kcal)}
       <div class="stack" style="gap:10px"><div class="row between"><span class="eyebrow">Eaten</span><span class="num" style="font-weight:700;white-space:nowrap;font-size:14px">${r0(tot.kcal).toLocaleString()} / ${tg.kcal.toLocaleString()}</span></div>
+      <div class="row between"><span class="eyebrow">Burned (Watch)</span><span class="num" style="font-weight:700;font-size:14px">${h && h.active_kcal != null ? r0(h.active_kcal).toLocaleString() + " kcal" : "–"}</span></div>
       ${macro("Protein", tot.p, tg.protein, "var(--accent)")}${macro("Carbs", tot.c, tg.carbs, "var(--blue)")}${macro("Fat", tot.f, tg.fat, "var(--amber)")}</div></div>
     ${stk && !of("meal", t).length ? `<div class="demo" style="margin-top:12px;background:var(--accentSoft);color:var(--accent)">${ICON.flame}<span class="grow">Your ${stk}-day streak is waiting. Log a meal today to keep it going.</span></div>` : ""}
+    <div style="margin-top:12px">${quickAddBox("qa")}</div>
     <div class="quick" style="margin-top:12px">
       <button id="qMeal">${ICON.camera}Snap meal</button><button id="qScan">${ICON.barcode}Barcode</button><button id="qWeight">${ICON.scale}Weight</button><button id="qBody">${ICON.body}Body check</button></div>
     <h2>Training</h2>${trainingSummary(false)}
@@ -536,7 +572,7 @@ function renderToday(v) {
     <h2>Coach</h2>
     <div class="card coach"><div class="stack" style="gap:10px"><div id="tipText" style="font-weight:600">Get one clear thing to do today, based on what you've eaten and how much you've moved.</div>
       <div><button class="btn small" id="tipGo">Get today's tip</button></div></div></div>`;
-  $("#qMeal").onclick = snapMeal; $("#qScan").onclick = scanBarcode; $("#qWeight").onclick = weightSheet; $("#qBody").onclick = physiqueCheck;
+  bindQuickAdd("qa"); $("#qMeal").onclick = snapMeal; $("#qScan").onclick = scanBarcode; $("#qWeight").onclick = weightSheet; $("#qBody").onclick = physiqueCheck;
   if ($("#toSync")) $("#toSync").onclick = () => go("activity");
   $("#tipGo").onclick = async () => { const b = $("#tipGo"); b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
     try { const r = await ai("coach", {context: coachContext()}); $("#tipText").textContent = r.tip; }
@@ -560,6 +596,7 @@ function renderFood(v) {
       <div style="text-align:center"><h1 style="margin:0">${niceDay(d)}</h1><div class="sub num">${r0(tot.kcal).toLocaleString()} of ${tg.kcal.toLocaleString()} kcal · ${r0(tot.p)} g protein</div></div>
       <button class="icon-btn" id="dNext" aria-label="Next day" ${d >= dayStr() ? "disabled" : ""}>${ICON.right}</button></div>
     <div class="row" style="margin-top:14px"><button class="btn grow" id="snap">${ICON.camera}Snap a meal</button><button class="btn ghost" id="scanBc" aria-label="Scan a barcode">${ICON.barcode}</button><button class="btn ghost" id="manual">Manual</button></div>
+    <div style="margin-top:10px">${quickAddBox("qaF")}</div>
     ${groups.length ? groups.map(([m, list]) => `<h2>${m[0].toUpperCase() + m.slice(1)}<span class="sub num">${r0(list.map(mealTotals).reduce((a, t) => a + t.kcal, 0))} kcal</span></h2>
       <div class="card list">${list.map(x => { const t = mealTotals(x); return `<div class="li">${x.data.thumb ? `<img src="${x.data.thumb}" alt="">` : `<div class="ph">${ICON.food}</div>`}
         <div class="grow"><div class="t">${esc(x.data.name || "Meal")}</div><div class="d num">P ${r0(t.p)} · C ${r0(t.c)} · F ${r0(t.f)} · ${(x.data.items || []).length} items</div></div>
@@ -567,7 +604,7 @@ function renderFood(v) {
       : `<div class="card empty" style="margin-top:14px">Nothing logged for ${niceDay(d).toLowerCase()}. Snap a photo of your plate and FORMA works out the calories.</div>`}`;
   $("#dPrev").onclick = () => { S.foodDay = addDays(d, -1); render(); };
   $("#dNext").onclick = () => { if (d < dayStr()) { S.foodDay = addDays(d, 1); render(); } };
-  $("#snap").onclick = snapMeal; $("#scanBc").onclick = scanBarcode;
+  $("#snap").onclick = snapMeal; $("#scanBc").onclick = scanBarcode; bindQuickAdd("qaF", S.foodDay);
   $("#manual").onclick = () => mealSheet({name: "", meal: guessMeal(), items: [{name: "", grams: 100, kcal: 0, p: 0, c: 0, f: 0}]}, null);
   v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => confirmSheet("Delete this meal?", async () => { await DB.remove(b.dataset.del); render(); }));
 }
@@ -617,14 +654,14 @@ function renderBody(v) {
   const t = dayStr(), since = ws.filter(w => w.day >= addDays(t, -30)), ch = since.length > 1 ? r1(since.at(-1).data.kg - since[0].data.kg) : null;
   const pts = ws.filter(w => w.day >= addDays(t, -90)).map(w => ({x: new Date(w.day).getTime() / 864e5, y: +w.data.kg, label: niceDay(w.day)}));
   const scans = of("scan").sort((a, b) => a.day < b.day ? 1 : -1);
-  v.innerHTML = `${demoBanner()}<h1>Body</h1>
+  v.innerHTML = `${demoBanner()}<h1>Avatar</h1>${avatarSection()}<h2>Progress</h2>
     <div class="card" style="margin-top:10px"><div class="row between"><div><div class="eyebrow">Weight</div><div class="bf num">${r1(now)} <span class="sub">kg</span></div></div>
       ${ch !== null ? `<span class="pill ${(S.profile.goal === "gain" ? ch >= 0 : ch <= 0) ? "green" : "amber"} num">${ch > 0 ? "+" : ""}${ch} kg in 30 days</span>` : ""}</div>
       <div style="margin-top:8px">${lineChart(pts)}</div><button class="btn ghost small" id="logW" style="margin-top:8px">${ICON.scale}Log today's weight</button></div>
     <h2>Physique check-ins <button class="btn small" id="newScan">${ICON.camera}New check-in</button></h2>
     <div class="sub" style="margin:-4px 2px 10px">Take a front photo in good light, same spot each time. Every 2-4 weeks is ideal. Photos stay private to your account.</div>
     ${scans.length ? `<div class="stack">${scans.map(scanCard).join("")}</div>` : `<div class="card empty">No check-ins yet. Your first one becomes the baseline for tracking progress.</div>`}`;
-  $("#logW").onclick = weightSheet; $("#newScan").onclick = physiqueCheck;
+  $("#logW").onclick = weightSheet; $("#newScan").onclick = physiqueCheck; bindAvatar();
   v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => confirmSheet("Delete this check-in?", async () => { await DB.remove(b.dataset.del); render(); }));
 }
 const scanCard = s => `<div class="card"><div class="row">${s.data.thumb ? `<img src="${s.data.thumb}" alt="" style="width:64px;height:84px;object-fit:cover;border-radius:12px">` : ""}
@@ -667,6 +704,7 @@ function renderActivity(v) {
   const url = LIVE ? CFG.SUPABASE_URL + "/functions/v1/health-sync" : "https://your-project.supabase.co/functions/v1/health-sync";
   v.innerHTML = `${demoBanner()}<h1>Train</h1>
     ${trainingSummary(true)}
+    ${caloriesCard()}
     <h2>Steps</h2>
     <div class="card"><div class="row between"><div><div class="eyebrow">Last 7 days</div><div class="bf num">${avg.toLocaleString()} <span class="sub">a day on average</span></div></div></div>
       ${barChart(steps, days.map(d => new Date(d + "T12:00:00").toLocaleDateString(undefined, {weekday: "narrow"})), tg.steps)}</div>
@@ -676,7 +714,7 @@ function renderActivity(v) {
       ${w.src === "watch" ? `<span class="pill blue">${ICON.watch}Watch</span>` : `<button class="x" data-del="${w.id}" aria-label="Delete workout">×</button>`}</div>`).join("")
       : `<div class="empty">No workouts yet this week. Workouts you record on your Apple Watch appear here after the daily sync.</div>`}</div>
     ${watchSection(tok, url)}`;
-  $("#addW").onclick = workoutSheet; bindWatch();
+  $("#addW").onclick = workoutSheet; bindWatch(); bindCalories();
   scrollYear();
   v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => confirmSheet("Delete this workout?", async () => { await DB.remove(b.dataset.del); render(); }));
   v.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => { const el = $("#" + b.dataset.copy);
@@ -698,7 +736,6 @@ function workoutSheet() {
 function renderProfile(v) {
   const tg = targets(S.profile);
   v.innerHTML = `${demoBanner()}<h1>${esc(S.profile.name)}</h1><div class="sub">${LIVE ? esc(S.user.email) : "Demo account on this device"}</div>
-    ${caloriesCard()}
     ${badgesSection()}
     ${remindersCard()}
     <h2>Details</h2><form class="card stack" id="pf">${profileForm(S.profile)}
@@ -710,7 +747,7 @@ function renderProfile(v) {
   $("#pf").onsubmit = async e => { e.preventDefault(); try { await DB.saveProfile(readProfileForm()); toast("Saved"); render(); } catch (err) { toast(err.message); } };
   if ($("#out")) $("#out").onclick = async () => { await sb.auth.signOut(); S.user = null; S.profile = null; S.entries = []; render(); };
   if ($("#reset")) $("#reset").onclick = () => { const st = demoSeed(); ls.set("forma.demo", st); S.profile = st.profile; S.entries = st.entries; toast("Demo data reset"); render(); };
-  bindReminders(); bindCalories();
+  bindReminders();
   $("#wipe").onclick = () => confirmSheet("Delete everything? Meals, weights, check-ins and workouts are removed for good.", async () => { await DB.wipe(); render(); });
 }
 
@@ -974,12 +1011,12 @@ function watchSection(tok, url) {
       <div style="margin-top:12px">${copyRow("syncSc", "Your sync link", sc)}</div>`
     : `<div class="sub" style="margin-top:8px">Three short steps, once. No fields or maths to set up.</div>
       <ol class="steps">
-        <li><span>Open <b>Shortcuts</b>, tap <b>+</b>, add <b>Find Health Samples</b>. Set <b>Type</b> to <b>Steps</b> and <b>Start Date</b> to <b>Today</b>.</span></li>
-        <li><span>Add <b>Get Contents of URL</b>. Tap the URL and paste your sync link (below). Put the cursor right after <code>steps=</code> and tap <b>Health Samples</b> in the bar above the keyboard. Name the shortcut <b>FORMA Sync</b> and tap ▶ once to test.</span></li>
+        <li><span>Open <b>Shortcuts</b>, tap <b>+</b>, add <b>Find Health Samples</b>. Set <b>Type</b> to <b>Steps</b> and <b>Start Date</b> to <b>Today</b>. Add a second one set to <b>Active Energy</b>.</span></li>
+        <li><span>Add <b>Get Contents of URL</b>. Tap the URL and paste your sync link (below). Put the cursor after <code>steps=</code> and tap <b>Health Samples</b>, then after <code>kcal=</code> tap <b>Health Samples 2</b>. Name the shortcut <b>FORMA Sync</b> and tap ▶ once to test.</span></li>
         <li><span>Open <b>Automation</b> → <b>+</b> → <b>Time of Day</b> → 21:30, Daily → <b>Run Immediately</b> → pick <b>FORMA Sync</b>.</span></li>
       </ol>
       <div style="margin-top:12px">${copyRow("syncSc", "Your sync link", sc)}</div>
-      <div class="sub" style="margin-top:8px">Want calories and exercise too? Add two more <b>Find Health Samples</b> (Active Energy, Exercise Minutes) and put them after <code>kcal=</code> and <code>min=</code> the same way. For workouts, add <b>Find Workouts</b> (Start Date is Today) after <code>w=</code>.</div>`;
+      <div class="sub" style="margin-top:8px">Optional: add <b>Exercise Minutes</b> after <code>min=</code> the same way. For workouts, add <b>Find Workouts</b> (Start Date is Today) after <code>w=</code>.</div>`;
   const auto = `<div class="sub" style="margin-top:8px">The <b>Health Auto Export</b> app sends everything in the background, including workouts, heart rate and sleep, with nothing to build. Background sync needs its Premium plan ($6.99 a year or $24.99 once).</div>
       <ol class="steps">
         <li><span>Install <b>Health Auto Export</b> from the App Store and allow Health access.</span></li>
@@ -995,6 +1032,189 @@ function watchSection(tok, url) {
 }
 function bindWatch() {
   document.querySelectorAll("[data-sync]").forEach(b => b.onclick = () => { ls.set("forma.syncmode", b.dataset.sync); render(); });
+}
+
+/* ---------------- avatar: points, levels, shop ---------------- */
+const SKINS = ["#f2d3b8", "#e0b48f", "#c48b62", "#8d5a3b", "#5e3a24"];
+const HAIRC = ["#141414", "#4a2e1c", "#8a6a3e", "#d8c08c", "#9a9184"];
+const HAIRS = {short: "Short", buzz: "Buzz", curly: "Curly", long: "Long", bun: "Bun"};
+const TIERS = ["Beginner", "Active", "Fit", "Athletic", "Elite"];
+const SLOTS = {top: "Top", bottom: "Bottoms", shoes: "Shoes", head: "Head", face: "Face", extra: "Extra", bg: "Background"};
+const ITEMS = {
+  tee_white: {slot: "top", name: "White tee", price: 0, c: "#fbf8f2", kind: "tee"},
+  tee_black: {slot: "top", name: "Black tee", price: 60, c: "#1c1c1c", kind: "tee"},
+  tee_sage: {slot: "top", name: "Sage tee", price: 120, c: "#8fa58a", kind: "tee"},
+  tank_black: {slot: "top", name: "Black tank", price: 90, c: "#1c1c1c", kind: "tank"},
+  tank_cream: {slot: "top", name: "Cream tank", price: 90, c: "#e9dfcc", kind: "tank"},
+  hoodie_sand: {slot: "top", name: "Sand hoodie", price: 220, c: "#c9b593", kind: "hoodie"},
+  hoodie_black: {slot: "top", name: "Black hoodie", price: 260, c: "#232323", kind: "hoodie"},
+  shorts_black: {slot: "bottom", name: "Black shorts", price: 0, c: "#1c1c1c", kind: "shorts"},
+  shorts_sand: {slot: "bottom", name: "Sand shorts", price: 60, c: "#bfa983", kind: "shorts"},
+  joggers_grey: {slot: "bottom", name: "Grey joggers", price: 150, c: "#7d776d", kind: "joggers"},
+  shoes_white: {slot: "shoes", name: "White sneakers", price: 0, c: "#fbf8f2"},
+  shoes_black: {slot: "shoes", name: "Black sneakers", price: 80, c: "#1c1c1c"},
+  shoes_sand: {slot: "shoes", name: "Sand runners", price: 120, c: "#c9b593"},
+  cap_black: {slot: "head", name: "Black cap", price: 120, c: "#1c1c1c", kind: "cap"},
+  beanie_cream: {slot: "head", name: "Cream beanie", price: 100, c: "#e9dfcc", kind: "beanie"},
+  band_white: {slot: "head", name: "Headband", price: 60, c: "#fbf8f2", kind: "band"},
+  shades: {slot: "face", name: "Sunglasses", price: 150, c: "#141414"},
+  chain_gold: {slot: "extra", name: "Gold chain", price: 300, c: "#c9a45c", kind: "chain"},
+  watch_black: {slot: "extra", name: "Sport watch", price: 180, c: "#141414", kind: "watch"},
+  band_wrist: {slot: "extra", name: "Wristband", price: 60, c: "#fbf8f2", kind: "wrist"},
+  bg_plain: {slot: "bg", name: "Cream", price: 0, c: "#f6f1e8", g: ["#fbf8f2", "#ece4d6"]},
+  bg_sunset: {slot: "bg", name: "Sunset", price: 150, c: "#e9b98f", g: ["#f6d7b6", "#e3a989"]},
+  bg_beach: {slot: "bg", name: "Beach", price: 250, c: "#9fc3c9", g: ["#bcd9dc", "#efe0c2"]},
+  bg_night: {slot: "bg", name: "Night gym", price: 250, c: "#2a2a2a", g: ["#3a3632", "#141414"]},
+  bg_gold: {slot: "bg", name: "Gold", price: 500, c: "#d6b56f", g: ["#f1dca5", "#c9a45c"]},
+};
+const FREE = ["tee_white", "shorts_black", "shoes_white", "bg_plain"];
+const avDefault = () => ({skin: 1, hair: S.profile?.sex === "female" ? "long" : "short", hairColor: 0, owned: [...FREE], spent: 0, days: {},
+  eq: {top: "tee_white", bottom: "shorts_black", shoes: "shoes_white", head: null, face: null, extra: null, bg: "bg_plain"}});
+const av = () => { const a = {...avDefault(), ...(S.profile.avatar || {})}; a.eq = {...avDefault().eq, ...(a.eq || {})}; a.owned = [...new Set([...FREE, ...(a.owned || [])])]; return a; };
+
+// points earned on one day
+function dayPoints(d) {
+  const tg = targets(S.profile), meals = of("meal", d), tot = dayTotals(d), h = healthOf(d), out = [];
+  if (meals.length) out.push(["Logged food", 10]);
+  if (meals.length >= 3) out.push(["Logged 3 meals", 5]);
+  if (meals.length && tot.p >= tg.protein * 0.9) out.push(["Hit your protein", 10]);
+  if (meals.length && Math.abs(tot.kcal - tg.kcal) <= tg.kcal * 0.1) out.push(["Calories on target", 10]);
+  if (trainingMap().has(d)) out.push(["Trained", 20]);
+  if ((+h?.steps || 0) >= 8000) out.push(["8,000+ steps", 10]);
+  if (of("weight", d).length) out.push(["Weighed in", 5]);
+  if (of("scan", d).length) out.push(["Body check-in", 25]);
+  return out;
+}
+// total points: days still on this phone are recounted, older days stay banked in the profile
+function avatarPoints() {
+  const a = av(), days = {...(a.days || {})}, t = dayStr();
+  const seen = new Set(S.entries.map(e => e.day).filter(d => d >= addDays(t, -119) && d <= t));
+  let changed = false;
+  for (const d of seen) { const p = dayPoints(d).reduce((s, x) => s + x[1], 0); if ((days[d] || 0) !== p) { days[d] = p; changed = true; } }
+  const xp = Object.values(days).reduce((s, x) => s + x, 0);
+  return {xp, coins: Math.max(0, xp - (a.spent || 0)), days, changed};
+}
+function levelOf(xp) { let L = 1; while (xp >= 50 * L * (L + 1)) L++; const lo = 50 * L * (L - 1), hi = 50 * L * (L + 1); return {L, lo, hi, pct: Math.min(100, (xp - lo) / (hi - lo) * 100)}; }
+const tierOf = L => L < 3 ? 0 : L < 6 ? 1 : L < 10 ? 2 : L < 15 ? 3 : 4;
+
+function avatarSVG(a, tier, eqOver) {
+  const eq = {...a.eq, ...(eqOver || {})}, skin = SKINS[a.skin] || SKINS[1], hc = HAIRC[a.hairColor] || HAIRC[0];
+  const fem = S.profile?.sex === "female";
+  const sw = [30, 34, 38, 43, 48][tier] - (fem ? 4 : 0), ww = fem ? 22 : [25, 25, 24, 23, 23][tier], hip = fem ? 28 : ww + 1;
+  const arm = [10, 12, 14, 17, 20][tier], leg = [13, 14, 16, 18, 20][tier];
+  const top = ITEMS[eq.top] || ITEMS.tee_white, bot = ITEMS[eq.bottom] || ITEMS.shorts_black, sh = ITEMS[eq.shoes] || ITEMS.shoes_white;
+  const bg = ITEMS[eq.bg] || ITEMS.bg_plain, ink = "#141414", line = "rgba(20,20,20,.18)";
+  const L = 100 - sw, R = 100 + sw;
+  const torso = `M${L} 90 Q${L} 82 ${L + 9} 82 L${R - 9} 82 Q${R} 82 ${R} 90 L${100 + ww} 148 L${100 - ww} 148 Z`;
+  const armL = `M${L + 2} 88 L${L - 6} 146`, armR = `M${R - 2} 88 L${R + 6} 146`;
+  const sleeveEnd = top.kind === "hoodie" ? 146 : 108, sl = t => (sleeveEnd - 88) / 58 * t;
+  const sleeve = top.kind === "tank" ? "" : `<path d="M${L + 2} 88 L${L + 2 - sl(8)} ${sleeveEnd}" stroke="${top.c}" stroke-width="${arm + 5}" stroke-linecap="round"/><path d="M${R - 2} 88 L${R - 2 + sl(8)} ${sleeveEnd}" stroke="${top.c}" stroke-width="${arm + 5}" stroke-linecap="round"/>`;
+  const bicep = tier >= 3 && top.kind === "tank" ? `<ellipse cx="${L - 2}" cy="104" rx="${arm / 2 + 2}" ry="9" fill="${skin}"/><ellipse cx="${R + 2}" cy="104" rx="${arm / 2 + 2}" ry="9" fill="${skin}"/>` : "";
+  const defs = tier >= 2 ? `<path d="M${100 - sw * .55} 104 Q100 ${110 + tier} ${100 + sw * .55} 104" stroke="${line}" stroke-width="2" fill="none"/><path d="M100 106 V140" stroke="${line}" stroke-width="1.6"/>${tier >= 3 ? `<path d="M90 120 H110 M91 130 H109" stroke="${line}" stroke-width="1.4"/>` : ""}` : "";
+  const pants = bot.kind === "joggers"
+    ? `<path d="M${100 - hip} 146 H${100 + hip} L${100 + hip - 3} 212 H${103} L100 160 L${97} 212 H${100 - hip + 3} Z" fill="${bot.c}"/>`
+    : `<path d="M${100 - hip} 146 H${100 + hip} L${100 + hip + 1} 180 H${103} L100 164 L${97} 180 H${100 - hip - 1} Z" fill="${bot.c}"/>`;
+  const legs = bot.kind === "joggers" ? "" : `<path d="M${100 - hip / 2 - 1} 178 V210 M${100 + hip / 2 + 1} 178 V210" stroke="${skin}" stroke-width="${leg}" stroke-linecap="round"/>`;
+  const shoes = `<rect x="${100 - hip / 2 - 13}" y="208" width="24" height="11" rx="5.5" fill="${sh.c}" stroke="${line}"/><rect x="${100 + hip / 2 - 11}" y="208" width="24" height="11" rx="5.5" fill="${sh.c}" stroke="${line}"/>`;
+  const hair = {
+    short: `<path d="M75 52 Q74 24 100 24 Q126 24 125 52 Q120 37 100 37 Q80 37 75 52Z" fill="${hc}"/>`,
+    buzz: `<path d="M77 48 Q78 27 100 27 Q122 27 123 48 Q117 38 100 38 Q83 38 77 48Z" fill="${hc}" opacity=".75"/>`,
+    curly: [80, 88, 96, 104, 112, 120, 84, 116].map((x, i) => `<circle cx="${x}" cy="${i > 5 ? 38 : 30 + Math.abs(100 - x) / 6}" r="8" fill="${hc}"/>`).join(""),
+    long: `<path d="M74 54 Q72 24 100 24 Q128 24 126 54 L128 92 Q120 96 116 90 L118 50 Q112 37 100 37 Q88 37 82 50 L84 90 Q80 96 72 92 Z" fill="${hc}"/>`,
+    bun: `<circle cx="100" cy="22" r="9" fill="${hc}"/><path d="M75 52 Q74 26 100 26 Q126 26 125 52 Q120 38 100 38 Q80 38 75 52Z" fill="${hc}"/>`,
+  }[a.hair] || "";
+  const head = ITEMS[eq.head];
+  const hat = !head ? "" : head.kind === "cap" ? `<path d="M74 44 Q74 20 100 20 Q126 20 126 44 Z" fill="${head.c}"/><path d="M100 42 H138 Q140 47 132 48 H100 Z" fill="${head.c}"/>`
+    : head.kind === "beanie" ? `<path d="M74 46 Q73 16 100 16 Q127 16 126 46 Z" fill="${head.c}"/><rect x="72" y="40" width="56" height="9" rx="4.5" fill="${head.c}" stroke="${line}"/><circle cx="100" cy="15" r="5" fill="${head.c}"/>`
+    : `<rect x="75" y="38" width="50" height="7" rx="3.5" fill="${head.c}" stroke="${line}"/>`;
+  const face = eq.face ? `<rect x="83" y="47" width="15" height="9" rx="4" fill="${ink}"/><rect x="102" y="47" width="15" height="9" rx="4" fill="${ink}"/><path d="M98 50 H102" stroke="${ink}" stroke-width="2"/>`
+    : `<circle cx="91" cy="52" r="2.3" fill="${ink}"/><circle cx="109" cy="52" r="2.3" fill="${ink}"/>`;
+  const ex = ITEMS[eq.extra];
+  const extra = !ex ? "" : ex.kind === "chain" ? `<path d="M88 84 Q100 104 112 84" stroke="${ex.c}" stroke-width="2.6" fill="none"/><circle cx="100" cy="98" r="3" fill="${ex.c}"/>`
+    : ex.kind === "watch" ? `<rect x="${L - 6 - arm / 2 - 1}" y="134" width="${arm + 2}" height="7" rx="2" fill="${ex.c}"/>`
+    : `<rect x="${R + 6 - arm / 2 - 1}" y="134" width="${arm + 2}" height="7" rx="2" fill="${ex.c}" stroke="${line}"/>`;
+  const gid = "g" + Math.random().toString(36).slice(2, 7);
+  return `<svg viewBox="0 0 200 240" class="avsvg" role="img" aria-label="Your avatar">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${bg.g[0]}"/><stop offset="1" stop-color="${bg.g[1]}"/></linearGradient></defs>
+    <rect x="0" y="0" width="200" height="240" rx="26" fill="url(#${gid})"/>
+    <ellipse cx="100" cy="222" rx="${hip + 22}" ry="6" fill="rgba(20,20,20,.12)"/>
+    ${legs}${pants}${shoes}
+    <path d="${armL}" stroke="${skin}" stroke-width="${arm}" stroke-linecap="round"/><path d="${armR}" stroke="${skin}" stroke-width="${arm}" stroke-linecap="round"/>${bicep}
+    <circle cx="${L - 6}" cy="147" r="${arm / 2 + 1.5}" fill="${skin}"/><circle cx="${R + 6}" cy="147" r="${arm / 2 + 1.5}" fill="${skin}"/>
+    <rect x="93" y="70" width="14" height="16" rx="5" fill="${skin}"/>
+    <path d="${torso}" fill="${top.c}" stroke="${line}"/>${top.kind === "tank" ? `<path d="M88 82 Q100 96 112 82" fill="${skin}"/>` : top.kind === "hoodie" ? `<path d="M86 82 Q100 98 114 82" stroke="${line}" stroke-width="2" fill="none"/>` : `<path d="M91 82 Q100 90 109 82" fill="${skin}"/>`}
+    ${sleeve}${defs}${extra}
+    ${a.hair === "long" ? hair : ""}<circle cx="100" cy="52" r="24" fill="${skin}"/>${a.hair !== "long" ? hair : `<path d="M76 50 Q76 30 100 30 Q124 30 124 50 Q116 38 100 38 Q84 38 76 50Z" fill="${hc}"/>`}
+    ${face}<path d="M93 61 Q100 66 107 61" stroke="${ink}" stroke-width="2" fill="none" stroke-linecap="round"/>${hat}
+  </svg>`;
+}
+let avTab = ls.get("forma.avtab", "top");
+function avatarSection() {
+  const a = av(), P = avatarPoints(), lv = levelOf(P.xp), tier = tierOf(lv.L), today = dayPoints(dayStr());
+  if (P.changed) { S.profile.avatar = {...a, days: P.days}; DB.saveProfile({avatar: S.profile.avatar}).catch(() => {}); }
+  const nextTier = [3, 6, 10, 15][tier];
+  const tabs = [["top", "Tops"], ["bottom", "Bottoms"], ["shoes", "Shoes"], ["head", "Head"], ["face", "Face"], ["extra", "Extras"], ["bg", "Backdrop"], ["look", "Look"]];
+  const grid = avTab === "look" ? `<div class="stack" style="gap:14px">
+      <div><div class="eyebrow">Skin</div><div class="swatches">${SKINS.map((c, i) => `<button class="sw ${a.skin === i ? "on" : ""}" style="background:${c}" data-skin="${i}" aria-label="Skin tone ${i + 1}"></button>`).join("")}</div></div>
+      <div><div class="eyebrow">Hair</div><div class="chips">${Object.entries(HAIRS).map(([k, l]) => `<button class="chip ${a.hair === k ? "on" : ""}" data-hair="${k}">${l}</button>`).join("")}</div></div>
+      <div><div class="eyebrow">Hair colour</div><div class="swatches">${HAIRC.map((c, i) => `<button class="sw ${a.hairColor === i ? "on" : ""}" style="background:${c}" data-hc="${i}" aria-label="Hair colour ${i + 1}"></button>`).join("")}</div></div></div>`
+    : `<div class="shop">${(["head", "face", "extra"].includes(avTab) ? [[null, {name: "None", price: 0, c: "transparent"}]] : []).concat(Object.entries(ITEMS).filter(([, it]) => it.slot === avTab)).map(([id, it]) => {
+        const owned = !id || a.owned.includes(id), wearing = a.eq[avTab] === id;
+        return `<button class="item ${wearing ? "on" : ""}" data-item="${id || ""}"><span class="dot" style="background:${it.c}"></span><span class="iname">${esc(it.name)}</span>
+          <span class="iprice">${wearing ? "Wearing" : owned ? "Owned" : `${it.price} pts`}</span></button>`; }).join("")}</div>`;
+  return `<div class="card avcard">
+      <div class="avwrap">${avatarSVG(a, tier)}</div>
+      <div class="avinfo">
+        <div class="row between"><div><div class="avlvl">Level ${lv.L}</div><div class="sub">${TIERS[tier]} body${tier < 4 ? `, next body at level ${nextTier}` : ", max body"}</div></div>
+          <div class="coins"><b class="num">${P.coins.toLocaleString()}</b><span>points to spend</span></div></div>
+        <div class="bar" style="margin-top:12px;height:8px"><i style="width:${lv.pct}%;background:var(--ink)"></i></div>
+        <div class="sub num" style="margin-top:6px">${(P.xp - lv.lo).toLocaleString()} / ${(lv.hi - lv.lo).toLocaleString()} to level ${lv.L + 1}</div>
+      </div></div>
+    <h2>Today's points <span class="sub num">+${today.reduce((s, x) => s + x[1], 0)}</span></h2>
+    <div class="card"><div class="earn">${[["Logged food", 10], ["Logged 3 meals", 5], ["Hit your protein", 10], ["Calories on target", 10], ["Trained", 20], ["8,000+ steps", 10], ["Weighed in", 5], ["Body check-in", 25]].map(([l, p]) => {
+      const got = today.some(x => x[0] === l); return `<div class="erow ${got ? "got" : ""}"><span class="tick">${got ? ICON.check : ""}</span><span class="grow">${l}</span><span class="num">+${p}</span></div>`; }).join("")}</div></div>
+    <h2>Shop</h2>
+    <div class="chips scrollx">${tabs.map(([k, l]) => `<button class="chip ${avTab === k ? "on" : ""}" data-avtab="${k}">${l}</button>`).join("")}</div>
+    <div style="margin-top:12px">${grid}</div>`;
+}
+function bindAvatar() {
+  const save = async patch => { S.profile.avatar = {...av(), ...patch}; render(); try { await DB.saveProfile({avatar: S.profile.avatar}); } catch (e) { toast(e.message); } };
+  document.querySelectorAll("[data-avtab]").forEach(b => b.onclick = () => { avTab = b.dataset.avtab; ls.set("forma.avtab", avTab); render(); });
+  document.querySelectorAll("[data-skin]").forEach(b => b.onclick = () => save({skin: +b.dataset.skin}));
+  document.querySelectorAll("[data-hc]").forEach(b => b.onclick = () => save({hairColor: +b.dataset.hc}));
+  document.querySelectorAll("[data-hair]").forEach(b => b.onclick = () => save({hair: b.dataset.hair}));
+  document.querySelectorAll("[data-item]").forEach(b => b.onclick = () => {
+    const id = b.dataset.item || null, a = av(), slot = avTab;
+    if (!id || a.owned.includes(id)) return save({eq: {...a.eq, [slot]: a.eq[slot] === id && ["head", "face", "extra"].includes(slot) ? null : id}});
+    const it = ITEMS[id], P = avatarPoints(), lv = levelOf(P.xp);
+    sheet(`<h3>${esc(it.name)}</h3><div class="sub">${it.price} points. You have ${P.coins.toLocaleString()}.</div>
+      <div class="avwrap" style="max-width:220px;margin:14px auto 0">${avatarSVG(a, tierOf(lv.L), {[slot]: id})}</div>
+      <div class="row" style="margin-top:16px"><button class="btn ghost grow" id="bC">Not now</button>
+      <button class="btn grow" id="bY" ${P.coins < it.price ? "disabled" : ""}>${P.coins < it.price ? `Need ${it.price - P.coins} more` : `Buy for ${it.price}`}</button></div>`);
+    $("#bC").onclick = closeSheet;
+    $("#bY").onclick = async () => { closeSheet(); await save({owned: [...a.owned, id], spent: (a.spent || 0) + it.price, eq: {...a.eq, [slot]: id}}); toast(`${it.name} unlocked`); };
+  });
+}
+
+/* ---------------- type what you ate: AI works out calories ---------------- */
+function quickAddBox(id = "qa") {
+  return `<form class="qa" id="${id}"><input class="in" id="${id}In" maxlength="120" autocomplete="off" placeholder="Type what you had, e.g. energy drink" aria-label="Type what you ate or drank">
+    <button class="btn" aria-label="Add">Add</button></form>`;
+}
+function bindQuickAdd(id = "qa", day) {
+  const f = $("#" + id); if (!f) return;
+  f.onsubmit = async e => { e.preventDefault(); const inp = $("#" + id + "In"), text = inp.value.trim(), b = f.querySelector("button");
+    if (text.length < 2) return toast("Type a food or drink first");
+    b.disabled = true; b.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px"></span>';
+    try {
+      const r = await ai("text", {context: {text, hour: new Date().getHours()}});
+      const items = (r.items || []).filter(i => i && i.name).map(i => ({name: String(i.name).slice(0, 60), grams: r0(i.grams), kcal: r0(i.kcal), p: r1(i.p), c: r1(i.c), f: r1(i.f)}));
+      if (!items.length) throw new Error("Couldn't work that one out, try adding more detail");
+      const total = items.reduce((s, i) => s + i.kcal, 0);
+      await DB.add("meal", day || dayStr(), {name: String(r.name || text).slice(0, 60), meal: r.meal || guessMeal(), items, typed: text});
+      toast(`Added ${r.name || text}: ${total} kcal`); render();
+    } catch (err) { b.disabled = false; b.textContent = "Add"; toast(err.message); }
+  };
 }
 
 /* ---- sheets ---- */
