@@ -20,6 +20,15 @@ WORK = config.OUTPUT
 CAPACITY = config.DAILY_NEURONS // config.NEURONS_PER_IMAGE        # pictures per day (free)
 PICS = config.SCENES * config.SHOTS_PER_SCENE                        # pictures per short
 WORKER_ID = os.environ.get("WORKER_ID", "1")
+GH_REPO = os.environ.get("GITHUB_REPOSITORY", "foodculture90-gif/shorts-pipeline")
+
+
+def _engine():
+    """'3d' = real 3D cartoons rendered in Blender (default); 'ai' = the older AI-picture pipeline."""
+    try:
+        return (os.environ.get("ENGINE") or db.settings().get("engine") or "3d").lower()
+    except Exception:  # noqa: BLE001
+        return "3d"
 USE_KAGGLE = bool(os.environ.get("KAGGLE_KEY"))   # free GPU turns pictures into real animation
 ANIMATE_BATCH = 10                                 # shorts per Kaggle run (start-up costs ~5 min)
 
@@ -66,7 +75,9 @@ def _token(ch_id):
 
 def _remove_files(ep, keep_thumb=False):
     paths = []
-    if ep.get("assets_path"):
+    if (ep.get("story") or {}).get("engine") == "3d":
+        paths += [f"episodes/{ep['id']}/assets/story.json", f"episodes/{ep['id']}/final.mp4"]
+    elif ep.get("assets_path"):
         st = ep.get("story") or {"scenes": [{"shots": [{}, {}]}] * 4}
         paths += [f"{ep['assets_path']}/{f}" for f in set(asset_files(st, False) + asset_files(st, True))]
     if ep.get("preview_path"):
@@ -85,6 +96,41 @@ def _refund(n):
 
 
 # ---- commands ------------------------------------------------------------------------
+def _dispatch_render(ep_id):
+    import requests
+    tok = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not tok:
+        raise RuntimeError("GH_TOKEN missing - can't start the 3D render")
+    r = requests.post(f"https://api.github.com/repos/{GH_REPO}/actions/workflows/render3d.yml/dispatches",
+                      headers={"Authorization": f"Bearer {tok}", "Accept": "application/vnd.github+json"},
+                      json={"ref": "main", "inputs": {"episode_id": ep_id}}, timeout=30)
+    if r.status_code >= 300:
+        raise RuntimeError(f"could not start the 3D render: {r.status_code} {r.text[:200]}")
+
+
+def _generate_3d(payload, ch, ep_id):
+    """Plan a 3D gag (cast, set, prop) + title/description, then hand it to the Blender render machines."""
+    from . import plan3d
+    _set(ep_id, status="generating", error=None)
+    rows = db.select("episodes", f"select=title,story&channel_id=eq.{ch['id']}&title=not.is.null"
+                                 "&order=created_at.desc&limit=40")
+    recent = [(r.get("story") or {}).get("spec") for r in rows]
+    spec = plan3d.plan(recent, idea=payload.get("idea") or payload.get("feedback"))
+    m = plan3d.meta(spec, [r["title"] for r in rows])
+    st = dict(m, engine="3d", spec=spec, summary=plan3d.describe(spec))
+    work = WORK / ep_id
+    work.mkdir(parents=True, exist_ok=True)
+    (work / "story.json").write_text(json.dumps(st))
+    base = f"episodes/{ep_id}"
+    db.upload(work / "story.json", f"{base}/assets/story.json", "application/json")
+    shutil.rmtree(work, ignore_errors=True)
+    _set(ep_id, title=st["title"], takeaway=st.get("takeaway"), story=st, style=f"3D {spec['set']}",
+         assets_path=f"{base}/assets")
+    _dispatch_render(ep_id)
+    db.log(f"🎬 Rendering in 3D: {st['title']} ({ch['name']})")
+    return ep_id
+
+
 def cmd_generate(payload, cmd):
     ch = _channel(payload["channel_id"])
     ep_id = payload.get("episode_id")
@@ -93,6 +139,12 @@ def cmd_generate(payload, cmd):
                                        "feedback": payload.get("feedback"), "parent_id": payload.get("parent_id")})["id"]
         payload["episode_id"] = ep_id
         db.update("commands", f"id=eq.{cmd['id']}", {"payload": payload})
+    if _engine() == "3d":
+        try:
+            return _generate_3d(payload, ch, ep_id)
+        except Exception as e:
+            _set(ep_id, status="failed", error=str(e)[:400])
+            raise
     # with the Kaggle GPU on, pictures are drawn there (better 3D-cartoon model, no daily picture limit)
     reserved = (not USE_KAGGLE) and bool(db.rpc("reserve_images", n=PICS, cap=CAPACITY))
     if not reserved and not USE_KAGGLE:
@@ -265,9 +317,15 @@ def cmd_publish(payload, cmd):
     _set(ep["id"], status="publishing", error=None)
     work = WORK / f"pub-{ep['id']}"
     try:
-        st = _download(ep, work)
-        video = render.render(work, st, work / "final", config.FINAL_SIZE,
-                              music_volume=float(db.settings().get("music_volume") or 0.12))
+        if (ep.get("story") or {}).get("engine") == "3d":  # already rendered at full quality by Blender
+            st = ep["story"]
+            video = work / "final.mp4"
+            if not db.download(f"episodes/{ep['id']}/final.mp4", video):
+                raise RuntimeError("the finished 3D video is missing - press Retry")
+        else:
+            st = _download(ep, work)
+            video = render.render(work, st, work / "final", config.FINAL_SIZE,
+                                  music_volume=float(db.settings().get("music_volume") or 0.12))
         publish_at = payload.get("publish_at")
         vid, privacy = youtube.upload(token, video, st, ch, publish_at=publish_at)
     except Exception as e:
