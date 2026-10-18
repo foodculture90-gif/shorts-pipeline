@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
@@ -363,6 +363,8 @@ nav.tabs button.on{color:var(--accent)}
 .gymwrap{box-shadow:none;border-radius:18px}
 .bar{background:#26262a}
 header.top{background:rgba(11,11,12,.9)}
+html,body,button,a,input,select,textarea,svg,.mach{touch-action:manipulation}
+input,select,textarea,input.in,select.in,textarea.in{font-size:16px}
 /* Volt screens */
 .ptspill{display:inline-flex;align-items:center;gap:7px;background:var(--bg2);border-radius:99px;padding:8px 14px;font-weight:600;font-size:14.5px;border:none;color:var(--ink);white-space:nowrap}
 .ptspill i{width:8px;height:8px;border-radius:99px;background:var(--accent)}
