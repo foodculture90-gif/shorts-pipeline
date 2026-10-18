@@ -4,11 +4,23 @@ on:
   push:
     paths: ["blender/**", ".github/workflows/blender-test.yml"]
   workflow_dispatch:
+    inputs:
+      samples: {description: "Cycles samples", default: "20"}
+      res: {description: "resolution % of 1080x1920", default: "100"}
+
+env:
+  SAMPLES: ${{ github.event.inputs.samples || '20' }}
+  RES: ${{ github.event.inputs.res || '100' }}
+  PARTS: "16"
 
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
     steps:
       - uses: actions/checkout@v4
       - name: Get Blender
@@ -20,19 +32,43 @@ jobs:
               tar -xJf b.tar.xz && mv "blender-$v-linux-x64" bl && break
             fi
           done
-          ./bl/blender --version | head -1
-          nproc
-      - name: Render
-        run: ./bl/blender -b --python blender/proto.py -- out both
+      - name: Render my frames
+        run: ./bl/blender -b --python blender/proto.py -- out "part:${{ matrix.part }}/$PARTS" | grep -E "^frame|done|Error|Traceback|rror" || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: part-${{ matrix.part }}
+          path: out/
+          retention-days: 1
+
+  finish:
+    needs: render
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Video + sound effects + music
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fluidsynth fluid-soundfont-gm ffmpeg > /dev/null
+          pip install -q numpy
+          curl -fsSL "https://github.com/mrbumpy409/GeneralUser-GS/raw/main/GeneralUser-GS.sf2" -o GeneralUser-GS.sf2 || rm -f GeneralUser-GS.sf2
+          ls out/frames | wc -l
+          ffmpeg -y -loglevel error -framerate 24 -i out/frames/f_%04d.png -c:v libx264 -crf 18 -preset slow -pix_fmt yuv420p out/proto.mp4
+          python3 blender/audio.py out/events.json out/sound.wav
+          ffmpeg -y -loglevel error -i out/proto.mp4 -i out/sound.wav -c:v copy -c:a aac -b:a 192k -shortest out/proto_sound.mp4
+          for f in 12 50 86 104; do cp "out/frames/f_$(printf %04d $f).png" "out/still_$f.png" || true; done
       - name: Upload to app storage
-        if: always()
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          for f in out/*; do
+          for f in out/proto_sound.mp4 out/sound.wav out/still_*.png; do
             [ -f "$f" ] || continue
-            t=image/jpeg; case "$f" in *.mp4) t=video/mp4;; esac
+            t=image/png; case "$f" in *.mp4) t=video/mp4;; *.wav) t=audio/wav;; esac
             curl -sS -X POST "$SUPABASE_URL/storage/v1/object/media/tests/$(basename "$f")" \
               -H "Authorization: Bearer $KEY" -H "apikey: $KEY" -H "x-upsert: true" -H "Content-Type: $t" \
               --data-binary @"$f"; echo
