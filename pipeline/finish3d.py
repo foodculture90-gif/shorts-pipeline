@@ -30,7 +30,7 @@ def main(ep_id, d):
             raise RuntimeError(f"only {len(frames)} of {total} frames were rendered")
         secs = total / fps
         _run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", fps, "-i", d / "frames/f_%04d.png",
-              "-vf", "scale=1080:1920:flags=lanczos", "-c:v", "libx264", "-crf", 18, "-preset", "slow", "-pix_fmt", "yuv420p", d / "video.mp4"])
+              "-vf", "scale=1080:1920:flags=lanczos,setsar=1", "-c:v", "libx264", "-crf", 18, "-preset", "slow", "-pix_fmt", "yuv420p", d / "video.mp4"])
         seed = (st.get("spec") or {}).get("seed", 0)
         _run([sys.executable, "blender/audio.py", d / "events.json", d / "sound.wav", secs, seed])
         _run(["ffmpeg", "-y", "-loglevel", "error", "-i", d / "video.mp4", "-i", d / "sound.wav", "-c:v", "copy",
