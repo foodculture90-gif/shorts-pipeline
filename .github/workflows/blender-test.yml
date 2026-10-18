@@ -1,0 +1,39 @@
+name: Blender test render
+
+on:
+  push:
+    paths: ["blender/**", ".github/workflows/blender-test.yml"]
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get Blender
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6 > /dev/null
+          for v in 4.2.3 4.2.2 4.2.1 4.2.0; do
+            if curl -fsSL "https://download.blender.org/release/Blender4.2/blender-$v-linux-x64.tar.xz" -o b.tar.xz; then
+              tar -xJf b.tar.xz && mv "blender-$v-linux-x64" bl && break
+            fi
+          done
+          ./bl/blender --version | head -1
+          nproc
+      - name: Render
+        run: ./bl/blender -b --python blender/proto.py -- out both
+      - name: Upload to app storage
+        if: always()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          for f in out/*; do
+            [ -f "$f" ] || continue
+            t=image/jpeg; case "$f" in *.mp4) t=video/mp4;; esac
+            curl -sS -X POST "$SUPABASE_URL/storage/v1/object/media/tests/$(basename "$f")" \
+              -H "Authorization: Bearer $KEY" -H "apikey: $KEY" -H "x-upsert: true" -H "Content-Type: $t" \
+              --data-binary @"$f"; echo
+          done
