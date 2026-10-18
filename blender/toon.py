@@ -462,7 +462,7 @@ def make_set(kind, rnd=None):
             make_prop("bush", (bx, 3.3, 0), name=f"pbush{i}")
         _clouds()
     elif kind == "beach":
-        box("ground", (40, 9, 0.2), (0, 2.5, -0.1), mat("#F6D59A", 0.9), bevel=0)
+        box("ground", (40, 22, 0.2), (0, -4.0, -0.1), mat("#F2CF92", 0.9), bevel=0)
         box("sea", (60, 40, 0.1), (0, 26, -0.07), mat("#2FA8E8", 0.08, coat=1.0), bevel=0)
         box("foam", (60, 0.25, 0.02), (0, 7.05, 0.0), mat("#FFFFFF", 0.4), bevel=0)
         um = empty("umbrella", (-2.3, 2.6, 0))
@@ -492,7 +492,7 @@ def make_set(kind, rnd=None):
         _clouds(6)
     elif kind == "kitchen":
         sky = "indoor"
-        box("floor", (14, 10, 0.2), (0, 3, -0.1), checker("#FFFFFF", "#9FD9F5", 9.0, 0.3, 0.2), bevel=0)
+        box("floor", (40, 40, 0.2), (0, 6, -0.1), checker("#FFFFFF", "#9FD9F5", 26.0, 0.45), bevel=0)
         wall_m = mat("#FFE7B8", 0.8)
         box("wall", (14, 0.2, 5), (0, 4.0, 2.5), wall_m, bevel=0)
         box("skirting", (14, 0.05, 0.15), (0, 3.88, 0.075), WHITE, bevel=0.01)
@@ -539,7 +539,7 @@ def make_world(sky="day"):
     ramp.color_ramp.elements[0].color = (*lin(lo), 1)
     ramp.color_ramp.elements[1].color = (*lin(hi), 1)
     nt.links.new(ramp.outputs["Color"], bg.inputs["Color"])
-    bg.inputs["Strength"].default_value = 0.8 if sky == "indoor" else 1.0
+    bg.inputs["Strength"].default_value = 0.35 if sky == "indoor" else 1.0
 
     def light(name, kind, energy, loc=None, rot=None, size=None, color=(1, 1, 1), angle=None, target=None):
         d = bpy.data.lights.new(name, kind)
@@ -559,14 +559,14 @@ def make_world(sky="day"):
             tr.target, tr.track_axis, tr.up_axis = target, "TRACK_NEGATIVE_Z", "UP_Y"
         return o
 
-    sun_e = 2.2 if sky == "indoor" else 3.2
+    sun_e = 1.3 if sky == "indoor" else 3.2
     light("sun", "SUN", sun_e, rot=(math.radians(50), math.radians(10), math.radians(-35)), color=(1, 0.93, 0.82),
           angle=math.radians(4))
-    light("fill", "AREA", 300 if sky != "indoor" else 450, (-2, -5, 3), (math.radians(60), 0, math.radians(-25)), 6,
+    light("fill", "AREA", 300 if sky != "indoor" else 220, (-2, -5, 3), (math.radians(60), 0, math.radians(-25)), 6,
           (0.9, 0.95, 1))
     light("rim", "AREA", 500, (2.5, 3.0, 2.6), size=2.5, color=(0.85, 0.92, 1), target=empty("rim_t", (0, 0.2, 0.6)))
     if sky == "indoor":
-        light("ceiling", "AREA", 250, (0.3, 1.2, 4.2), (0, 0, 0), 3, (1, 0.95, 0.85))
+        light("ceiling", "AREA", 120, (0.3, 1.2, 4.2), (0, 0, 0), 3, (1, 0.95, 0.85))
 
 
 def make_camera():
@@ -584,13 +584,14 @@ def make_camera():
     return cam, tgt
 
 
-def fit(xs, lens=40, zc=0.62, y=0.2, margin=0.75, cam_z=None, min_d=2.2):
-    """Camera position + target that frame the x-range xs (portrait 9:16)."""
+def fit(xs, lens=40, zc=0.85, y=0.2, margin=0.4, cam_z=None, min_d=2.2, max_d=3.3):
+    """Camera position + target that frame the x-range xs (portrait 9:16): low camera looking slightly up,
+    characters big in the lower part of the frame (less empty ground)."""
     x0, x1 = min(xs), max(xs)
     width = (x1 - x0) + 2 * margin
-    d = max(min_d, width * lens / (36 * 9 / 16))
+    d = min(max_d, max(min_d, width * lens / (36 * 9 / 16)))
     cx = (x0 + x1) / 2
-    return (cx, y - d, cam_z if cam_z is not None else zc + 0.15), (cx, y, zc)
+    return (cx, y - d, cam_z if cam_z is not None else max(0.45, zc - 0.3)), (cx, y, zc)
 
 
 def shot(cam, tgt, f0, f1, pos0, tgt0, lens, pos1=None, tgt1=None):

@@ -8,7 +8,7 @@ import math
 import toon as T
 
 
-def _two(xs, lens, zc=0.62, margin=0.75, cam_z=None):
+def _two(xs, lens, zc=0.85, margin=0.4, cam_z=None):
     return T.fit(xs, lens=lens, zc=zc, margin=margin, cam_z=cam_z)
 
 
@@ -173,7 +173,7 @@ def ball_bonk(spec, cam, tgt):
 # --------------------------------------------------------------------------- 3. balloon float
 def balloon_float(spec, cam, tgt):
     hero = T.make_character(spec["hero"], -0.2, 0.15)
-    fr = T.make_character(spec["friend"], 0.75, 0.3)
+    fr = T.make_character(spec["friend"], 1.05, 0.3)
     T.turn(fr, 1, -18, 1)
     bal = T.make_prop("balloon", (0.62, -0.02, 1.65), hero["root"], name="balloon")
     T.show(bal, 1, True)
@@ -185,9 +185,9 @@ def balloon_float(spec, cam, tgt):
 
     p, t = _two([-0.5, 0.6], 40, 0.9)
     T.shot(cam, tgt, 1, 36, p, t, 40, (p[0], p[1] + 0.3, p[2]), t)
-    p, t = _two([-0.6, 0.9], 28, 0.8)
+    p, t = _two([-0.6, 1.2], 28, 0.9)
     T.shot(cam, tgt, 37, 96, p, t, 28, (p[0], p[1], p[2] + 1.1), (t[0], t[1], t[2] + 1.2))
-    p, t = _two([-0.6, 0.9], 28, 1.2)
+    p, t = _two([-0.6, 1.2], 28, 1.2)
     T.shot(cam, tgt, 97, 168, (p[0], p[1], 1.9), (t[0], t[1], 1.3), 28, (p[0], p[1] + 0.3, 1.0), (t[0], t[1], 0.75))
 
     T.idle(fr, 1, 168)
@@ -243,7 +243,7 @@ def balloon_float(spec, cam, tgt):
 def gift_surprise(spec, cam, tgt):
     hero = T.make_character(spec["hero"], -1.0, 0.15)
     gift = T.make_prop("gift", (0.45, 0.3, 0), name="gift")
-    gift.scale = (1.4, 1.4, 1.4)
+    gift.scale = (1.25, 1.25, 1.25)
     lid = T.bpy.data.objects[gift["lid"]]
     fr = T.make_character(spec["friend"], 0.45, 0.3, -1.4)
     fr["root"].scale = tuple(v * 0.7 for v in fr["root"].scale)
@@ -276,8 +276,8 @@ def gift_surprise(spec, cam, tgt):
     T.sfx(102, "thud")
     r = fr["root"]
     T.key(r, "location", 82, (0.45, 0.3, -1.4))
-    T.key(r, "location", 89, (0.45, 0.3, 0.95))
-    T.key(r, "location", 97, (0.45, 0.3, 0.42))
+    T.key(r, "location", 89, (0.45, 0.3, 1.05))
+    T.key(r, "location", 97, (0.45, 0.3, 0.58))
     T.sfx(84, "boing")
     T.stretch(fr, 88, 0.25, 3, 6)
     T.squash(fr, 98, 0.2, 1, 6)
@@ -381,14 +381,14 @@ def hide_seek(spec, cam, tgt):
 # --------------------------------------------------------------------------- 6. banana peel slip
 def slip_peel(spec, cam, tgt):
     hero = T.make_character(spec["hero"], -1.3, 0.15)
-    fr = T.make_character(spec["friend"], 1.05, 0.35)
+    fr = T.make_character(spec["friend"], 1.4, 0.35)
     T.turn(fr, 1, -20, 1)
     peel = T.make_prop("peel", (-0.05, 0.12, 0), name="peel")
 
     T.shot(cam, tgt, 1, 32, (-1.15, -2.9, 0.8), (-1.15, 0.15, 0.6), 40, (-0.75, -2.9, 0.8), (-0.75, 0.15, 0.6))
-    p, t = _two([-0.8, 0.7], 30)
+    p, t = _two([-0.8, 1.2], 30)
     T.shot(cam, tgt, 33, 80, p, t, 30)
-    p, t = _two([0.1, 1.1], 38)
+    p, t = _two([0.2, 1.45], 34)
     T.shot(cam, tgt, 81, 168, p, t, 38, (p[0], p[1] + 0.3, p[2]), t)
 
     T.idle(fr, 1, 168)
