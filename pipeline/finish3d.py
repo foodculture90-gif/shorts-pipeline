@@ -34,6 +34,7 @@ def main(ep_id, d):
         seed = (st.get("spec") or {}).get("seed", 0)
         _run([sys.executable, "blender/audio.py", d / "events.json", d / "sound.wav", secs, seed])
         _run(["ffmpeg", "-y", "-loglevel", "error", "-i", d / "video.mp4", "-i", d / "sound.wav", "-c:v", "copy",
+              "-af", "loudnorm=I=-14:TP=-1.5:LRA=11", "-ar", "48000",
               "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", d / "final.mp4"])
         _run(["ffmpeg", "-y", "-loglevel", "error", "-i", d / "final.mp4", "-vf", "scale=720:1280", "-c:v", "libx264",
               "-crf", 24, "-preset", "medium", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart",
