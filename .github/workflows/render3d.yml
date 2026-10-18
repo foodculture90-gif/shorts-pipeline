@@ -1,0 +1,72 @@
+name: Render 3D short
+
+on:
+  workflow_dispatch:
+    inputs:
+      episode_id: {description: "episode id", required: true}
+
+concurrency:
+  group: render3d-${{ github.event.inputs.episode_id }}
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: "1"
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+  EP: ${{ github.event.inputs.episode_id }}
+  PARTS: "12"
+  SAMPLES: "20"
+  RES: "100"
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get Blender + the short's plan
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6 > /dev/null
+          for v in 4.2.3 4.2.2 4.2.1 4.2.0; do
+            if curl -fsSL "https://download.blender.org/release/Blender4.2/blender-$v-linux-x64.tar.xz" -o b.tar.xz; then
+              tar -xJf b.tar.xz && mv "blender-$v-linux-x64" bl && break
+            fi
+          done
+          curl -fsS "$SUPABASE_URL/rest/v1/episodes?id=eq.$EP&select=story" \
+            -H "apikey: $SUPABASE_SERVICE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+            | python3 -c "import sys,json; json.dump(json.load(sys.stdin)[0]['story']['spec'], open('spec.json','w'))"
+          cat spec.json
+      - name: Render my frames
+        run: ./bl/blender -b --python blender/scene.py -- spec.json out "part:${{ matrix.part }}/$PARTS" 2>&1 | grep -E "^frame|^done|Error|Traceback|rror" || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: part-${{ matrix.part }}
+          path: out/
+          retention-days: 1
+
+  finish:
+    needs: render
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Video + sound + upload for approval
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fluidsynth fluid-soundfont-gm ffmpeg > /dev/null
+          pip install -q requests numpy
+          curl -fsSL "https://github.com/mrbumpy409/GeneralUser-GS/raw/main/GeneralUser-GS.sf2" -o GeneralUser-GS.sf2 || rm -f GeneralUser-GS.sf2
+          python -m pipeline.finish3d "$EP" out

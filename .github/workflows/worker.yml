@@ -51,7 +51,11 @@ jobs:
       fail-fast: false
       matrix:
         worker: [1, 2, 3, 4]     # 4 shorts are made at the same time
+    permissions:
+      contents: read
+      actions: write          # lets the worker start the 3D render machines
     env:
+      GH_TOKEN: ${{ github.token }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
