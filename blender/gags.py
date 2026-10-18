@@ -252,8 +252,8 @@ def gift_surprise(spec, cam, tgt):
     T.shot(cam, tgt, 1, 30, p, t, 40, (p[0], p[1] + 0.3, p[2]), t)
     p, t = _two([-1.0, 0.9], 30)
     T.shot(cam, tgt, 31, 70, p, t, 30)
-    p, t = _two([-0.75, 0.9], 34)
-    T.shot(cam, tgt, 71, 168, p, t, 34, (p[0], p[1] + 0.3, p[2]), t)
+    p, t = _two([-0.85, 0.9], 28)
+    T.shot(cam, tgt, 71, 168, p, t, 28, (p[0], p[1] + 0.3, p[2]), t)
 
     T.wobble(gift, 6, 28, 5, 3)
     T.idle(hero, 1, 30)

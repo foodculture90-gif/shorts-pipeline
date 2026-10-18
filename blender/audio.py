@@ -360,7 +360,7 @@ def music(seconds, seed=0):
 
 
 # ------------------------------------------------------------------ mix
-def mix(events, fps, seconds, seed=0, music_gain=0.32):
+def mix(events, fps, seconds, seed=0, music_gain=0.75):
     n = int(SR * seconds)
     fx = np.zeros(n + SR)
     duck = np.ones(n + SR)
@@ -376,7 +376,7 @@ def mix(events, fps, seconds, seed=0, music_gain=0.32):
         fx[i:i + len(s)] += s
         # duck the music a little under each effect
         dn = min(len(s) + int(SR * 0.1), len(duck) - i)
-        duck[i:i + dn] = np.minimum(duck[i:i + dn], 0.65)
+        duck[i:i + dn] = np.minimum(duck[i:i + dn], 0.7)
     fx = reverb(fx[:n], 0.12)
     duck = lowpass(duck[:n], 12)
     m = music(seconds, seed) * music_gain * duck
