@@ -378,6 +378,7 @@ header.top{background:rgba(11,11,12,.9)}
 .vsession .vt{font-family:var(--disp);font-weight:800;font-size:28px;text-transform:uppercase;line-height:1.1}
 .vplay{width:54px;height:54px;border-radius:99px;background:#0b0b0c;color:var(--accent);display:grid;place-items:center;flex:none}
 .vrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.vrow3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.vrow3 .vmini{padding:12px 14px;min-width:0}.vrow3 .vmini b{font-size:22px}
 .vmini{background:var(--card);border-radius:20px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
 .vmini b{font-family:var(--disp);font-weight:800;font-size:24px}
 .vmacro{display:grid;gap:6px}.vmacro .lbl{display:flex;justify-content:space-between;font-size:13px}
@@ -676,14 +677,12 @@ function renderToday(v) {
   const macro = (l, val, goal, col) => `<div class="macro"><div class="lbl"><span>${l}</span><span class="num">${r0(val)} / ${goal} g</span></div><div class="bar"><i style="width:${Math.min(100, val / goal * 100)}%;background:${col}"></i></div></div>`;
   const tile = (l, n, unit = "") => `<div class="tile"><div class="l">${l}</div><div class="n num">${n}<span class="sub"> ${unit}</span></div></div>`;
   v.innerHTML = `${demoBanner()}
-    <div class="vhead"><div><div class="eyebrow">${new Date().toLocaleDateString(undefined, {weekday: "long"})}${stk ? ` · Day ${stk}` : ""}</div><h1 style="margin:2px 0 0">Go, ${esc(S.profile.name)}</h1></div>
-      <button class="ptspill" id="toHouse"><i></i>${wallet().toLocaleString()} pts</button></div>
+    <div class="vrow3" style="margin-top:8px"><div class="vmini"><span class="sub">Streak</span><b class="num">${stk}d</b></div><div class="vmini"><span class="sub">Level</span><b class="num">${levelOf(avatarPoints().xp).L}</b></div>
+      <button class="vmini" id="toHouse" style="border:none;color:inherit"><span class="sub">Pts</span><b class="num" style="color:var(--accent)">${shortNum(wallet())}</b></button></div>
     <div class="card vhero" style="margin-top:14px">${stepRing(steps, tg.steps)}<div><div class="eyebrow">Steps</div><div class="vbig num">${steps.toLocaleString()}</div>
       <div class="sub num">of ${tg.steps.toLocaleString()} · ${r0(Math.min(999, steps / (tg.steps || 1) * 100))}%</div></div></div>
     <div class="vtiles">${vtile("Kcal", r0(tot.kcal).toLocaleString(), tot.kcal / tg.kcal)}${vtile("Protein", r0(tot.p) + "g", tot.p / tg.protein)}${vtile("Burn", h && h.active_kcal != null ? r0(h.active_kcal) : "–", (h?.active_kcal || 0) / 600)}</div>
-    <button class="vsession" id="toTrain"><div><div class="eyebrow">Today's training</div><div class="vt">${trainedToday ? "Trained today" : "Train today"}</div>
-      <div class="sub">${T.week} of 7 days this week · new PR = +50 pts</div></div><span class="vplay"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg></span></button>
-    <div class="vrow"><div class="vmini"><span class="sub">Streak</span><b class="num">${stk} day${stk === 1 ? "" : "s"}</b></div><div class="vmini"><span class="sub">Level</span><b class="num">${levelOf(avatarPoints().xp).L}</b></div></div>
+
     ${stk && !of("meal", t).length ? `<div class="demo" style="margin-top:12px;background:var(--accentSoft);color:var(--accent)">${ICON.flame}<span class="grow">Your ${stk}-day streak is waiting. Log a meal today to keep it going.</span></div>` : ""}
     <div style="margin-top:12px">${quickAddBox("qa")}</div>
     <div class="quick" style="margin-top:12px">
@@ -695,7 +694,7 @@ function renderToday(v) {
     <h2>Coach</h2>
     <div class="card coach"><div class="stack" style="gap:10px"><div id="tipText" style="font-weight:600">Get one clear thing to do today, based on what you've eaten and how much you've moved.</div>
       <div><button class="btn small" id="tipGo">Get today's tip</button></div></div></div>`;
-  $("#toHouse").onclick = () => go("gym"); $("#toTrain").onclick = () => go("activity");
+  bindPts("#toHouse");
   bindQuickAdd("qa"); $("#qMeal").onclick = snapMeal; $("#qScan").onclick = scanBarcode; $("#qWeight").onclick = weightSheet; $("#qBody").onclick = physiqueCheck;
   if ($("#toSync")) $("#toSync").onclick = () => go("activity");
   $("#tipGo").onclick = async () => { const b = $("#tipGo"); b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
@@ -1266,8 +1265,16 @@ function avatarPoints() {
   for (const d of seen) { const p = dayTotal(d); if ((days[d] || 0) !== p) { days[d] = p; changed = true; } }
   const weeks = [...new Set([...seen].map(weekStart))].filter(w => addDays(w, 6) < t || w === weekStart(t));
   const xp = Object.values(days).reduce((s, x) => s + x, 0) + weeks.reduce((s, w) => s + weekBonus(w), 0) + prBonus();
-  return {xp, coins: Math.max(0, xp - (a.spent || 0) - (gym().hspent || 0)), days, changed};
+  return {xp, coins: Math.max(0, xp + testPts() - (a.spent || 0) - (gym().hspent || 0)), days, changed};
 }
+// test mode: tap the points 5 times quickly to add or remove 1,000,000 test points (this device only)
+const testPts = () => ls.get("forma.testpts", 0) ? 1000000 : 0;
+const shortNum = n => n >= 1e6 ? parseFloat((n / 1e6).toFixed(2)) + "M" : n >= 1e4 ? Math.round(n / 1e3) + "k" : n.toLocaleString();
+let ptsTaps = [];
+function bindPts(sel) { const el = $(sel); if (!el) return;
+  el.onclick = () => { const now = Date.now(); ptsTaps = [...ptsTaps.filter(t => now - t < 2500), now];
+    if (ptsTaps.length >= 5) { ptsTaps = []; const on = !ls.get("forma.testpts", 0); ls.set("forma.testpts", on ? 1 : 0); toast(on ? "Test mode: +1,000,000 points" : "Test points removed"); render(); return; }
+    clearTimeout(bindPts.t); bindPts.t = setTimeout(() => { if (ptsTaps.length && ptsTaps.length < 5 && S.tab !== "gym") go("gym"); ptsTaps = []; }, 700); }; }
 function levelOf(xp) { let L = 1; while (xp >= 100 * L * (L + 1)) L++; const lo = 100 * L * (L - 1), hi = 100 * L * (L + 1); return {L, lo, hi, pct: Math.min(100, (xp - lo) / (hi - lo) * 100)}; }
 const tierOf = L => L < 3 ? 0 : L < 6 ? 1 : L < 10 ? 2 : L < 15 ? 3 : 4;
 
@@ -1700,7 +1707,7 @@ function renderGym(v) {
     return `<button class="item ${act ? "on" : ""}" data-hitem="${id}"><span class="dot" style="background:${c || "#26262a"}">${c ? "" : ICON.gym}</span><span class="iname">${esc(name)}</span>
       <span class="iprice">${act ? "In use" : own ? "Owned · tap to use" : `${price.toLocaleString()} pts`}</span></button>`; }).join("");
   const prCount = Object.keys(MACH).filter(id => (g.prs[id] || []).length).length;
-  v.innerHTML = `${demoBanner()}<div class="row between" style="margin-top:6px"><h1 style="margin:0">House</h1><span class="ptspill"><i></i>${coins.toLocaleString()} pts</span></div>
+  v.innerHTML = `${demoBanner()}<div class="row between" style="margin-top:6px"><h1 style="margin:0">House</h1><button class="ptspill" id="hPts"><i></i>${coins.toLocaleString()} pts</button></div>
     <div class="card gymcard" style="margin-top:12px"><div class="gymwrap">${houseSVG(g)}</div>
       <div class="sub" style="margin-top:10px">${bought ? `${bought} thing${bought > 1 ? "s" : ""} bought so far.` : "Your house starts empty."} Earn points by logging meals, steps and training, then spend them here.
       ${prCount ? `Tap a machine in your gym room to log a new PR.` : `Machines appear in your gym room when you log a PR in Train.`}</div></div>
@@ -1714,6 +1721,7 @@ function bindGym() {
     if (val) return {hsel: {...g.hsel, [k]: val}};
     if (HITEM[id].cat === "cars") return {hsel: {...g.hsel, car: g.hsel.car === id ? null : id}};
     return {hon: g.hon.includes(id) ? g.hon.filter(x => x !== id) : [...g.hon, id]}; };
+  bindPts("#hPts");
   document.querySelectorAll("[data-htab]").forEach(b => b.onclick = () => { houseTab = b.dataset.htab; ls.set("forma.housetab", houseTab); render(); });
   document.querySelectorAll("[data-mach]").forEach(el => el.onclick = () => prSheet(el.dataset.mach));
   document.querySelectorAll("[data-hitem]").forEach(b => b.onclick = () => { const id = b.dataset.hitem, g = gym(), it = HITEM[id];
