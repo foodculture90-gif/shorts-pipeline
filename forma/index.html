@@ -111,7 +111,7 @@ code,.code{font-family:var(--mono);font-size:12.5px;background:var(--bg2);paddin
 /* bottom nav */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--card);border-top:1px solid var(--line);
   padding:6px max(10px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
-nav.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
 nav.tabs button{border:none;background:none;display:grid;justify-items:center;gap:2px;padding:6px 0;font-size:11px;font-weight:700;color:var(--ink3)}
 nav.tabs button.on{color:var(--accent)}
 /* sheet */
@@ -291,6 +291,14 @@ code,.code{background:rgba(17,17,17,.06)}
 .erow2 .el{font-weight:600;font-size:14px}
 .erow2 .ep{font-weight:700}
 .erow2.done .el{color:#2f7a3a}
+.gymcard{padding:12px}
+.gymwrap{border-radius:20px;overflow:hidden;box-shadow:0 10px 26px rgba(60,40,20,.14)}
+.gymsvg{width:100%;height:auto;display:block}
+.gymsvg .mach{cursor:pointer}
+.gymsvg .mach:active{opacity:.7}
+.prrow{cursor:pointer}
+.mico{width:54px;height:50px;display:grid;place-items:center}
+.mico svg{width:100%;height:100%}
 .pchart{display:flex;align-items:flex-end;gap:4px;height:96px}
 .pc{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
 .pc i{display:block;width:100%;border-radius:6px 6px 3px 3px;background:rgba(20,20,20,.18)}
@@ -343,6 +351,7 @@ function toast(msg) { const t = document.createElement("div"); t.className = "to
 const ls = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
              set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
 const ICON = {
+  gym: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M8 15h8M9 13v4M15 13v4"/></svg>',
   today: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
   food: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 3v8a3 3 0 0 0 6 0V3M8 3v18M17 3c-2 2-2 6 0 8v10"/></svg>',
   body: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="5" r="2.5"/><path d="M5 9h14M12 9v6M8 21l4-6 4 6"/></svg>',
@@ -522,7 +531,7 @@ function ring(eaten, target) {
 }
 
 /* ---------------- screens ---------------- */
-const TABS = [["today", "Today"], ["food", "Food"], ["body", "Avatar"], ["activity", "Train"], ["profile", "Me"]];
+const TABS = [["today", "Today"], ["food", "Food"], ["body", "Body"], ["gym", "Gym"], ["activity", "Train"], ["profile", "Me"]];
 const TAB_ICON = {activity: "train"};
 function nav() {
   const n = $("#tabs"); n.hidden = false;
@@ -541,7 +550,7 @@ function render() {
   const stk = streak(), sb2 = $("#streakBtn");
   sb2.hidden = !stk; sb2.innerHTML = `${ICON.flame}${stk}`; sb2.title = `${stk}-day logging streak`;
   setTimeout(checkBadges, 0);
-  ({today: renderToday, food: renderFood, body: renderBody, activity: renderActivity, profile: renderProfile}[S.tab] || renderToday)(v);
+  ({today: renderToday, food: renderFood, body: renderBody, gym: renderGym, activity: renderActivity, profile: renderProfile}[S.tab] || renderToday)(v);
 }
 
 function renderAuth(v) {
@@ -693,7 +702,7 @@ function renderBody(v) {
   const t = dayStr(), since = ws.filter(w => w.day >= addDays(t, -30)), ch = since.length > 1 ? r1(since.at(-1).data.kg - since[0].data.kg) : null;
   const pts = ws.filter(w => w.day >= addDays(t, -90)).map(w => ({x: new Date(w.day).getTime() / 864e5, y: +w.data.kg, label: niceDay(w.day)}));
   const scans = of("scan").sort((a, b) => a.day < b.day ? 1 : -1);
-  v.innerHTML = `${demoBanner()}<h1>Avatar</h1>${avatarSection()}<h2>Progress</h2>
+  v.innerHTML = `${demoBanner()}<h1>Body</h1>${avatarSection()}<h2>Progress</h2>
     <div class="card" style="margin-top:10px"><div class="row between"><div><div class="eyebrow">Weight</div><div class="bf num">${r1(now)} <span class="sub">kg</span></div></div>
       ${ch !== null ? `<span class="pill ${(S.profile.goal === "gain" ? ch >= 0 : ch <= 0) ? "green" : "amber"} num">${ch > 0 ? "+" : ""}${ch} kg in 30 days</span>` : ""}</div>
       <div style="margin-top:8px">${lineChart(pts)}</div><button class="btn ghost small" id="logW" style="margin-top:8px">${ICON.scale}Log today's weight</button></div>
@@ -1167,8 +1176,8 @@ function avatarPoints() {
   let changed = (S.profile.avatar || {}).v !== 3;
   for (const d of seen) { const p = dayTotal(d); if ((days[d] || 0) !== p) { days[d] = p; changed = true; } }
   const weeks = [...new Set([...seen].map(weekStart))].filter(w => addDays(w, 6) < t || w === weekStart(t));
-  const xp = Object.values(days).reduce((s, x) => s + x, 0) + weeks.reduce((s, w) => s + weekBonus(w), 0);
-  return {xp, coins: Math.max(0, xp - (a.spent || 0)), days, changed};
+  const xp = Object.values(days).reduce((s, x) => s + x, 0) + weeks.reduce((s, w) => s + weekBonus(w), 0) + prBonus();
+  return {xp, coins: Math.max(0, xp - (a.spent || 0) - (gym().spent || 0)), days, changed};
 }
 function levelOf(xp) { let L = 1; while (xp >= 100 * L * (L + 1)) L++; const lo = 100 * L * (L - 1), hi = 100 * L * (L + 1); return {L, lo, hi, pct: Math.min(100, (xp - lo) / (hi - lo) * 100)}; }
 const tierOf = L => L < 3 ? 0 : L < 6 ? 1 : L < 10 ? 2 : L < 15 ? 3 : 4;
@@ -1260,101 +1269,55 @@ function fireSVG(lvl) {
     <g fill="url(#fli)">${tongue(90, 120, 22, .2)}${tongue(150, 130, 22, .5)}${tongue(120, 165, 30, 0)}</g></g>${sparks}`;
 }
 const fireLevel = (tier, stk) => Math.max(tier, stk >= 10 ? 4 : stk >= 5 ? 3 : stk >= 3 ? 2 : 0);
-// line-art body: clean ink outline, light fills, pose improves with each body tier
+// line-only body: ink outline, no fill colour, no face, no hair; pose and fire improve with each body tier
+const PAPER = "#f7f2e9";
 function avatarSVG(a, tier, eqOver, stk = 0) {
-  const eq = {...a.eq, ...(eqOver || {})}, fem = S.profile?.sex === "female", t = tier, cx = 120, K = "#1d1814";
-  const skin = SKINS[a.skin] || SKINS[1], sk = tint(skin, .32), hc = HAIRC[a.hairColor] || HAIRC[0];
-  const top = ITEMS[eq.top] || ITEMS.tee_white, bot = ITEMS[eq.bottom] || ITEMS.shorts_black, sh = ITEMS[eq.shoes] || ITEMS.shoes_white;
-  const bg = ITEMS[eq.bg] || ITEMS.bg_plain, gid = "o" + Math.random().toString(36).slice(2, 7);
+  const fem = S.profile?.sex === "female", t = tier, cx = 120, K = "#1d1814", gid = "o" + Math.random().toString(36).slice(2, 7);
   const SW = fem ? 23 + t * 2.4 : 26 + t * 5, WW = fem ? 15 : 19.5 - t * .8, HW = fem ? 22 + t * .4 : 18 + t * .5;
   const A = fem ? 5 + t * .9 : 5.6 + t * 1.9, Fr = fem ? 4.2 + t * .6 : 4.6 + t * 1.3, LG = fem ? 10.5 + t : 10.5 + t * 2, CF = fem ? 5.6 + t * .6 : 5.8 + t * 1.1, NW = fem ? 5.2 : 6 + t * 1.6;
-  const bare = top.kind === "none", tank = top.kind === "tank", hood = top.kind === "hoodie", tee = top.kind === "tee";
-  const cloth = bare ? (fem ? "#2a2a2a" : null) : top.c, lt = c => c === "transparent" ? sk : tint(c, c === "#222" || c === "#2a2a2a" || c === "#141414" ? .12 : .1);
-  const st = `stroke="${K}" stroke-width="1.3" stroke-linejoin="round"`;
-  // poses: 0 relaxed, 1 hands on hips, 2 one-arm flex, 3 double biceps, 4 victory
+  const F = PAPER, st = `stroke="${K}" stroke-width="1.3" stroke-linejoin="round"`, OL = `filter="url(#${gid}o)"`;
   const HIP = {e: [SW + 15, 116], w: [HW + 3, 146]};
   const P = [{e: [SW + 4, 124], w: [SW + 6, 160]}, HIP, {L: HIP, R: {e: [SW + 20, 98], w: [SW + 12, 64]}},
     {e: [SW + 22, 90], w: [SW + 13, 56]}, {e: [SW + 15, 58], w: [SW + 28, 28]}][t];
-  const arm = s => { const p = P.L ? (s < 0 ? P.L : P.R) : P;
-    return {s: [cx + s * (SW - 3), 84], e: [cx + s * p.e[0], p.e[1]], w: [cx + s * p.w[0], p.w[1]]}; };
+  const arm = s => { const p = P.L ? (s < 0 ? P.L : P.R) : P; return {s: [cx + s * (SW - 3), 84], e: [cx + s * p.e[0], p.e[1]], w: [cx + s * p.w[0], p.w[1]]}; };
   const stance = [9.5, 10, 11, 13, 15.5][t];
   const leg = s => ({h: [cx + s * (HW * .5 + 1.5), 154], k: [cx + s * (stance + 1), 207], c: [cx + s * (stance + 1.6), 222], a: [cx + s * (stance + 2), 251]});
-  // ---- body pieces (filled, thin outline) ----
-  const legs = [-1, 1].map(s => { const j = leg(s), jog = bot.kind === "joggers", f = jog ? lt(bot.c) : sk;
-    return `<g filter="url(#${gid}o)">` + taper(...j.h, LG + (jog ? 2 : 0), ...j.k, CF + (jog ? 2 : -.3), f) + taper(...j.k, CF + (jog ? 2 : -.3), ...j.c, CF * 1.1 + (jog ? 2 : 0), f) + taper(...j.c, CF * 1.1 + (jog ? 2 : 0), ...j.a, 3.8 + (jog ? 2 : 0), f) + `</g>`; }).join("");
-  const feet = [-1, 1].map(s => { const j = leg(s), x = j.a[0];
-    return `<path d="M${x - s * 6} 262 C${x - s * 7} 254 ${x - s * 3} 249 ${x} 249 C${x + s * 5} 249 ${x + s * 6} 253 ${x + s * 7} 255 C${x + s * 13} 256 ${x + s * 15} 259 ${x + s * 15} 262 Z" fill="${lt(sh.c)}" ${st}/>`; }).join("");
+  const legs = [-1, 1].map(s => { const j = leg(s);
+    return `<g ${OL}>${taper(...j.h, LG, ...j.k, CF - .3, F)}${taper(...j.k, CF - .3, ...j.c, CF * 1.1, F)}${taper(...j.c, CF * 1.1, ...j.a, 3.8, F)}</g>`; }).join("");
+  const feet = [-1, 1].map(s => { const x = leg(s).a[0];
+    return `<path d="M${x - s * 6} 262 C${x - s * 7} 254 ${x - s * 3} 249 ${x} 249 C${x + s * 5} 249 ${x + s * 6} 253 ${x + s * 7} 255 C${x + s * 13} 256 ${x + s * 15} 259 ${x + s * 15} 262 Z" fill="${F}" ${st}/>`; }).join("");
   const TW = HW * .5 + 1.5 + LG, sb = fem ? 176 : 184;
-  const shorts = bot.kind === "joggers" ? `<path d="M${cx - WW - 1.5} 138 L${cx + WW + 1.5} 138 C${cx + TW + 2} 148 ${cx + TW + 3} 156 ${cx + TW + 3} 166 L${cx - TW - 3} 166 C${cx - TW - 3} 156 ${cx - TW - 2} 148 ${cx - WW - 1.5} 138Z" fill="${lt(bot.c)}" ${st}/>`
-    : `<path d="M${cx - WW - 1.5} 138 L${cx + WW + 1.5} 138 C${cx + TW + 1} 148 ${cx + TW + 2} 156 ${cx + TW + 2.5} ${sb} L${cx + 3} ${sb + 2} L${cx} 166 L${cx - 3} ${sb + 2} L${cx - TW - 2.5} ${sb} C${cx - TW - 2} 156 ${cx - TW - 1} 148 ${cx - WW - 1.5} 138 Z" fill="${lt(bot.c)}" ${st}/>`;
-  const torsoD = `M${cx - NW} 62 C${cx - NW - 6} 68 ${cx - SW + 8} 70 ${cx - SW + 2} 76 C${cx - SW - 2} 80 ${cx - SW} 94 ${cx - SW + 5} 100 C${cx - SW + 8} 116 ${cx - WW - 1} 128 ${cx - WW} 140 L${cx - HW + 2} 146 L${cx + HW - 2} 146 L${cx + WW} 140 C${cx + WW + 1} 128 ${cx + SW - 8} 116 ${cx + SW - 5} 100 C${cx + SW} 94 ${cx + SW + 2} 80 ${cx + SW - 2} 76 C${cx + SW - 8} 70 ${cx + NW + 6} 68 ${cx + NW} 62 Z`;
-  const torso = `<path d="${torsoD}" fill="${tee || hood ? lt(cloth) : sk}" ${st}/>`
-    + (tank ? `<path d="M${cx - NW - 1} 63 L${cx - NW - 6} 64 C${cx - SW + 9} 82 ${cx - SW + 7} 96 ${cx - SW + 6} 101 C${cx - SW + 8} 116 ${cx - WW - 1} 128 ${cx - WW} 140 L${cx - HW + 2} 146 L${cx + HW - 2} 146 L${cx + WW} 140 C${cx + WW + 1} 128 ${cx + SW - 8} 116 ${cx + SW - 6} 101 C${cx + SW - 7} 96 ${cx + SW - 9} 82 ${cx + NW + 6} 64 L${cx + NW + 1} 63 Q${cx} ${fem ? 84 : 90} ${cx - NW - 1} 63Z" fill="${lt(cloth)}" ${st}/>` : "")
-    + (bare && fem ? `<path d="M${cx - SW + 6} 84 C${cx - SW + 8} 78 ${cx - NW - 4} 70 ${cx - NW - 2} 66 L${cx - NW + 1} 66 Q${cx} 86 ${cx + NW - 1} 66 L${cx + NW + 2} 66 C${cx + NW + 4} 70 ${cx + SW - 8} 78 ${cx + SW - 6} 84 C${cx + SW - 6} 96 ${cx + SW - 7} 104 ${cx + SW - 8} 108 L${cx - SW + 8} 108 C${cx - SW + 7} 104 ${cx - SW + 6} 96 ${cx - SW + 6} 84Z" fill="${lt(cloth)}" ${st}/>` : "");
-  const traps = fem ? "" : [-1, 1].map(s => `<path d="M${cx + s * (NW - 1)} ${61 - t * .5} C${cx + s * (NW + 4 + t * 1.5)} ${62 - t * .9} ${cx + s * (SW - 10)} ${68 - t} ${cx + s * (SW - 3)} 77 L${cx + s * (NW + 2)} 72 Z" fill="${tee || hood ? lt(cloth) : sk}" ${st}/>`).join("");
-  const arms = [-1, 1].map(s => { const j = arm(s), m = [(j.s[0] + j.e[0]) / 2 + s * A * .25, (j.s[1] + j.e[1]) / 2];
-    const flex = j.w[1] < j.e[1] - 10; // forearm pointing up: biceps peak
-    let g = taper(...j.s, A * 1.05, ...m, A * (flex ? 1.25 : 1.08), sk) + taper(...m, A * (flex ? 1.25 : 1.08), ...j.e, Fr * .85, sk) + taper(...j.e, Fr * .85, ...j.w, Fr * .62, sk);
-    if (hood) g += taper(...j.s, A * 1.05 + 3, ...j.e, Fr + 3, lt(cloth), st) + taper(...j.e, Fr + 3, ...j.w, Fr + 1.5, lt(cloth), st);
-    else if (tee) { const k = .45, x = j.s[0] + (j.e[0] - j.s[0]) * k, y = j.s[1] + (j.e[1] - j.s[1]) * k; g += taper(...j.s, A * 1.05 + 3, x, y, A + 2.6, lt(cloth), st); }
-    g += `<circle cx="${j.w[0] + (j.w[0] - j.e[0]) * .14}" cy="${j.w[1] + (j.w[1] - j.e[1]) * .14}" r="${Fr * .85 + .5}" fill="${sk}"/>`;
-    // deltoid cap
-    g += `<ellipse cx="${cx + s * (SW - 4)}" cy="83" rx="${A + 1.4}" ry="${A + 2.6}" fill="${tee || hood ? lt(cloth) : sk}" ${tee || hood ? st : ""} transform="rotate(${s * (P.L || t >= 3 ? -25 : 0)} ${cx + s * (SW - 4)} 83)"/>`;
-    return `<g filter="url(#${gid}o)">${g}</g>`; });
-  // head + hair
-  const hy = 41, faceD = `M${cx} 19 C${cx + 10} 19 ${cx + 15.5} 26 ${cx + 15.2} 38 C${cx + 15} 48 ${cx + 9 + (fem ? 0 : t)} 59 ${cx} 61 C${cx - 9 - (fem ? 0 : t)} 59 ${cx - 15} 48 ${cx - 15.2} 38 C${cx - 15.5} 26 ${cx - 10} 19 ${cx} 19 Z`;
-  const hairS = `fill="${hc}" ${st}`;
-  const hair = {
-    short: `<path d="M${cx - 15.6} 38 C${cx - 17} 22 ${cx - 9} 14 ${cx} 14 C${cx + 10} 14 ${cx + 17} 21 ${cx + 15.6} 38 C${cx + 14.5} 31 ${cx + 13} 27 ${cx + 9} 25.5 C${cx + 3} 27 ${cx - 6} 25 ${cx - 10} 25.5 C${cx - 13} 28 ${cx - 14.6} 32 ${cx - 15.6} 38Z" ${hairS}/>`,
-    fade: `<path d="M${cx - 15.4} 34 C${cx - 16} 22 ${cx - 9} 15.5 ${cx} 15.5 C${cx + 9} 15.5 ${cx + 16} 22 ${cx + 15.4} 34 C${cx + 14} 28 ${cx + 11} 25 ${cx} 25 C${cx - 11} 25 ${cx - 14} 28 ${cx - 15.4} 34Z" ${hairS}/>`,
-    curly: [[-12, 22], [-7, 16.5], [-1, 14], [5, 14.5], [10.5, 17.5], [13.5, 23], [-4, 21], [4, 20.5], [-13.5, 28], [14, 29]].map(([x, y]) => `<circle cx="${cx + x}" cy="${y}" r="4.4" ${hairS}/>`).join(""),
-    long: `<path d="M${cx - 15.8} 44 C${cx - 18} 22 ${cx - 9} 14 ${cx + 1} 14 C${cx + 11} 14 ${cx + 18} 22 ${cx + 15.8} 44 C${cx + 15} 33 ${cx + 11} 26 ${cx + 4} 24 C${cx + 2} 28 ${cx - 6} 31 ${cx - 13} 32 C${cx - 14.6} 35 ${cx - 15.4} 39 ${cx - 15.8} 44Z" ${hairS}/>`,
-    bun: `<ellipse cx="${cx}" cy="11" rx="8" ry="6.5" ${hairS}/><path d="M${cx - 15.4} 36 C${cx - 16.5} 22 ${cx - 9} 15 ${cx} 15 C${cx + 9} 15 ${cx + 16.5} 22 ${cx + 15.4} 36 C${cx + 14} 28 ${cx + 9} 24 ${cx} 23.5 C${cx - 9} 24 ${cx - 14} 28 ${cx - 15.4} 36Z" ${hairS}/>`,
-    spiky: `<path d="M${cx - 15.6} 36 C${cx - 16} 26 ${cx - 13} 20 ${cx - 10} 17 L${cx - 9} 10 L${cx - 5} 14 L${cx - 2} 7 L${cx + 2} 13 L${cx + 6} 7.5 L${cx + 8} 14 L${cx + 13} 11 L${cx + 13} 18 C${cx + 16} 23 ${cx + 16.5} 30 ${cx + 15.6} 36 C${cx + 14} 30 ${cx + 10} 26 ${cx} 26 C${cx - 10} 26 ${cx - 14} 30 ${cx - 15.6} 36Z" ${hairS}/>`,
-  }[a.hair] || "";
-  const hairBack = a.hair === "long" ? `<path d="M${cx - 16} 30 C${cx - 21} 50 ${cx - 22} 76 ${cx - 17} 96 L${cx + 17} 96 C${cx + 22} 76 ${cx + 21} 50 ${cx + 16} 30Z" ${hairS}/>` : "";
-  const hd = ITEMS[eq.head];
-  const hat = !hd ? "" : hd.kind === "cap" ? `<path d="M${cx - 16.4} 33 C${cx - 17} 18 ${cx - 9} 11 ${cx} 11 C${cx + 9} 11 ${cx + 17} 18 ${cx + 16.4} 33 Z" fill="${lt(hd.c)}" ${st}/><path d="M${cx - 15} 31 C${cx - 6} 28 ${cx + 6} 28 ${cx + 15} 31 C${cx + 22} 31.5 ${cx + 26} 34 ${cx + 25} 36 C${cx + 14} 34.5 ${cx - 4} 34 ${cx - 15} 34Z" fill="${lt(hd.c)}" ${st}/>`
-    : hd.kind === "beanie" ? `<path d="M${cx - 16.4} 32 C${cx - 17} 14 ${cx - 9} 7 ${cx} 7 C${cx + 9} 7 ${cx + 17} 14 ${cx + 16.4} 32 Z" fill="${lt(hd.c)}" ${st}/><rect x="${cx - 17}" y="26" width="34" height="8" rx="3" fill="${lt(hd.c)}" ${st}/>`
-    : `<path d="M${cx - 15.6} 27 C${cx - 8} 23.5 ${cx + 8} 23.5 ${cx + 15.6} 27 L${cx + 15.4} 31 C${cx + 8} 27.5 ${cx - 8} 27.5 ${cx - 15.4} 31Z" fill="${lt(hd.c)}" ${st}/>`;
-  // ---- interior lines: face + muscle definition ----
+  const shorts = `<path d="M${cx - WW - 1.5} 138 L${cx + WW + 1.5} 138 C${cx + TW + 1} 148 ${cx + TW + 2} 156 ${cx + TW + 2.5} ${sb} L${cx + 3} ${sb + 2} L${cx} 166 L${cx - 3} ${sb + 2} L${cx - TW - 2.5} ${sb} C${cx - TW - 2} 156 ${cx - TW - 1} 148 ${cx - WW - 1.5} 138 Z" fill="${F}" ${st}/>`;
+  const torso = `<path d="M${cx - NW} 62 C${cx - NW - 6} 68 ${cx - SW + 8} 70 ${cx - SW + 2} 76 C${cx - SW - 2} 80 ${cx - SW} 94 ${cx - SW + 5} 100 C${cx - SW + 8} 116 ${cx - WW - 1} 128 ${cx - WW} 140 L${cx - HW + 2} 146 L${cx + HW - 2} 146 L${cx + WW} 140 C${cx + WW + 1} 128 ${cx + SW - 8} 116 ${cx + SW - 5} 100 C${cx + SW} 94 ${cx + SW + 2} 80 ${cx + SW - 2} 76 C${cx + SW - 8} 70 ${cx + NW + 6} 68 ${cx + NW} 62 Z" fill="${F}" ${st}/>`
+    + (fem ? `<path d="M${cx - SW + 6} 84 C${cx - SW + 8} 78 ${cx - NW - 4} 70 ${cx - NW - 2} 66 L${cx - NW + 1} 66 Q${cx} 86 ${cx + NW - 1} 66 L${cx + NW + 2} 66 C${cx + NW + 4} 70 ${cx + SW - 8} 78 ${cx + SW - 6} 84 C${cx + SW - 6} 96 ${cx + SW - 7} 104 ${cx + SW - 8} 108 L${cx - SW + 8} 108 C${cx - SW + 7} 104 ${cx - SW + 6} 96 ${cx - SW + 6} 84Z" fill="${F}" ${st}/>` : "");
+  const traps = fem ? "" : [-1, 1].map(s => `<path d="M${cx + s * (NW - 1)} ${61 - t * .5} C${cx + s * (NW + 4 + t * 1.5)} ${62 - t * .9} ${cx + s * (SW - 10)} ${68 - t} ${cx + s * (SW - 3)} 77 L${cx + s * (NW + 2)} 72 Z" fill="${F}" ${st}/>`).join("");
+  const arms = [-1, 1].map(s => { const j = arm(s), m = [(j.s[0] + j.e[0]) / 2 + s * A * .25, (j.s[1] + j.e[1]) / 2], flex = j.w[1] < j.e[1] - 10;
+    return `<g ${OL}>${taper(...j.s, A * 1.05, ...m, A * (flex ? 1.25 : 1.08), F)}${taper(...m, A * (flex ? 1.25 : 1.08), ...j.e, Fr * .85, F)}${taper(...j.e, Fr * .85, ...j.w, Fr * .62, F)}
+      <circle cx="${j.w[0] + (j.w[0] - j.e[0]) * .14}" cy="${j.w[1] + (j.w[1] - j.e[1]) * .14}" r="${Fr * .85 + .5}" fill="${F}"/>
+      <ellipse cx="${cx + s * (SW - 4)}" cy="83" rx="${A + 1.4}" ry="${A + 2.6}" fill="${F}" transform="rotate(${s * (P.L || t >= 3 ? -25 : 0)} ${cx + s * (SW - 4)} 83)"/></g>`; });
+  const head = `<path d="M${cx} 19 C${cx + 10} 19 ${cx + 15.5} 26 ${cx + 15.2} 38 C${cx + 15} 48 ${cx + 9 + (fem ? 0 : t)} 59 ${cx} 61 C${cx - 9 - (fem ? 0 : t)} 59 ${cx - 15} 48 ${cx - 15.2} 38 C${cx - 15.5} 26 ${cx - 10} 19 ${cx} 19 Z" fill="${F}" ${st}/>`;
   const L = (d, w = .9, o = .75) => `<path d="${d}" stroke="${K}" stroke-width="${w}" fill="none" stroke-linecap="round" opacity="${o}"/>`;
-  const face = eq.face ? `<path d="M${cx - 12} ${hy - 4} H${cx + 12} L${cx + 11} ${hy + 3} Q${cx + 7} ${hy + 5} ${cx + 2} ${hy + 2.5} L${cx} ${hy} L${cx - 2} ${hy + 2.5} Q${cx - 7} ${hy + 5} ${cx - 11} ${hy + 3} Z" fill="${K}"/>`
-    : [-1, 1].map(s => `<ellipse cx="${cx + s * 5.6}" cy="${hy}" rx="1.5" ry="1.7" fill="${K}"/>`).join("") + L(`M${cx - 9.5} ${hy - 5 + (t >= 3 ? .8 : 0)} Q${cx - 6} ${hy - 6.6} ${cx - 2.5} ${hy - 4.6 + (t >= 3 ? 1 : 0)} M${cx + 2.5} ${hy - 4.6 + (t >= 3 ? 1 : 0)} Q${cx + 6} ${hy - 6.6} ${cx + 9.5} ${hy - 5 + (t >= 3 ? .8 : 0)}`, 1.4, .9);
-  const mouth = L(t >= 3 ? `M${cx - 4.5} ${hy + 13} Q${cx} ${hy + 16.5} ${cx + 5} ${hy + 12}` : `M${cx - 4} ${hy + 13.4} Q${cx} ${hy + 15} ${cx + 4} ${hy + 13.4}`, 1.1, .85) + L(`M${cx + .8} ${hy + 1} Q${cx + 2.6} ${hy + 6} ${cx + .6} ${hy + 8}`, .9, .6);
-  const mo = bare ? 1 : .35;
-  const lines = fem ? (bare ? L(`M${cx} 112 V134`, .8, .35) : "") : [
-    L(`M${cx - 10} 70 Q${cx - SW * .5} 72 ${cx - SW + 6} 78 M${cx + 10} 70 Q${cx + SW * .5} 72 ${cx + SW - 6} 78`, .8, .4 * mo),
-    t >= 1 ? L(`M${cx - SW + 6} 90 Q${cx - SW * .5} ${103 + t * 1.6} ${cx - 1} ${99 + t} M${cx + SW - 6} 90 Q${cx + SW * .5} ${103 + t * 1.6} ${cx + 1} ${99 + t}`, 1.1, .7 * mo) : "",
-    t >= 1 ? L(`M${cx} 80 V${136}`, .8, .45 * mo) : "",
-    t >= 2 ? [113, 123, 133].slice(0, t >= 3 ? 3 : 2).map(y => L(`M${cx - 8} ${y} Q${cx - 4} ${y + 1} ${cx - 1} ${y} M${cx + 1} ${y} Q${cx + 4} ${y + 1} ${cx + 8} ${y}`, .9, .6 * mo)).join("") : "",
-    t >= 3 ? L(`M${cx - WW - 1} 124 Q${cx - WW + 3} 140 ${cx - 6} 150 M${cx + WW + 1} 124 Q${cx + WW - 3} 140 ${cx + 6} 150`, .9, .5 * mo) : "",
-    t >= 2 ? [-1, 1].map(s => [0, 1, 2].map(i => L(`M${cx + s * (SW - 7 - i)} ${104 + i * 6} l${-s * 3.5} 2`, .8, .45 * mo)).join("")).join("") : "",
-  ].join("");
-  const armLines = fem ? "" : [-1, 1].map(s => { const j = arm(s), m = [(j.s[0] + j.e[0]) / 2, (j.s[1] + j.e[1]) / 2];
-    return (t >= 1 && !hood ? L(`M${j.s[0] + (m[0] - j.s[0]) * .9} ${j.s[1] + (m[1] - j.s[1]) * .9 + 2} Q${m[0]} ${m[1] + 1} ${j.e[0] + (m[0] - j.e[0]) * .25} ${j.e[1] + (m[1] - j.e[1]) * .25}`, .8, .45) : "")
-      + (t >= 2 && !hood ? L(`M${j.e[0] + (j.w[0] - j.e[0]) * .15} ${j.e[1] + (j.w[1] - j.e[1]) * .15} Q${(j.e[0] + j.w[0]) / 2 + s * 1.5} ${(j.e[1] + j.w[1]) / 2} ${j.e[0] + (j.w[0] - j.e[0]) * .8} ${j.e[1] + (j.w[1] - j.e[1]) * .8}`, .7, .4) : ""); }).join("");
-  const legLines = [-1, 1].map(s => { const j = leg(s);
-    return L(`M${j.k[0] - s * 3} ${j.k[1] - 2} q${s * 3} 3 ${s * 6} 0`, .8, .5) + (t >= 2 && !fem ? L(`M${j.k[0]} 214 q${s * 2.5} 9 ${s * .5} 18`, .8, .4) : ""); }).join("");
-  const ex = ITEMS[eq.extra], jl = arm(-1), jr = arm(1);
-  const extra = !ex ? "" : ex.kind === "chain" ? `<path d="M${cx - NW - 1.5} 63 Q${cx} 84 ${cx + NW + 1.5} 63" stroke="#b8902f" stroke-width="2" fill="none"/><circle cx="${cx}" cy="73.6" r="2.4" fill="${ex.c}" ${st}/>`
-    : ex.kind === "watch" ? `<circle cx="${(jl.e[0] + jl.w[0] * 4) / 5}" cy="${(jl.e[1] + jl.w[1] * 4) / 5}" r="${Fr * .7}" fill="#333" ${st}/>`
-    : `<circle cx="${(jr.e[0] + jr.w[0] * 4) / 5}" cy="${(jr.e[1] + jr.w[1] * 4) / 5}" r="${Fr * .72}" fill="${ex.c}" ${st}/>`;
-  const fl = fireLevel(t, stk);
-  return `<svg viewBox="0 0 240 280" class="avsvg" role="img" aria-label="Your avatar">
+  const lines = (fem ? L(`M${cx} 112 V134`, .8, .35) : [
+    L(`M${cx - 10} 70 Q${cx - SW * .5} 72 ${cx - SW + 6} 78 M${cx + 10} 70 Q${cx + SW * .5} 72 ${cx + SW - 6} 78`, .8, .4),
+    t >= 1 ? L(`M${cx - SW + 6} 90 Q${cx - SW * .5} ${103 + t * 1.6} ${cx - 1} ${99 + t} M${cx + SW - 6} 90 Q${cx + SW * .5} ${103 + t * 1.6} ${cx + 1} ${99 + t}`, 1.1, .7) : "",
+    t >= 1 ? L(`M${cx} 80 V136`, .8, .45) : "",
+    t >= 2 ? [113, 123, 133].slice(0, t >= 3 ? 3 : 2).map(y => L(`M${cx - 8} ${y} Q${cx - 4} ${y + 1} ${cx - 1} ${y} M${cx + 1} ${y} Q${cx + 4} ${y + 1} ${cx + 8} ${y}`, .9, .6)).join("") : "",
+    t >= 3 ? L(`M${cx - WW - 1} 124 Q${cx - WW + 3} 140 ${cx - 6} 150 M${cx + WW + 1} 124 Q${cx + WW - 3} 140 ${cx + 6} 150`, .9, .5) : "",
+    t >= 2 ? [-1, 1].map(s => [0, 1, 2].map(i => L(`M${cx + s * (SW - 7 - i)} ${104 + i * 6} l${-s * 3.5} 2`, .8, .45)).join("")).join("") : "",
+    ...[-1, 1].map(s => { const j = arm(s), m = [(j.s[0] + j.e[0]) / 2, (j.s[1] + j.e[1]) / 2];
+      return t >= 1 ? L(`M${j.s[0] + (m[0] - j.s[0]) * .9} ${j.s[1] + (m[1] - j.s[1]) * .9 + 2} Q${m[0]} ${m[1] + 1} ${j.e[0] + (m[0] - j.e[0]) * .25} ${j.e[1] + (m[1] - j.e[1]) * .25}`, .8, .45) : ""; }),
+  ].join("")) + [-1, 1].map(s => { const j = leg(s); return L(`M${j.k[0] - s * 3} ${j.k[1] - 2} q${s * 3} 3 ${s * 6} 0`, .8, .5) + (t >= 2 && !fem ? L(`M${j.k[0]} 214 q${s * 2.5} 9 ${s * .5} 18`, .8, .4) : ""); }).join("");
+  return `<svg viewBox="0 0 240 280" class="avsvg" role="img" aria-label="Your body, level ${t + 1} of 5">
     <defs>
-      <linearGradient id="${gid}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${bg.g[0]}"/><stop offset="1" stop-color="${bg.g[1]}"/></linearGradient>
       <linearGradient id="flo" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff6a1a"/><stop offset=".6" stop-color="#ffb02e"/><stop offset="1" stop-color="#ffd166" stop-opacity=".15"/></linearGradient>
       <linearGradient id="fli" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#fff3c4" stop-opacity="0"/></linearGradient>
-      <filter id="${gid}o" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="1.5" result="d"/><feFlood flood-color="${K}"/><feComposite in2="d" operator="in" result="ol"/><feMerge><feMergeNode in="ol"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      <filter id="${gid}bl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.4"/></filter>
+      <filter id="${gid}o" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="1.4" result="d"/><feFlood flood-color="${K}"/><feComposite in2="d" operator="in" result="ol"/><feMerge><feMergeNode in="ol"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     </defs>
-    <rect x="0" y="0" width="240" height="280" rx="28" fill="url(#${gid}b)"/>
-    ${fireSVG(fl)}
-    <ellipse cx="${cx}" cy="263" rx="${HW + 30}" ry="5" fill="#000" opacity=".16" filter="url(#${gid}bl)"/>
-    <g filter="url(#${gid}o)">${hairBack}${legs}${feet}${shorts}<rect x="${cx - NW}" y="48" width="${NW * 2}" height="18" fill="${sk}" ${st}/>${torso}${traps}${arms[0]}${arms[1]}<path d="${faceD}" fill="${sk}" ${st}/>${hair}${hat}</g>
-    ${lines}${armLines}${legLines}${face}${mouth}${extra}
-    <g filter="url(#${gid}o)">${petSVG(eq.pet, gid)}</g>
+    <rect x="0" y="0" width="240" height="280" rx="28" fill="${PAPER}"/>
+    ${fireSVG(fireLevel(t, stk))}
+    <path d="M${cx - HW - 34} 263 H${cx + HW + 34}" stroke="${K}" stroke-width="1" opacity=".25"/>
+    <g ${OL}>${legs}${feet}${shorts}<rect x="${cx - NW}" y="48" width="${NW * 2}" height="18" fill="${F}" ${st}/>${torso}${traps}${arms[0]}${arms[1]}${head}</g>
+    ${lines}
   </svg>`;
 }
 
@@ -1417,13 +1380,7 @@ function avatarSection() {
         return `<button class="item ${wearing ? "on" : ""}" data-item="${id || ""}"><span class="dot" style="background:${it.c}"></span><span class="iname">${esc(it.name)}</span>
           <span class="iprice">${wearing ? "Wearing" : owned ? "Owned" : `${it.price.toLocaleString()} pts`}</span></button>`; }).join("")}</div>`;
   return `<div class="card avcard">
-      ${(() => { const look = lookOf(a, tier), fl = fireLevel(tier, stk), mode = ls.get("forma.avmode", "drawing"); avNeed = null;
-        const url = (a.photos || {})[look.key] || freePhotoURL(look);
-        const pic = mode === "drawing" ? `<div class="avwrap">${avatarSVG(a, tier, null, stk)}</div>`
-          : `<div class="avwrap photo fire${fl}"><div class="avfire">${fl ? `<svg viewBox="0 0 240 280" preserveAspectRatio="none">${FIRE_DEFS}${fireSVG(fl)}</svg>` : ""}</div>
-            <img class="avphoto" src="${esc(url)}" alt="Your avatar" onload="this.parentNode.classList.add('ok')" onerror="this.parentNode.classList.add('bad')">
-            <div class="avfallback">${avatarSVG(a, tier, null, stk)}<div class="avdev"><span class="ld">Making your realistic photo&hellip;</span><span class="er">Photo unavailable right now, showing the drawing</span></div></div></div>`;
-        return pic + `<div class="seg avmode"><button class="${mode === "photo" ? "on" : ""}" data-avmode="photo">Free AI photo (beta)</button><button class="${mode === "drawing" ? "on" : ""}" data-avmode="drawing">Drawing</button></div>`; })()}
+      <div class="avwrap">${avatarSVG(a, tier, null, stk)}</div>
       <div class="streakline ${stk >= 5 ? "hot" : ""}">${ICON.flame}<span>${flameNote}</span></div>
       <div class="avinfo">
         <div class="row between"><div><div class="avlvl">Level ${lv.L}</div><div class="sub">${TIERS[tier]} body${tier < 4 ? `, next body at level ${nextTier}` : ", max body"}</div></div>
@@ -1444,9 +1401,7 @@ function avatarSection() {
       <div class="row between"><span class="el">${l}</span><span class="num ep">+${p}</span></div>
       <div class="bar" style="height:5px;margin-top:6px"><i style="width:${Math.min(100, p / max * 100)}%;background:var(--ink)"></i></div>
       <div class="sub" style="font-size:12px;margin-top:4px">${esc(det)}</div></div>`).join("")}</div></div>
-    <h2>Shop</h2>
-    <div class="chips scrollx">${tabs.map(([k, l]) => `<button class="chip ${avTab === k ? "on" : ""}" data-avtab="${k}">${l}</button>`).join("")}</div>
-    <div style="margin-top:12px">${grid}</div>`;
+    `;
 }
 function bindAvatar() {
   const save = async patch => { S.profile.avatar = {...av(), ...patch}; render(); try { await DB.saveProfile({avatar: S.profile.avatar}); } catch (e) { toast(e.message); } };
@@ -1474,6 +1429,151 @@ function bindAvatar() {
     $("#bC").onclick = closeSheet;
     $("#bY").onclick = async () => { closeSheet(); await save({owned: [...a.owned, id], spent: (a.spent || 0) + it.price, eq: {...a.eq, [slot]: id}}); toast(`${it.name} unlocked`); };
   });
+}
+
+/* ---------------- home gym: machines hold your PRs, decorate with points ---------------- */
+const MACH = {
+  bench: {name: "Bench press", type: "lift", price: 0}, rack: {name: "Squat rack", type: "lift", price: 0, ex: "Squat"},
+  dumbbells: {name: "Dumbbells", type: "lift", price: 0, ex: "Dumbbell press"}, deadlift: {name: "Deadlift platform", type: "lift", price: 800, ex: "Deadlift"},
+  pullup: {name: "Pull-up bar", type: "reps", price: 500, ex: "Pull-ups"}, pulldown: {name: "Lat pulldown", type: "lift", price: 900},
+  legpress: {name: "Leg press", type: "lift", price: 1000}, treadmill: {name: "Treadmill", type: "time", price: 1500, ex: "5 km run"},
+  rower: {name: "Rowing machine", type: "time", price: 1500, ex: "2 km row"}, bike: {name: "Spin bike", type: "dist", price: 1200, ex: "20 min ride"},
+};
+const DECOR = {
+  wall: {cream: ["Cream", 0, "#efe6d6"], white: ["White", 150, "#f6f4ef"], brick: ["Brick", 400, "#b8735a"], concrete: ["Concrete", 600, "#8d8a85"], wood: ["Wood panels", 800, "#a77b52"], dark: ["Dark", 700, "#2c2a27"]},
+  floor: {wood: ["Wood", 0, "#c99c6b"], rubber: ["Rubber mats", 300, "#3a3a3a"], concrete: ["Concrete", 400, "#a8a49c"], marble: ["Marble", 1000, "#ebe7e0"]},
+  light: {none: ["None", 0], pendant: ["Pendant lamps", 400], strip: ["LED strip", 500], neon: ["Neon PR sign", 700]},
+  wallart: {none: ["None", 0], poster: ["Poster", 250], window: ["Window", 800], tv: ["TV", 1100], trophies: ["Trophy shelf", 900]},
+  plant: {none: ["None", 0], small: ["Plant", 200], big: ["Big plant", 400]},
+  floorart: {none: ["None", 0], rug: ["Rug", 300], speaker: ["Speaker", 450], cooler: ["Water cooler", 350]},
+};
+const DECOR_TABS = [["machines", "Machines"], ["wall", "Walls"], ["floor", "Floors"], ["light", "Lights"], ["wallart", "Wall art"], ["plant", "Plants"], ["floorart", "Extras"]];
+const SLOTS = 6;
+const gymDefault = () => ({owned: ["bench", "rack", "dumbbells"], placed: ["bench", "rack", "dumbbells"], decor: {wall: "cream", floor: "wood", light: "none", wallart: "none", plant: "none", floorart: "none"}, ownedDecor: ["wall:cream", "floor:wood"], prs: {}, spent: 0});
+const gym = () => { const g = {...gymDefault(), ...(S.profile.gym || {})}; g.decor = {...gymDefault().decor, ...(g.decor || {})}; return g; };
+const prScore = (type, e) => type === "lift" ? e.w * (1 + (e.r || 1) / 30) : type === "reps" ? e.r : type === "time" ? -(e.t || 0) : e.km;
+const prText = (type, e) => !e ? "No PR yet" : type === "lift" ? `${r1(e.w)} kg × ${e.r}` : type === "reps" ? `${e.r} reps` : type === "time" ? `${Math.floor(e.t / 60)}:${String(Math.round(e.t % 60)).padStart(2, "0")}` : `${r1(e.km)} km`;
+function bestPR(id, g = gym()) { const list = g.prs[id] || [], t = MACH[id].type; return list.reduce((b, e) => !b || prScore(t, e) > prScore(t, b) ? e : b, null); }
+// every new personal best earns points
+function prBonus(g = gym()) {
+  let pts = 0;
+  for (const [id, list] of Object.entries(g.prs || {})) { if (!MACH[id]) continue; let best = null;
+    for (const e of [...list].sort((a, b) => a.d < b.d ? -1 : 1)) if (!best || prScore(MACH[id].type, e) > prScore(MACH[id].type, best)) { pts += 50; best = e; } }
+  return pts;
+}
+// one wallet for the whole app: points earned minus everything bought
+const wallet = () => avatarPoints().coins;
+
+/* ---- drawing ---- */
+function machineSVG(id) {
+  const K = "#1d1814", s = `stroke="${K}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`, M = "#9a958c", P2 = PAPER;
+  const plate = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${K}"/><circle cx="${x}" cy="${y}" r="${r * .35}" fill="${M}"/>`;
+  return {
+    bench: `<path d="M-24 0 V-22 M24 0 V-22 M-18 0 L-14 -16 M18 0 L14 -16" ${s} fill="none"/><rect x="-30" y="-24" width="52" height="7" rx="3" fill="${P2}" ${s}/><path d="M22 -20 L28 -34" ${s}/><path d="M-26 -22 V-52 M26 -22 V-52" ${s}/><path d="M-46 -50 H46" ${s} stroke-width="3"/>${plate(-40, -50, 8)}${plate(40, -50, 8)}`,
+    rack: `<path d="M-32 0 V-84 M32 0 V-84 M-32 -84 H32 M-38 0 H38 M-32 -30 H-22 M32 -30 H22" ${s} fill="none"/><path d="M-48 -60 H48" ${s} stroke-width="3"/>${plate(-42, -60, 9)}${plate(42, -60, 9)}`,
+    dumbbells: `<path d="M-38 0 V-46 M38 0 V-46 M-40 -14 H40 M-40 -34 H40" ${s} fill="none"/>${[-26, -9, 9, 26].map(x => `<rect x="${x - 7}" y="-22" width="14" height="5" rx="2" fill="${K}"/><rect x="${x - 6}" y="-42" width="12" height="4" rx="2" fill="${K}"/>`).join("")}`,
+    deadlift: `<rect x="-48" y="-5" width="96" height="5" fill="${P2}" ${s}/><path d="M-50 -16 H50" ${s} stroke-width="3"/>${plate(-38, -16, 13)}${plate(38, -16, 13)}`,
+    pullup: `<path d="M-30 0 V-90 M30 0 V-90 M-38 -84 H38 M-38 0 H-22 M22 0 H38" ${s} fill="none"/>`,
+    pulldown: `<path d="M-14 0 V-92 M-14 -92 H18 M16 -92 V-58 M-40 -58 H40 M-30 0 H20 M-8 -20 H14 M2 -20 V0" ${s} fill="none"/><rect x="-6" y="-26" width="22" height="6" rx="3" fill="${P2}" ${s}/><rect x="-24" y="-80" width="10" height="40" fill="${M}" ${s}/>`,
+    legpress: `<path d="M-46 0 H46 M-40 0 L-10 -40 M30 0 L30 -26" ${s} fill="none"/><rect x="-38" y="-30" width="30" height="8" rx="3" fill="${P2}" ${s} transform="rotate(-20 -23 -26)"/><rect x="18" y="-58" width="9" height="34" fill="${P2}" ${s} transform="rotate(25 22 -41)"/>`,
+    treadmill: `<path d="M-46 -4 L36 -10" ${s} stroke-width="7" stroke="${K}"/><path d="M-46 -4 L36 -10" stroke="${M}" stroke-width="3"/><path d="M30 -10 L40 -62 M24 -40 L38 -42" ${s} fill="none"/><rect x="28" y="-72" width="22" height="12" rx="3" fill="${P2}" ${s}/>`,
+    rower: `<path d="M-48 -4 H30" ${s} stroke-width="3"/><circle cx="36" cy="-14" r="13" fill="${P2}" ${s}/><circle cx="36" cy="-14" r="4" fill="${K}"/><rect x="-30" y="-12" width="16" height="6" rx="3" fill="${P2}" ${s}/><path d="M10 -12 L16 -22 M-48 -4 V0 M24 -4 V0" ${s}/>`,
+    bike: `<circle cx="-24" cy="-12" r="12" fill="${P2}" ${s}/><path d="M-24 -12 L4 -14 L-4 -40 M4 -14 L22 -44 M-10 -42 H2 M16 -48 H30 M-30 0 H30" ${s} fill="none"/>`,
+  }[id] || "";
+}
+function gymSVG(g) {
+  const K = "#1d1814", d = g.decor, wall = DECOR.wall[d.wall][2], floor = DECOR.floor[d.floor][2], dark = d.wall === "dark" || d.wall === "concrete";
+  const ink = `stroke="${K}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"`;
+  const wallTex = d.wall === "brick" ? Array.from({length: 7}, (_, r) => Array.from({length: 10}, (_, c) => `<rect x="${c * 40 - (r % 2) * 20}" y="${r * 20}" width="40" height="20" fill="none" stroke="#8e4f3a" stroke-width="1.2"/>`).join("")).join("")
+    : d.wall === "wood" ? Array.from({length: 12}, (_, c) => `<path d="M${c * 32} 0 V140" stroke="#7c5636" stroke-width="1.2"/>`).join("") : "";
+  const floorTex = d.floor === "wood" ? Array.from({length: 7}, (_, r) => `<path d="M0 ${150 + r * 28} H360" stroke="#a37a4f" stroke-width="1"/>`).join("")
+    : d.floor === "rubber" ? Array.from({length: 7}, (_, c) => `<path d="M${c * 60} 122 V340" stroke="#555" stroke-width="1"/>`).join("")
+    : d.floor === "marble" ? `<path d="M20 170 q40 10 70 40 M200 160 q30 30 90 40 M120 290 q40 -10 90 10" stroke="#c9c2b6" stroke-width="1" fill="none"/>` : "";
+  const art = {poster: `<rect x="30" y="34" width="46" height="62" fill="${PAPER}" ${ink}/><path d="M40 50 H66 M40 60 H60 M40 70 H64" stroke="${K}" stroke-width="2"/><text x="53" y="88" font-size="9" font-weight="800" text-anchor="middle" fill="${K}">LIFT</text>`,
+    window: `<rect x="24" y="26" width="70" height="60" fill="#bfdde6" ${ink}/><path d="M59 26 V86 M24 56 H94" ${ink}/><circle cx="80" cy="40" r="6" fill="#ffe08a"/>`,
+    tv: `<rect x="22" y="36" width="76" height="46" rx="3" fill="#202020" ${ink}/><path d="M34 66 l10 -12 l10 8 l10 -14 l14 18" stroke="#4fc3a1" stroke-width="2" fill="none"/>`,
+    trophies: `<path d="M20 86 H100" ${ink}/>${[34, 60, 86].map((x, i) => `<path d="M${x - 7} ${70 - i * 4} h14 l-2 10 h-10 z M${x} ${80 - i * 4} v6" fill="#d6b56f" ${ink}/>`).join("")}`}[d.wallart] || "";
+  const light = {pendant: [90, 180, 270].map(x => `<path d="M${x} 0 V22" ${ink}/><path d="M${x - 12} 34 Q${x} 18 ${x + 12} 34 Z" fill="${PAPER}" ${ink}/><ellipse cx="${x}" cy="44" rx="22" ry="6" fill="#ffe7a3" opacity=".5"/>`).join(""),
+    strip: `<path d="M0 6 H360" stroke="#7fe3ff" stroke-width="4"/><path d="M0 6 H360" stroke="#7fe3ff" stroke-width="12" opacity=".25"/>`,
+    neon: `<text x="250" y="72" font-size="34" font-weight="900" text-anchor="middle" fill="none" stroke="#ff4fa0" stroke-width="2.5">PR</text><text x="250" y="72" font-size="34" font-weight="900" text-anchor="middle" fill="none" stroke="#ff4fa0" stroke-width="8" opacity=".25">PR</text>`}[d.light] || "";
+  const plant = d.plant === "none" ? "" : d.plant === "big" ? `<g transform="translate(0 92)">` + `<path d="M336 232 l-6 -26 h20 z" fill="#b77b52" ${ink}/><path d="M340 206 q-24 -20 -14 -60 q18 26 14 60 q4 -40 22 -54 q4 34 -22 54" fill="#6fae7d" ${ink}/></g>`
+    : `<g transform="translate(0 0)"><path d="M332 140 l-4 -16 h14 z" fill="#b77b52" ${ink}/><path d="M335 124 q-12 -10 -8 -26 q10 12 8 26 q2 -18 12 -22 q2 16 -12 22" fill="#6fae7d" ${ink}/></g>`;
+  const floorart = {rug: `<ellipse cx="180" cy="306" rx="140" ry="16" fill="#c46a4c" opacity=".55"/>`, speaker: `<rect x="8" y="196" width="26" height="40" rx="3" fill="#222" ${ink}/><circle cx="21" cy="208" r="5" fill="#555"/><circle cx="21" cy="224" r="7" fill="#555"/>`,
+    cooler: `<rect x="10" y="194" width="22" height="42" fill="${PAPER}" ${ink}/><rect x="12" y="176" width="18" height="18" rx="4" fill="#9fd3ec" ${ink}/>`}[d.floorart] || "";
+  const pos = [[70, 196, .86], [180, 196, .86], [290, 196, .86], [70, 314, 1.06], [180, 314, 1.06], [290, 314, 1.06]];
+  const machines = g.placed.slice(0, SLOTS).map((id, i) => { const [x, y, k] = pos[i], b = bestPR(id, g), label = b ? prText(MACH[id].type, b) : "Tap to log PR", w = Math.max(54, label.length * 5.6);
+    return `<g class="mach" data-mach="${id}" role="button" aria-label="${esc(MACH[id].name)}: ${esc(label)}"><rect x="${x - 56}" y="${y - 100 * k}" width="112" height="${100 * k + 22}" fill="transparent"/>
+      <ellipse cx="${x}" cy="${y + 1}" rx="${50 * k}" ry="${5 * k}" fill="#000" opacity=".18"/>
+      <g transform="translate(${x} ${y}) scale(${k})" filter="url(#halo)">${machineSVG(id)}</g>
+      <rect x="${x - w / 2}" y="${y + 6}" width="${w}" height="16" rx="8" fill="${b ? K : "rgba(29,24,20,.55)"}"/><text x="${x}" y="${y + 17.5}" font-size="9.5" font-weight="700" text-anchor="middle" fill="#fff">${esc(label)}</text></g>`; }).join("");
+  return `<svg viewBox="0 0 360 340" class="gymsvg" role="img" aria-label="Your home gym">
+    <defs><filter id="halo" x="-20%" y="-20%" width="140%" height="140%"><feMorphology in="SourceAlpha" operator="dilate" radius="2.2" result="d"/><feFlood flood-color="${PAPER}" flood-opacity=".9"/><feComposite in2="d" operator="in" result="h"/><feMerge><feMergeNode in="h"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <rect x="0" y="0" width="360" height="124" fill="${wall}"/>${wallTex}${light}${art}
+    <rect x="0" y="120" width="360" height="220" fill="${floor}"/>${floorTex}<path d="M0 120 H360" stroke="${dark ? "#111" : "#1d1814"}" stroke-width="2.5"/>
+    ${floorart}${plant}${machines}
+  </svg>`;
+}
+
+let gymTab = ls.get("forma.gymtab", "machines");
+function renderGym(v) {
+  const g = gym(), coins = wallet();
+  const placed = g.placed.filter(id => MACH[id]);
+  const shop = gymTab === "machines" ? Object.entries(MACH).map(([id, m]) => { const own = g.owned.includes(id), on = placed.includes(id);
+      return `<button class="item ${on ? "on" : ""}" data-gmach="${id}"><span class="mico"><svg viewBox="-55 -100 110 106">${machineSVG(id)}</svg></span><span class="iname">${esc(m.name)}</span>
+        <span class="iprice">${on ? "In your gym" : own ? "Owned, tap to place" : `${m.price.toLocaleString()} pts`}</span></button>`; }).join("")
+    : Object.entries(DECOR[gymTab]).map(([k, [name, price, col]]) => { const key = gymTab + ":" + k, own = price === 0 || g.ownedDecor.includes(key), on = g.decor[gymTab] === k;
+      return `<button class="item ${on ? "on" : ""}" data-gdec="${key}"><span class="dot" style="background:${col || (k === "none" ? "transparent" : "#d9cfbf")}"></span><span class="iname">${esc(name)}</span>
+        <span class="iprice">${on ? "In use" : own ? "Owned" : `${price.toLocaleString()} pts`}</span></button>`; }).join("");
+  v.innerHTML = `${demoBanner()}<h1>Gym</h1>
+    <div class="card gymcard"><div class="gymwrap">${gymSVG(g)}</div>
+      <div class="row between" style="margin-top:12px"><div class="sub">Tap a machine to log a new PR. Every PR earns <b>+50 points</b>.</div>
+      <div class="coins"><b class="num">${coins.toLocaleString()}</b><span>points to spend</span></div></div></div>
+    <h2>Your PRs</h2>
+    <div class="card"><div class="earn">${placed.map(id => { const b = bestPR(id, g), m = MACH[id];
+      return `<div class="erow2 prrow" data-mach="${id}"><div class="row between"><span class="el">${esc(m.name)}${m.ex ? ` <span class="sub">${esc(m.ex)}</span>` : ""}</span><span class="num ep">${esc(prText(m.type, b))}</span></div>
+        <div class="sub" style="font-size:12px;margin-top:3px">${b ? `Set ${niceDay(b.d)} · ${(g.prs[id] || []).length} logged` : "Tap to log your first PR"}</div></div>`; }).join("") || `<div class="sub">Place a machine in your gym to track PRs.</div>`}</div></div>
+    <h2>Customise your gym</h2>
+    <div class="chips scrollx">${DECOR_TABS.map(([k, l]) => `<button class="chip ${gymTab === k ? "on" : ""}" data-gtab="${k}">${l}</button>`).join("")}</div>
+    <div class="shop" style="margin-top:12px">${shop}</div>
+    ${gymTab === "machines" ? `<div class="sub" style="margin-top:10px">Your gym fits ${SLOTS} machines. Tap a placed machine here to take it out and make room.</div>` : ""}`;
+  bindGym();
+}
+function bindGym() {
+  const save = async patch => { S.profile.gym = {...gym(), ...patch}; render(); try { await DB.saveProfile({gym: S.profile.gym}); } catch (e) { toast(e.message); } };
+  const buy = (name, price, after) => { const c = wallet();
+    sheet(`<h3>${esc(name)}</h3><div class="sub">${price.toLocaleString()} points. You have ${c.toLocaleString()}.</div>
+      <div class="row" style="margin-top:16px"><button class="btn ghost grow" id="bC">Not now</button><button class="btn grow" id="bY" ${c < price ? "disabled" : ""}>${c < price ? `Need ${(price - c).toLocaleString()} more` : `Buy for ${price.toLocaleString()}`}</button></div>`);
+    $("#bC").onclick = closeSheet; $("#bY").onclick = () => { closeSheet(); after(); toast(`${name} unlocked`); }; };
+  document.querySelectorAll("[data-gtab]").forEach(b => b.onclick = () => { gymTab = b.dataset.gtab; ls.set("forma.gymtab", gymTab); render(); });
+  document.querySelectorAll("[data-mach]").forEach(el => el.onclick = () => prSheet(el.dataset.mach));
+  document.querySelectorAll("[data-gmach]").forEach(b => b.onclick = () => { const id = b.dataset.gmach, g = gym(), m = MACH[id];
+    if (g.placed.includes(id)) return save({placed: g.placed.filter(x => x !== id)});
+    if (g.owned.includes(id)) return g.placed.length >= SLOTS ? toast(`Your gym is full (${SLOTS}). Take a machine out first.`) : save({placed: [...g.placed, id]});
+    buy(m.name, m.price, () => save({owned: [...g.owned, id], placed: g.placed.length < SLOTS ? [...g.placed, id] : g.placed, spent: (g.spent || 0) + m.price})); });
+  document.querySelectorAll("[data-gdec]").forEach(b => b.onclick = () => { const key = b.dataset.gdec, [slot, k] = key.split(":"), g = gym(), [name, price] = DECOR[slot][k];
+    if (price === 0 || g.ownedDecor.includes(key)) return save({decor: {...g.decor, [slot]: k}});
+    buy(name, price, () => save({ownedDecor: [...g.ownedDecor, key], decor: {...g.decor, [slot]: k}, spent: (g.spent || 0) + price})); });
+}
+function prSheet(id) {
+  const g = gym(), m = MACH[id], b = bestPR(id, g), hist = [...(g.prs[id] || [])].sort((a, c) => a.d < c.d ? 1 : -1).slice(0, 6);
+  const fields = m.type === "lift" ? `<div class="row"><label class="grow"><span class="eyebrow">Weight (kg)</span><input class="in" id="pW" type="number" inputmode="decimal" step="0.5" placeholder="${b ? b.w : 60}"></label>
+      <label class="grow"><span class="eyebrow">Reps</span><input class="in" id="pR" type="number" inputmode="numeric" placeholder="${b ? b.r : 5}"></label></div>`
+    : m.type === "reps" ? `<label><span class="eyebrow">Reps</span><input class="in" id="pR" type="number" inputmode="numeric" placeholder="${b ? b.r : 8}"></label>`
+    : m.type === "time" ? `<div class="row"><label class="grow"><span class="eyebrow">Minutes</span><input class="in" id="pM" type="number" inputmode="numeric" placeholder="${b ? Math.floor(b.t / 60) : 25}"></label>
+      <label class="grow"><span class="eyebrow">Seconds</span><input class="in" id="pS" type="number" inputmode="numeric" placeholder="${b ? Math.round(b.t % 60) : 0}"></label></div>`
+    : `<label><span class="eyebrow">Distance (km)</span><input class="in" id="pK" type="number" inputmode="decimal" step="0.1" placeholder="${b ? b.km : 10}"></label>`;
+  sheet(`<h3>${esc(m.name)}</h3><div class="sub">${m.ex ? esc(m.ex) + " · " : ""}Best: <b>${esc(prText(m.type, b))}</b></div>
+    <div class="stack" style="margin-top:14px;gap:10px">${fields}</div>
+    ${hist.length ? `<div class="eyebrow" style="margin-top:14px">History</div><div class="earn">${hist.map(e => `<div class="row between erow2" style="padding:6px 0"><span>${niceDay(e.d)}</span><span class="num">${esc(prText(m.type, e))}</span></div>`).join("")}</div>` : ""}
+    <div class="row" style="margin-top:16px"><button class="btn ghost grow" id="pC">Close</button><button class="btn grow" id="pY">Save</button></div>`);
+  $("#pC").onclick = closeSheet;
+  $("#pY").onclick = async () => { const n = sel => +(($(sel) || {}).value || 0);
+    const e = m.type === "lift" ? {w: n("#pW"), r: n("#pR") || 1} : m.type === "reps" ? {r: n("#pR")} : m.type === "time" ? {t: n("#pM") * 60 + n("#pS")} : {km: n("#pK")};
+    if (!Object.values(e).some(x => x > 0) || (m.type === "lift" && !e.w)) return toast("Enter your result first");
+    e.d = dayStr(); const isPR = !b || prScore(m.type, e) > prScore(m.type, b);
+    const g2 = gym(); S.profile.gym = {...g2, prs: {...g2.prs, [id]: [...(g2.prs[id] || []), e]}};
+    closeSheet(); render(); toast(isPR ? "New PR! +50 points" : "Saved. Not a PR this time, keep going");
+    try { await DB.saveProfile({gym: S.profile.gym}); } catch (err) { toast(err.message); } };
 }
 
 /* ---------------- type what you ate: AI works out calories ---------------- */
