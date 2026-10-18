@@ -8,11 +8,11 @@
 <link rel="icon" href="icon-192.png">
 <title>FORMA</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="theme-color" content="#efe9df">
+<meta name="theme-color" content="#0b0b0c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="FORMA">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>window.FORMA_CONFIG = window.FORMA_CONFIG || {};</script>
 <script src="config.js" onerror="void 0"></script>
 <style>
@@ -319,6 +319,72 @@ code,.code{background:rgba(17,17,17,.06)}
 .kbig span{font-family:var(--font);font-size:14px;font-weight:500;color:var(--ink2);margin-left:6px;letter-spacing:0}
 .macros3{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:13.5px;color:var(--ink2)}
 .macros3 b{color:var(--ink);font-weight:600}
+/* v5: Volt — black, neon lime, condensed numbers */
+:root{--bg:#0b0b0c;--bg2:#1c1c1f;--card:#151517;--ink:#f4f4f0;--ink2:#a3a39d;--ink3:#7a7a74;--line:#232327;
+  --accent:#d4ff3a;--accent2:#9fbf2c;--accentSoft:rgba(212,255,58,.12);--green:#7ee08a;--greenSoft:rgba(126,224,138,.13);--red:#ff6b5b;--redSoft:rgba(255,107,91,.13);
+  --blue:#e8e8e2;--blueSoft:rgba(232,232,226,.1);--amber:#ffc44d;--amberSoft:rgba(255,196,77,.13);--glass:#151517;--glassLine:#232327;--shadow:none;
+  --font:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;--disp:"Barlow Condensed","Barlow",system-ui,sans-serif;--r:24px;color-scheme:dark}
+body::after{display:none}
+h1{font-family:var(--disp);font-weight:800;font-size:34px;text-transform:uppercase;letter-spacing:.01em;line-height:1.05}
+h2{font-family:var(--disp);font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink2);margin:26px 2px 10px}
+h3{font-family:var(--disp);font-weight:800;text-transform:uppercase;letter-spacing:.02em;font-size:22px}
+.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:11px;font-weight:600;color:var(--ink3)}
+.sub{color:var(--ink2)}
+.card,.tile,.quick button,.badge,.coach,.stat,.item,.chip{background:var(--card);border:none;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+.card{border-radius:24px}
+.big,.bf,.n,.sn,.kcal,.tile .n,.ct,.coins b{font-family:var(--disp);font-weight:800;letter-spacing:.01em}
+.btn{background:var(--accent);color:#0b0b0c;font-weight:700;border-radius:16px}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid #2c2c30}
+.btn.danger{background:var(--redSoft);color:var(--red)}
+.link{color:var(--accent)}
+.mark{background:var(--accent);color:#0b0b0c}
+.avatar,.icon-btn{background:var(--bg2);color:var(--ink);border:none}
+.streak{background:var(--bg2);color:var(--accent)}
+.demo{background:var(--bg2);color:var(--ink2);border:none}
+.pill{background:var(--bg2);color:var(--ink2)}.pill.green{background:var(--greenSoft);color:var(--green)}.pill.amber{background:var(--amberSoft);color:var(--amber)}
+.seg{background:var(--bg2)}.seg button.on{background:#2c2c30;color:var(--ink);box-shadow:none}
+input.in,select.in,textarea.in{background:#111113;border:1px solid #2c2c30;color:var(--ink)}
+.chip{color:var(--ink2);border:1px solid #2c2c30;background:transparent}
+.chip.on{background:var(--accent);color:#0b0b0c;border-color:var(--accent)}
+.item.on{outline:2px solid var(--accent);outline-offset:-2px}
+.item .dot{border:none;display:grid;place-items:center;color:var(--accent)}
+.item .dot svg{width:18px;height:18px}
+.coach{background:var(--accent);color:#0b0b0c}.coach .sub{color:#0b0b0c}.coach .btn{background:#0b0b0c;color:var(--accent)}
+.quick svg{color:var(--accent)}
+nav.tabs{background:rgba(11,11,12,.94);border-top:1px solid #1f1f22;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+nav.tabs button{text-transform:uppercase;letter-spacing:.06em;font-size:10px;font-weight:600;color:var(--ink3)}
+nav.tabs button.on{color:var(--accent)}
+.scrim{background:rgba(0,0,0,.65)}.sheet{background:#151517}
+.toast{background:var(--accent);color:#0b0b0c}
+.week .d{background:var(--bg2)}.week .d.done{background:var(--accent);color:#0b0b0c}
+.badge .medal{background:var(--accent);color:#0b0b0c}
+.l1{background:rgba(212,255,58,.3)!important}.l2{background:rgba(212,255,58,.6)!important}.l3{background:var(--accent)!important}
+.erow2.done .el{color:var(--green)}
+.gymwrap{box-shadow:none;border-radius:18px}
+.bar{background:#26262a}
+header.top{background:rgba(11,11,12,.9)}
+/* Volt screens */
+.ptspill{display:inline-flex;align-items:center;gap:7px;background:var(--bg2);border-radius:99px;padding:8px 14px;font-weight:600;font-size:14.5px;border:none;color:var(--ink);white-space:nowrap}
+.ptspill i{width:8px;height:8px;border-radius:99px;background:var(--accent)}
+.vhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
+.vhero{display:flex;gap:18px;align-items:center;padding:20px}
+.vbig{font-family:var(--disp);font-weight:800;font-size:52px;line-height:1;letter-spacing:.01em}
+.vtiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.vtile{background:var(--card);border-radius:20px;padding:13px;display:grid;gap:5px;min-width:0}
+.vtile b{font-family:var(--disp);font-weight:800;font-size:28px;line-height:1}
+.vbar{height:4px;border-radius:4px;background:#26262a;overflow:hidden}.vbar i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.vsession{width:100%;margin-top:10px;background:var(--accent);color:#0b0b0c;border:none;border-radius:24px;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;text-align:left}
+.vsession .eyebrow,.vsession .sub{color:#0b0b0c;opacity:.8}
+.vsession .vt{font-family:var(--disp);font-weight:800;font-size:28px;text-transform:uppercase;line-height:1.1}
+.vplay{width:54px;height:54px;border-radius:99px;background:#0b0b0c;color:var(--accent);display:grid;place-items:center;flex:none}
+.vrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.vmini{background:var(--card);border-radius:20px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+.vmini b{font-family:var(--disp);font-weight:800;font-size:24px}
+.vmacro{display:grid;gap:6px}.vmacro .lbl{display:flex;justify-content:space-between;font-size:13px}
+.prgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prcell{background:var(--card);border:none;border-radius:18px;padding:13px 14px;display:grid;gap:2px;text-align:left;color:var(--ink)}
+.prcell b{font-family:var(--disp);font-weight:800;font-size:24px}
+.prcell.none b{color:var(--ink3)}
 </style>
 
 </head>
@@ -523,6 +589,11 @@ function barChart(vals, labels, goal, {w = 520, h = 150} = {}) {
   const g = goal ? `<line x1="${L}" x2="${w - R}" y1="${Y(goal)}" y2="${Y(goal)}" stroke="var(--ink3)" stroke-dasharray="4 4"/><text x="${w - R}" y="${Y(goal) - 4}" text-anchor="end">goal ${goal.toLocaleString()}</text>` : "";
   return `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Steps per day">${bars}${g}</svg>`;
 }
+function stepRing(n, goal) {
+  const R = 56, C = 2 * Math.PI * R, p = Math.min(1, n / (goal || 1));
+  return `<svg width="124" height="124" viewBox="0 0 132 132" aria-hidden="true" style="flex:none"><circle cx="66" cy="66" r="${R}" fill="none" stroke="#26262a" stroke-width="14"/>
+    ${p > 0 ? `<circle cx="66" cy="66" r="${R}" fill="none" stroke="var(--accent)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${(C * p).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 66 66)"/>` : ""}</svg>`;
+}
 function ring(eaten, target) {
   const R = 64, C = 2 * Math.PI * R, p = Math.min(1, eaten / (target || 1)), over = eaten > target;
   return `<div class="ring"><svg viewBox="0 0 150 150"><circle cx="75" cy="75" r="${R}" fill="none" stroke="var(--bg2)" stroke-width="13"/>
@@ -531,7 +602,7 @@ function ring(eaten, target) {
 }
 
 /* ---------------- screens ---------------- */
-const TABS = [["today", "Today"], ["food", "Food"], ["body", "Body"], ["gym", "Gym"], ["activity", "Train"], ["profile", "Me"]];
+const TABS = [["today", "Today"], ["food", "Food"], ["body", "Body"], ["gym", "House"], ["activity", "Train"], ["profile", "Me"]];
 const TAB_ICON = {activity: "train"};
 function nav() {
   const n = $("#tabs"); n.hidden = false;
@@ -600,15 +671,19 @@ function renderOnboarding(v) {
 function renderToday(v) {
   const t = dayStr(), tg = targets(S.profile), tot = dayTotals(t), h = healthOf(t);
   const stk = streak();
-  const hello = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening";
+  const steps = r0(h?.steps || 0), T = trainingTotals(), trainedToday = trainingMap().has(t);
+  const vtile = (l, n, p) => `<div class="vtile"><span class="eyebrow">${l}</span><b class="num">${n}</b><span class="vbar"><i style="width:${Math.max(0, Math.min(100, (p || 0) * 100))}%"></i></span></div>`;
   const macro = (l, val, goal, col) => `<div class="macro"><div class="lbl"><span>${l}</span><span class="num">${r0(val)} / ${goal} g</span></div><div class="bar"><i style="width:${Math.min(100, val / goal * 100)}%;background:${col}"></i></div></div>`;
   const tile = (l, n, unit = "") => `<div class="tile"><div class="l">${l}</div><div class="n num">${n}<span class="sub"> ${unit}</span></div></div>`;
   v.innerHTML = `${demoBanner()}
-    <div><div class="sub">${new Date().toLocaleDateString(undefined, {weekday: "long", day: "numeric", month: "long"})}</div><h1>${hello}, ${esc(S.profile.name)}</h1></div>
-    <div class="card hero" style="margin-top:12px">${ring(tot.kcal, tg.kcal)}
-      <div class="stack" style="gap:10px"><div class="row between"><span class="eyebrow">Eaten</span><span class="num" style="font-weight:700;white-space:nowrap;font-size:14px">${r0(tot.kcal).toLocaleString()} / ${tg.kcal.toLocaleString()}</span></div>
-      <div class="row between"><span class="eyebrow">Burned (Watch)</span><span class="num" style="font-weight:700;font-size:14px">${h && h.active_kcal != null ? r0(h.active_kcal).toLocaleString() + " kcal" : "–"}</span></div>
-      ${macro("Protein", tot.p, tg.protein, "var(--accent)")}${macro("Carbs", tot.c, tg.carbs, "var(--blue)")}${macro("Fat", tot.f, tg.fat, "var(--amber)")}</div></div>
+    <div class="vhead"><div><div class="eyebrow">${new Date().toLocaleDateString(undefined, {weekday: "long"})}${stk ? ` · Day ${stk}` : ""}</div><h1 style="margin:2px 0 0">Go, ${esc(S.profile.name)}</h1></div>
+      <button class="ptspill" id="toHouse"><i></i>${wallet().toLocaleString()} pts</button></div>
+    <div class="card vhero" style="margin-top:14px">${stepRing(steps, tg.steps)}<div><div class="eyebrow">Steps</div><div class="vbig num">${steps.toLocaleString()}</div>
+      <div class="sub num">of ${tg.steps.toLocaleString()} · ${r0(Math.min(999, steps / (tg.steps || 1) * 100))}%</div></div></div>
+    <div class="vtiles">${vtile("Kcal", r0(tot.kcal).toLocaleString(), tot.kcal / tg.kcal)}${vtile("Protein", r0(tot.p) + "g", tot.p / tg.protein)}${vtile("Burn", h && h.active_kcal != null ? r0(h.active_kcal) : "–", (h?.active_kcal || 0) / 600)}</div>
+    <button class="vsession" id="toTrain"><div><div class="eyebrow">Today's training</div><div class="vt">${trainedToday ? "Trained today" : "Train today"}</div>
+      <div class="sub">${T.week} of 7 days this week · new PR = +50 pts</div></div><span class="vplay"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg></span></button>
+    <div class="vrow"><div class="vmini"><span class="sub">Streak</span><b class="num">${stk} day${stk === 1 ? "" : "s"}</b></div><div class="vmini"><span class="sub">Level</span><b class="num">${levelOf(avatarPoints().xp).L}</b></div></div>
     ${stk && !of("meal", t).length ? `<div class="demo" style="margin-top:12px;background:var(--accentSoft);color:var(--accent)">${ICON.flame}<span class="grow">Your ${stk}-day streak is waiting. Log a meal today to keep it going.</span></div>` : ""}
     <div style="margin-top:12px">${quickAddBox("qa")}</div>
     <div class="quick" style="margin-top:12px">
@@ -620,6 +695,7 @@ function renderToday(v) {
     <h2>Coach</h2>
     <div class="card coach"><div class="stack" style="gap:10px"><div id="tipText" style="font-weight:600">Get one clear thing to do today, based on what you've eaten and how much you've moved.</div>
       <div><button class="btn small" id="tipGo">Get today's tip</button></div></div></div>`;
+  $("#toHouse").onclick = () => go("gym"); $("#toTrain").onclick = () => go("activity");
   bindQuickAdd("qa"); $("#qMeal").onclick = snapMeal; $("#qScan").onclick = scanBarcode; $("#qWeight").onclick = weightSheet; $("#qBody").onclick = physiqueCheck;
   if ($("#toSync")) $("#toSync").onclick = () => go("activity");
   $("#tipGo").onclick = async () => { const b = $("#tipGo"); b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
@@ -643,6 +719,10 @@ function renderFood(v) {
     <div class="daynav" style="margin-top:6px"><button class="icon-btn" id="dPrev" aria-label="Previous day">${ICON.left}</button>
       <div style="text-align:center"><h1 style="margin:0">${niceDay(d)}</h1><div class="sub num">${r0(tot.kcal).toLocaleString()} of ${tg.kcal.toLocaleString()} kcal · ${r0(tot.p)} g protein</div></div>
       <button class="icon-btn" id="dNext" aria-label="Next day" ${d >= dayStr() ? "disabled" : ""}>${ICON.right}</button></div>
+    <div class="card" style="margin-top:14px"><div class="row between" style="align-items:flex-end"><div><div class="eyebrow">${tot.kcal > tg.kcal ? "Calories over" : "Calories left"}</div>
+      <div class="vbig num" style="color:${tot.kcal > tg.kcal ? "var(--red)" : "var(--accent)"}">${r0(Math.abs(tg.kcal - tot.kcal)).toLocaleString()}</div></div><span class="sub num">${r0(tot.kcal).toLocaleString()} / ${tg.kcal.toLocaleString()}</span></div>
+      <div class="stack" style="gap:9px;margin-top:14px">${[["Protein", tot.p, tg.protein, "var(--accent)"], ["Carbs", tot.c, tg.carbs, "#f4f4f0"], ["Fat", tot.f, tg.fat, "#7a7a74"]].map(([l, val, goal, col]) =>
+        `<div class="vmacro"><div class="lbl"><span>${l}</span><span class="sub num">${r0(val)} / ${goal}g</span></div><span class="vbar" style="height:6px"><i style="width:${Math.min(100, val / (goal || 1) * 100)}%;background:${col}"></i></span></div>`).join("")}</div></div>
     <div class="row" style="margin-top:14px"><button class="btn grow" id="snap">${ICON.camera}Snap a meal</button><button class="btn ghost" id="scanBc" aria-label="Scan a barcode">${ICON.barcode}</button><button class="btn ghost" id="manual">Manual</button></div>
     <div style="margin-top:10px">${quickAddBox("qaF")}</div>
     ${groups.length ? groups.map(([m, list]) => `<h2>${m[0].toUpperCase() + m.slice(1)}<span class="sub num">${r0(list.map(mealTotals).reduce((a, t) => a + t.kcal, 0))} kcal</span></h2>
@@ -752,6 +832,7 @@ function renderActivity(v) {
   const url = LIVE ? CFG.SUPABASE_URL + "/functions/v1/health-sync" : "https://your-project.supabase.co/functions/v1/health-sync";
   v.innerHTML = `${demoBanner()}<h1>Train</h1>
     ${trainingSummary(true)}
+    ${prGrid()}
     ${caloriesCard()}
     <h2>Steps</h2>
     <div class="card"><div class="row between"><div><div class="eyebrow">Last 7 days</div><div class="bf num">${avg.toLocaleString()} <span class="sub">a day on average</span></div></div></div>
@@ -763,10 +844,18 @@ function renderActivity(v) {
       : `<div class="empty">No workouts yet this week. Workouts you record on your Apple Watch appear here after the daily sync.</div>`}</div>
     ${watchSection(tok, url)}`;
   $("#addW").onclick = workoutSheet; bindWatch(); bindCalories();
+  v.querySelectorAll("[data-mach]").forEach(el => el.onclick = () => prSheet(el.dataset.mach));
   scrollYear();
   v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => confirmSheet("Delete this workout?", async () => { await DB.remove(b.dataset.del); render(); }));
   v.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => { const el = $("#" + b.dataset.copy);
     navigator.clipboard?.writeText(el.textContent).then(() => toast("Copied"), () => { getSelection().selectAllChildren(el); toast("Selected, copy it from the menu"); }); });
+}
+function prGrid() {
+  const g = gym(), ids = Object.keys(MACH), n = ids.filter(id => (g.prs[id] || []).length).length;
+  return `<h2>All machines · your PRs <span class="sub" style="text-transform:none;letter-spacing:0">${n} of ${ids.length} logged</span></h2>
+    <div class="prgrid">${ids.map(id => { const m = MACH[id], b = bestPR(id, g);
+      return `<button class="prcell ${b ? "" : "none"}" data-mach="${id}"><span class="sub">${esc(m.name)}</span><b class="num">${b ? esc(prText(m.type, b)) : "Log PR"}</b></button>`; }).join("")}</div>
+    <div class="sub" style="margin-top:8px">Every machine is free. Each new PR earns +50 points and puts that machine in your house's gym room.</div>`;
 }
 function workoutSheet() {
   sheet(`<h3>Add a workout</h3><form id="wkf" class="stack" style="margin-top:12px">
@@ -1177,7 +1266,7 @@ function avatarPoints() {
   for (const d of seen) { const p = dayTotal(d); if ((days[d] || 0) !== p) { days[d] = p; changed = true; } }
   const weeks = [...new Set([...seen].map(weekStart))].filter(w => addDays(w, 6) < t || w === weekStart(t));
   const xp = Object.values(days).reduce((s, x) => s + x, 0) + weeks.reduce((s, w) => s + weekBonus(w), 0) + prBonus();
-  return {xp, coins: Math.max(0, xp - (a.spent || 0) - (gym().spent || 0)), days, changed};
+  return {xp, coins: Math.max(0, xp - (a.spent || 0) - (gym().hspent || 0)), days, changed};
 }
 function levelOf(xp) { let L = 1; while (xp >= 100 * L * (L + 1)) L++; const lo = 100 * L * (L - 1), hi = 100 * L * (L + 1); return {L, lo, hi, pct: Math.min(100, (xp - lo) / (hi - lo) * 100)}; }
 const tierOf = L => L < 3 ? 0 : L < 6 ? 1 : L < 10 ? 2 : L < 15 ? 3 : 4;
@@ -1270,9 +1359,9 @@ function fireSVG(lvl) {
 }
 const fireLevel = (tier, stk) => Math.max(tier, stk >= 10 ? 4 : stk >= 5 ? 3 : stk >= 3 ? 2 : 0);
 // line-only body: ink outline, no fill colour, no face, no hair; pose and fire improve with each body tier
-const PAPER = "#f7f2e9";
+const PAPER = "#151517";
 function avatarSVG(a, tier, eqOver, stk = 0) {
-  const fem = S.profile?.sex === "female", t = tier, cx = 120, K = "#1d1814", gid = "o" + Math.random().toString(36).slice(2, 7);
+  const fem = S.profile?.sex === "female", t = tier, cx = 120, K = "#f4f4f0", gid = "o" + Math.random().toString(36).slice(2, 7);
   const SW = fem ? 23 + t * 2.4 : 26 + t * 5, WW = fem ? 15 : 19.5 - t * .8, HW = fem ? 22 + t * .4 : 18 + t * .5;
   const A = fem ? 5 + t * .9 : 5.6 + t * 1.9, Fr = fem ? 4.2 + t * .6 : 4.6 + t * 1.3, LG = fem ? 10.5 + t : 10.5 + t * 2, CF = fem ? 5.6 + t * .6 : 5.8 + t * 1.1, NW = fem ? 5.2 : 6 + t * 1.6;
   const F = PAPER, st = `stroke="${K}" stroke-width="1.3" stroke-linejoin="round"`, OL = `filter="url(#${gid}o)"`;
@@ -1431,7 +1520,7 @@ function bindAvatar() {
   });
 }
 
-/* ---------------- home gym (top-down): machines hold your PRs, decorate with points ---------------- */
+/* ---------------- machines (all free) hold your PRs; the house is bought with points ---------------- */
 const MACH = {
   bench: {name: "Bench press", type: "lift", price: 0}, rack: {name: "Squat rack", type: "lift", price: 0, ex: "Squat"},
   dumbbells: {name: "Dumbbells", type: "lift", price: 0, ex: "Dumbbell press"}, pullup: {name: "Pull-up bar", type: "reps", price: 500, ex: "Pull-ups"},
@@ -1445,18 +1534,25 @@ const MACH = {
   treadmill: {name: "Treadmill", type: "time", price: 1500, ex: "5 km run"}, rower: {name: "Rowing machine", type: "time", price: 1500, ex: "2 km row"},
   stair: {name: "Stair climber", type: "reps", price: 1600, ex: "Floors in 10 min"}, cable: {name: "Cable crossover", type: "lift", price: 1800, ex: "Cable fly"},
 };
-const DECOR = {
-  wall: {cream: ["Cream", 0, "#e7dcc8"], white: ["White", 150, "#f4f2ed"], brick: ["Brick", 400, "#a8644d"], concrete: ["Concrete", 600, "#8d8a85"], wood: ["Wood panels", 800, "#8f6640"], dark: ["Dark", 700, "#2c2a27"]},
-  floor: {wood: ["Wood", 0, "#c99c6b"], rubber: ["Rubber mats", 300, "#353535"], concrete: ["Concrete", 400, "#a8a49c"], marble: ["Marble", 1000, "#ebe7e0"]},
-  light: {none: ["None", 0], pendant: ["Ceiling lights", 400], strip: ["LED strip", 500], neon: ["Neon PR sign", 700]},
-  wallart: {none: ["None", 0], window: ["Windows", 800], tv: ["TV", 1100], trophies: ["Trophy shelf", 900], mirror: ["Mirror wall", 1200]},
-  plant: {none: ["None", 0], small: ["Plants", 200], big: ["Big plants", 400]},
-  floorart: {none: ["None", 0], rug: ["Rug", 300], speaker: ["Speakers", 450], cooler: ["Water cooler", 350]},
+/* house: everything here is bought with points; machines are free and appear in the gym room once you log a PR */
+const HOUSE = {
+  house: [["windows", "Windows", 300], ["lights", "Ceiling lights", 250], ["garden", "Garden and trees", 500], ["paving", "Paved driveway", 400],
+    ["fence", "Garden hedge", 450], ["deck", "Wooden deck", 700], ["pool", "Swimming pool", 2500], ["loungers", "Pool loungers", 400]],
+  cars: [["hatch", "City hatchback", 800, "#3f7fc4"], ["pickup", "Pickup truck", 1600, "#b8412f"], ["suv", "Black SUV", 2400, "#2a2b30"],
+    ["sports", "Sports car", 4000, "#c6ec2e"], ["super", "Supercar", 8000, "#ff7a1a"]],
+  walls: [["wall:plaster", "Bare plaster", 0, "#bdb6a8"], ["wall:white", "White paint", 150, "#f2efe8"], ["wall:concrete", "Concrete", 400, "#8d8a85"],
+    ["wall:brick", "Brick", 600, "#a8644d"], ["wall:wood", "Wood panels", 800, "#8f6640"], ["wall:dark", "Charcoal", 600, "#3a3833"],
+    ["floor:bare", "Concrete floor", 0, "#9a978f"], ["floor:wood", "Wood floor", 500, "#c2956a"], ["floor:tile", "Tiled floor", 400, "#e9e6df"], ["floor:marble", "Marble floor", 1200, "#f3f0ea"]],
+  decor: [["sofa", "Sofa", 600], ["rug", "Rug", 250], ["table", "Coffee table", 200], ["tv", "TV wall", 900], ["lamp", "Floor lamp", 180], ["plant", "Plants", 150],
+    ["counter", "Kitchen counter", 700], ["island", "Kitchen island", 600], ["stools", "Bar stools", 200], ["gymfloor", "Gym floor mats", 300], ["mirror", "Gym mirror", 400], ["speakers", "Speakers", 350]],
 };
-const DECOR_TABS = [["machines", "Machines"], ["wall", "Walls"], ["floor", "Floors"], ["light", "Lights"], ["wallart", "Wall"], ["plant", "Plants"], ["floorart", "Extras"]];
-const SLOTS = 12;
-const gymDefault = () => ({owned: ["bench", "rack", "dumbbells"], placed: ["bench", "rack", "dumbbells"], decor: {wall: "cream", floor: "wood", light: "none", wallart: "none", plant: "none", floorart: "none"}, ownedDecor: ["wall:cream", "floor:wood"], prs: {}, spent: 0});
-const gym = () => { const g = {...gymDefault(), ...(S.profile.gym || {})}; g.decor = {...gymDefault().decor, ...(g.decor || {})}; if (!DECOR.wallart[g.decor.wallart]) g.decor.wallart = "none"; return g; };
+const HTABS = [["house", "House"], ["cars", "Cars"], ["walls", "Walls"], ["decor", "Decor"]];
+const HITEM = {};
+for (const [cat, list] of Object.entries(HOUSE)) for (const [id, name, price, c] of list) HITEM[id] = {cat, name, price, c};
+const gymDefault = () => ({prs: {}, hown: [], hon: [], hsel: {wall: "plaster", floor: "bare", car: null}, hspent: 0});
+const gym = () => { const g = {...gymDefault(), ...(S.profile.gym || {})}; g.prs = g.prs || {}; g.hown = g.hown || []; g.hon = g.hon || []; g.hsel = {...gymDefault().hsel, ...(g.hsel || {})}; return g; };
+const hOwned = (g, id) => HITEM[id].price === 0 || g.hown.includes(id);
+const hOn = (g, id) => { const [k, v] = id.split(":"); return v ? g.hsel[k] === v : HITEM[id].cat === "cars" ? g.hsel.car === id : g.hon.includes(id); };
 const prScore = (type, e) => type === "lift" ? e.w * (1 + (e.r || 1) / 30) : type === "reps" ? e.r : type === "time" ? -(e.t || 0) : type === "dur" ? e.t : e.km;
 const mmss = t => `${Math.floor(t / 60)}:${String(Math.round(t % 60)).padStart(2, "0")}`;
 const prText = (type, e) => !e ? "No PR yet" : type === "lift" ? `${r1(e.w)} kg × ${e.r}` : type === "reps" ? `${e.r} reps` : type === "time" || type === "dur" ? mmss(e.t) : `${r1(e.km)} km`;
@@ -1510,86 +1606,124 @@ function machineSVG(id) {
     cable: `${stack(-46, -24, 14, 40)}${stack(32, -24, 14, 40)}<rect x="-46" y="-30" width="92" height="5" rx="2.5" fill="url(#gm)"/><path d="M-32 -6 L-8 8 M32 -6 L8 8" stroke="#999" stroke-width="1.2"/><rect x="-12" y="6" width="8" height="5" rx="2" fill="#222"/><rect x="4" y="6" width="8" height="5" rx="2" fill="#222"/>`,
   }[id] || "";
 }
-function gymSVG(g) {
-  const d = g.decor, wall = DECOR.wall[d.wall][2], floor = DECOR.floor[d.floor][2], W = 360, H = 470, T = 16;
-  const wallTex = d.wall === "brick" ? `<pattern id="pb" width="20" height="10" patternUnits="userSpaceOnUse"><rect width="20" height="10" fill="${wall}"/><path d="M0 0 H20 M0 5 H20 M5 0 V5 M15 5 V10" stroke="#7a4434" stroke-width="1"/></pattern>`
-    : d.wall === "wood" ? `<pattern id="pb" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="${wall}"/><path d="M0 0 V8" stroke="#6e4c2f" stroke-width="1"/></pattern>` : "";
-  const floorPat = d.floor === "wood" ? `<pattern id="pf" width="60" height="18" patternUnits="userSpaceOnUse"><rect width="60" height="18" fill="${floor}"/><rect width="60" height="18" fill="url(#gw)" opacity=".35"/><path d="M0 0 H60 M0 9 H60 M18 0 V9 M48 9 V18" stroke="#a37a4f" stroke-width="1"/></pattern>`
-    : d.floor === "rubber" ? `<pattern id="pf" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="${floor}"/><path d="M0 0 H40 V40" stroke="#222" stroke-width="1.2" fill="none"/>${Array.from({length: 6}, (_, i) => `<circle cx="${5 + (i * 13) % 34}" cy="${6 + (i * 17) % 32}" r=".8" fill="#4a4a4a"/>`).join("")}</pattern>`
-    : d.floor === "concrete" ? `<pattern id="pf" width="90" height="90" patternUnits="userSpaceOnUse"><rect width="90" height="90" fill="${floor}"/><path d="M0 0 H90 V90" stroke="#8d8981" stroke-width="1" fill="none"/><circle cx="30" cy="40" r="10" fill="#b3afa7" opacity=".5"/></pattern>`
-    : `<pattern id="pf" width="80" height="80" patternUnits="userSpaceOnUse"><rect width="80" height="80" fill="${floor}"/><path d="M0 0 H80 V80" stroke="#d6d0c6" stroke-width="1" fill="none"/><path d="M8 20 q20 6 34 26 M50 6 q10 20 26 30" stroke="#cfc6b8" stroke-width="1" fill="none"/></pattern>`;
-  const wallFill = wallTex ? "url(#pb)" : wall;
-  const art = {window: [70, 180, 290].map(x => `<rect x="${x - 30}" y="2" width="60" height="${T - 4}" fill="#bfe1ec"/><path d="M${x} 2 V${T - 2}" stroke="#fff" stroke-width="1.5"/>`).join(""),
-    tv: `<rect x="130" y="${T - 2}" width="100" height="7" rx="2" fill="#111"/><rect x="134" y="${T - 1}" width="92" height="3" fill="#2f5d7a"/>`,
-    trophies: `<rect x="110" y="${T - 2}" width="140" height="8" fill="#6b4a2c"/>${[125, 150, 175, 200, 225].map((x, i) => `<circle cx="${x}" cy="${T + 2}" r="${3 + (i % 2)}" fill="#d6b56f" stroke="#8a6d33"/>`).join("")}`,
-    mirror: `<rect x="${T}" y="${T}" width="${W - T * 2}" height="5" fill="#cfe3ea"/><rect x="${T}" y="${T}" width="${W - T * 2}" height="2" fill="#fff" opacity=".7"/>`}[d.wallart] || "";
-  const light = {pendant: [[90, 120], [270, 120], [90, 320], [270, 320]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="70" fill="url(#glow)"/>`).join(""),
-    strip: `<rect x="${T}" y="${T}" width="${W - T * 2}" height="${H - T * 2}" fill="none" stroke="#7fe3ff" stroke-width="3" opacity=".9"/><rect x="${T + 3}" y="${T + 3}" width="${W - T * 2 - 6}" height="${H - T * 2 - 6}" fill="none" stroke="#7fe3ff" stroke-width="8" opacity=".15"/>`,
-    neon: `<text x="${W / 2}" y="${T - 3}" font-size="14" font-weight="900" text-anchor="middle" fill="#ff4fa0">PR</text><ellipse cx="${W / 2}" cy="${T + 10}" rx="60" ry="14" fill="#ff4fa0" opacity=".18"/>`}[d.light] || "";
-  const leaf = (x, y, r) => `<g filter="url(#sh)"><circle cx="${x}" cy="${y}" r="${r * .55}" fill="#8a5a3a"/>${Array.from({length: 7}, (_, i) => { const a = i * 2 * Math.PI / 7; return `<ellipse cx="${x + Math.cos(a) * r * .5}" cy="${y + Math.sin(a) * r * .5}" rx="${r * .45}" ry="${r * .22}" fill="${i % 2 ? "#5f9e6b" : "#78b583"}" transform="rotate(${a * 180 / Math.PI} ${x + Math.cos(a) * r * .5} ${y + Math.sin(a) * r * .5})"/>`; }).join("")}</g>`;
-  const plant = d.plant === "none" ? "" : d.plant === "big" ? leaf(T + 11, T + 11, 15) + leaf(W - T - 11, T + 11, 15) + leaf(T + 11, H - T - 11, 15) + leaf(W - T - 11, H - T - 11, 15) : leaf(T + 10, T + 10, 11) + leaf(W - T - 10, H - T - 10, 11);
-  const floorart = {rug: `<rect x="90" y="150" width="180" height="170" rx="8" fill="#a85a40" opacity=".55"/><rect x="100" y="160" width="160" height="150" rx="6" fill="none" stroke="#e8c9a8" stroke-width="2" opacity=".6"/>`,
-    speaker: [[T + 10, H / 2 - 10], [W - T - 22, H / 2 - 10]].map(([x, y]) => `<g filter="url(#sh)"><rect x="${x}" y="${y}" width="12" height="20" rx="2" fill="#1c1c1c"/><circle cx="${x + 6}" cy="${y + 10}" r="4" fill="#444"/></g>`).join(""),
-    cooler: `<g filter="url(#sh)"><circle cx="${W - T - 14}" cy="${H / 2 + 40}" r="10" fill="#f2f2f2"/><circle cx="${W - T - 14}" cy="${H / 2 + 40}" r="6" fill="#9fd3ec"/></g>`}[d.floorart] || "";
-  const pos = [80, 186, 292, 398].flatMap(y => [65, 180, 295].map(x => [x, y]));
-  const machines = g.placed.slice(0, SLOTS).map((id, i) => { const [x, y] = pos[i], b = bestPR(id, g), label = b ? prText(MACH[id].type, b) : MACH[id].name, w = Math.max(56, label.length * 5.4);
-    return `<g class="mach" data-mach="${id}" role="button" aria-label="${esc(MACH[id].name)}: ${esc(b ? label : "no PR yet")}"><rect x="${x - 54}" y="${y - 48}" width="108" height="100" fill="transparent"/>
-      <g transform="translate(${x} ${y - 6})" filter="url(#sh)">${machineSVG(id)}</g>
-      <rect x="${x - w / 2}" y="${y + 36}" width="${w}" height="15" rx="7.5" fill="${b ? "#1d1814" : "rgba(29,24,20,.6)"}"/><text x="${x}" y="${y + 46.5}" font-size="9" font-weight="700" text-anchor="middle" fill="#fff">${esc(label)}</text></g>`; }).join("");
-  const empty = Array.from({length: Math.max(0, SLOTS - g.placed.length)}, (_, k) => { const [x, y] = pos[g.placed.length + k];
-    return `<rect x="${x - 40}" y="${y - 34}" width="80" height="62" rx="8" fill="none" stroke="${d.floor === "rubber" ? "#666" : "rgba(29,24,20,.25)"}" stroke-width="1.5" stroke-dasharray="5 4"/>`; }).join("");
-  return `<svg viewBox="0 0 ${W} ${H}" class="gymsvg" role="img" aria-label="Your home gym, seen from above">
-    <defs>${MDEFS}${wallTex}${floorPat}<radialGradient id="glow"><stop offset="0" stop-color="#fff3c4" stop-opacity=".55"/><stop offset="1" stop-color="#fff3c4" stop-opacity="0"/></radialGradient>
-      <linearGradient id="wsh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient></defs>
-    <rect width="${W}" height="${H}" fill="url(#pf)"/>
-    ${floorart}${light}
-    <rect x="${T}" y="${T}" width="${W - T * 2}" height="14" fill="url(#wsh)"/><rect x="${T}" y="${T}" width="14" height="${H - T * 2}" fill="url(#wsh)" transform="rotate(0)"/>
-    ${empty}${machines}${plant}
-    <path d="M0 0 H${W} V${H} H0 Z M${T} ${T} V${H - T} H${W - T} V${T} Z" fill="${wallFill}" fill-rule="evenodd"/>
-    <path d="M${T} ${T} H${W - T} V${H - T} H${T} Z" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1.5"/>
-    <rect x="${W / 2 - 26}" y="${H - T}" width="52" height="${T}" fill="url(#pf)"/><path d="M${W / 2 - 26} ${H - T} a26 26 0 0 1 26 -26 V${H - T}" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1.2" stroke-dasharray="3 3"/>
-    ${art}
-  </svg>`;
+function carSVG(type, col) {
+  const dk = shade(col, .55), lt = shade(col, 1.25);
+  const dim = {hatch: [46, 84, 16], pickup: [54, 116, 10], suv: [54, 106, 12], sports: [52, 112, 20], super: [58, 112, 24]}[type] || [50, 100, 14];
+  const [w, h, r] = dim, x = -w / 2, y = -h / 2;
+  const glass = (y1, y2, inset) => `<path d="M${x + inset} ${y1 + 6} Q0 ${y1 - 4} ${-x - inset} ${y1 + 6} L${-x - inset - 3} ${y2} Q0 ${y2 - 5} ${x + inset + 3} ${y2} Z" fill="url(#hglass)"/>`;
+  let body = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#hcar)"/>`;
+  if (type === "pickup") body += `${glass(y + 22, y + 40, 6)}<rect x="${x + 6}" y="${y + 42}" width="${w - 12}" height="14" rx="3" fill="${dk}" opacity=".6"/><rect x="${x + 5}" y="${y + 62}" width="${w - 10}" height="${h - 68}" rx="3" fill="${dk}"/><rect x="${x + 8}" y="${y + 65}" width="${w - 16}" height="${h - 74}" rx="2" fill="#1d1d1f" opacity=".55"/>`;
+  else if (type === "suv") body += `${glass(y + 20, y + 36, 6)}<rect x="${x + 6}" y="${y + 38}" width="${w - 12}" height="${h - 62}" rx="5" fill="${dk}" opacity=".55"/><g stroke="#111" stroke-width="2" opacity=".5"><path d="M${x + 12} ${y + 44} V${y + h - 30} M${-x - 12} ${y + 44} V${y + h - 30}"/></g>${glass(y + h - 22, y + h - 10, 7)}`;
+  else body += `${glass(y + (type === "hatch" ? 18 : 30), y + (type === "hatch" ? 34 : 46), 5)}<rect x="${x + 7}" y="${y + (type === "hatch" ? 36 : 48)}" width="${w - 14}" height="${type === "hatch" ? 26 : 28}" rx="5" fill="${dk}" opacity=".5"/>
+    <path d="M${x + 7} ${y + h - (type === "hatch" ? 18 : 30)} Q0 ${y + h - (type === "hatch" ? 14 : 24)} ${-x - 7} ${y + h - (type === "hatch" ? 18 : 30)} L${-x - 9} ${y + h - (type === "hatch" ? 8 : 18)} Q0 ${y + h - 4 - (type === "hatch" ? 0 : 10)} ${x + 9} ${y + h - (type === "hatch" ? 8 : 18)} Z" fill="url(#hglass)"/>`;
+  if (type === "super" || type === "sports") body += `<path d="M${x + 8} ${y + 8} Q0 ${y + 2} ${-x - 8} ${y + 8}" stroke="${lt}" stroke-width="2" fill="none" opacity=".7"/>`;
+  const lights = `<rect x="${x + 4}" y="${y + 2}" width="11" height="4" rx="2" fill="#fffbe0"/><rect x="${-x - 15}" y="${y + 2}" width="11" height="4" rx="2" fill="#fffbe0"/>
+    <rect x="${x + 4}" y="${-y - 5}" width="11" height="3.5" rx="1.75" fill="#d23a2a"/><rect x="${-x - 15}" y="${-y - 5}" width="11" height="3.5" rx="1.75" fill="#d23a2a"/>`;
+  const mirrors = `<rect x="${x - 4}" y="${y + h * .3}" width="5" height="8" rx="2" fill="${dk}"/><rect x="${-x - 1}" y="${y + h * .3}" width="5" height="8" rx="2" fill="${dk}"/>`;
+  return `<defs><linearGradient id="hcar" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${dk}"/><stop offset=".5" stop-color="${lt}"/><stop offset="1" stop-color="${dk}"/></linearGradient></defs>${mirrors}${body}${lights}`;
+}
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.max(0, Math.min(255, Math.round(f > 1 ? v + (255 - v) * (f - 1) : v * f))));
+  return "#" + c.map(v => v.toString(16).padStart(2, "0")).join("");
+}
+function houseSVG(g) {
+  const on = id => hOn(g, id), wall = HITEM["wall:" + g.hsel.wall]?.c || "#bdb6a8", fl = g.hsel.floor;
+  const floorFill = {wood: "url(#hwood)", tile: "url(#htile)", marble: "url(#hmarble)"}[fl] || "url(#hbare)";
+  const recent = Object.keys(MACH).filter(id => (g.prs[id] || []).length)
+    .sort((a, b) => { const la = g.prs[a].map(e => e.d).sort().at(-1), lb = g.prs[b].map(e => e.d).sort().at(-1); return la < lb ? 1 : -1; }).slice(0, 6);
+  const mpos = [[43, 56], [93, 56], [43, 126], [93, 126], [43, 194], [93, 194]];
+  const machines = recent.map((id, i) => { const [x, y] = mpos[i], b = bestPR(id, g);
+    return `<g class="mach" data-mach="${id}" role="button" aria-label="${esc(MACH[id].name)}: ${esc(prText(MACH[id].type, b))}"><rect x="${x - 24}" y="${y - 30}" width="48" height="60" fill="transparent"/>
+      <g transform="translate(${x} ${y}) scale(.42)" filter="url(#sh)">${machineSVG(id)}</g></g>`; }).join("");
+  const tree = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#htree)" filter="url(#hshB)"/><circle cx="${x - r * .3}" cy="${y - r * .3}" r="${r * .35}" fill="#7db562" opacity=".5"/>`;
+  const glow = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#hglow)"/>`;
+  return `<svg viewBox="0 0 346 380" class="gymsvg" role="img" aria-label="Your house, seen from above">
+  <defs>${MDEFS}
+    <pattern id="hgrass" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="${on("garden") ? "#4a7a3a" : "#7a7652"}"/><path d="M1 7 L2 4 M5 8 L6 5 M3 3 L4 0" stroke="${on("garden") ? "#3d6930" : "#6a6646"}" stroke-width="1"/><path d="M6 2 L7 0" stroke="${on("garden") ? "#5a8c47" : "#8a8660"}" stroke-width="1"/></pattern>
+    <pattern id="hwood" width="96" height="12" patternUnits="userSpaceOnUse"><rect width="96" height="12" fill="#b88a5a"/><rect width="96" height="6" fill="#c2956a"/><path d="M0 6 H96 M0 12 H96 M30 0 V6 M74 6 V12" stroke="#8e6a43" stroke-width=".8"/></pattern>
+    <pattern id="hrubber" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#2c2d31"/><path d="M0 0 H16 M0 0 V16" stroke="#232428" stroke-width="1.2"/></pattern>
+    <pattern id="hbare" width="60" height="60" patternUnits="userSpaceOnUse"><rect width="60" height="60" fill="#9a978f"/><circle cx="14" cy="20" r="9" fill="#a6a39b" opacity=".6"/><circle cx="44" cy="46" r="1" fill="#85827b"/><path d="M0 60 H60 V0" stroke="#8a877f" stroke-width="1" fill="none"/></pattern>
+    <pattern id="htile" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="#e9e6df"/><path d="M0 0 H14 M0 0 V14" stroke="#cfcac0" stroke-width="1"/></pattern>
+    <pattern id="hmarble" width="70" height="70" patternUnits="userSpaceOnUse"><rect width="70" height="70" fill="#f3f0ea"/><path d="M0 0 H70 V70" stroke="#dcd6cc" stroke-width="1" fill="none"/><path d="M6 18 q18 6 30 24 M42 4 q8 18 24 26" stroke="#d2cabd" stroke-width="1" fill="none"/></pattern>
+    <pattern id="hdeck" width="10" height="40" patternUnits="userSpaceOnUse"><rect width="10" height="40" fill="#9c7650"/><path d="M0 0 V40" stroke="#7d5c3c" stroke-width="1"/></pattern>
+    <pattern id="hconc" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="#a8a69f"/><circle cx="9" cy="13" r=".8" fill="#96948d"/><circle cx="28" cy="31" r=".8" fill="#96948d"/><path d="M0 40 H40" stroke="#8f8d86" stroke-width="1"/></pattern>
+    <pattern id="hgravel" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#8f897b"/><circle cx="2" cy="3" r="1" fill="#a39d8e"/><circle cx="7" cy="6" r="1.1" fill="#7a7466"/><circle cx="4" cy="8.5" r=".8" fill="#b0aa9b"/></pattern>
+    <linearGradient id="hwater" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5fd0e8"/><stop offset="1" stop-color="#1f8fb8"/></linearGradient>
+    <linearGradient id="hglass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a4552"/><stop offset="1" stop-color="#11161c"/></linearGradient>
+    <linearGradient id="hsofa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b6470"/><stop offset="1" stop-color="#434b55"/></linearGradient>
+    <radialGradient id="htree" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#6fa356"/><stop offset=".7" stop-color="#3f7432"/><stop offset="1" stop-color="#2c5523"/></radialGradient>
+    <radialGradient id="hglow"><stop offset="0" stop-color="#fff3c4" stop-opacity=".45"/><stop offset="1" stop-color="#fff3c4" stop-opacity="0"/></radialGradient>
+    <filter id="hshB" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="4" dy="6" stdDeviation="4" flood-color="#000" flood-opacity=".4"/></filter>
+  </defs>
+  <rect width="346" height="380" fill="url(#hgrass)"/>
+  <rect x="248" y="0" width="98" height="380" fill="${on("paving") ? "url(#hconc)" : "url(#hgravel)"}"/>
+  ${on("paving") ? `<path d="M258 0 V380 M336 0 V380" stroke="#8f8d86" stroke-width="1.5"/>` : ""}
+  ${on("fence") ? `<path d="M6 6 V374 H244" stroke="#2f5a26" stroke-width="10" fill="none" stroke-linecap="round" filter="url(#hshB)"/><path d="M6 6 V374 H244" stroke="#4d8040" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="3 6"/>` : ""}
+  <rect x="10" y="10" width="232" height="226" fill="${wall}" filter="url(#hshB)"/>
+  <rect x="18" y="18" width="98" height="210" fill="${on("gymfloor") ? "url(#hrubber)" : "url(#hbare)"}"/>
+  <rect x="124" y="18" width="110" height="118" fill="${floorFill}"/>
+  <rect x="124" y="144" width="110" height="84" fill="${fl === "wood" ? "url(#htile)" : floorFill}"/>
+  ${on("mirror") ? `<rect x="19" y="22" width="4" height="202" fill="#cfe7ef"/><rect x="19" y="22" width="1.5" height="202" fill="#fff" opacity=".8"/>` : ""}
+  ${on("speakers") ? `<g filter="url(#sh)"><rect x="102" y="22" width="11" height="15" rx="2" fill="#18181b"/><circle cx="107.5" cy="30" r="3.5" fill="#3a3a3e"/><rect x="102" y="208" width="11" height="15" rx="2" fill="#18181b"/><circle cx="107.5" cy="216" r="3.5" fill="#3a3a3e"/></g>` : ""}
+  ${machines}
+  ${on("rug") ? `<rect x="140" y="66" width="76" height="48" rx="3" fill="#cfc4b2" opacity=".92"/><rect x="145" y="71" width="66" height="38" rx="2" fill="none" stroke="#b3a68f" stroke-width="1.2"/>` : ""}
+  <g filter="url(#sh)">
+    ${on("tv") ? `<rect x="134" y="22" width="90" height="8" rx="2" fill="#1a1a1c"/><rect x="150" y="23" width="58" height="4" rx="1" fill="#2c3a48"/>` : ""}
+    ${on("sofa") ? `<path d="M132 120 H200 V130 H142 V68 H132 Z" fill="url(#hsofa)"/><rect x="134" y="70" width="8" height="48" rx="3" fill="#6b7480"/><rect x="144" y="121" width="54" height="7" rx="3" fill="#6b7480"/>` : ""}
+    ${on("table") ? `<rect x="164" y="80" width="34" height="20" rx="3" fill="#6a4b31"/><circle cx="181" cy="90" r="4" fill="#e8e2d6"/>` : ""}
+    ${on("lamp") ? `<circle cx="222" cy="40" r="7" fill="#e9dcc0"/><circle cx="222" cy="40" r="2.5" fill="#8a7a5a"/>` : ""}
+    ${on("plant") ? `<circle cx="222" cy="126" r="7" fill="#3f7432"/><circle cx="220" cy="124" r="4" fill="#6fa356"/><circle cx="30" cy="216" r="0" fill="none"/>` : ""}
+    ${on("counter") ? `<rect x="128" y="148" width="100" height="16" fill="#f6f4f0"/><rect x="128" y="148" width="100" height="16" fill="none" stroke="#bdb6a8" stroke-width=".8"/><rect x="144" y="151" width="18" height="10" rx="2" fill="#c7cbd0"/><g fill="#2a2a2c"><circle cx="190" cy="153" r="3"/><circle cx="200" cy="153" r="3"/><circle cx="190" cy="160" r="3"/><circle cx="200" cy="160" r="3"/></g>` : ""}
+    ${on("island") ? `<rect x="150" y="182" width="56" height="22" rx="2" fill="#3b3d42"/><rect x="152" y="184" width="52" height="18" rx="1" fill="#55585f"/>` : ""}
+    ${on("stools") ? `<g fill="#7a5a3c"><circle cx="160" cy="214" r="5"/><circle cx="178" cy="214" r="5"/><circle cx="196" cy="214" r="5"/></g>` : ""}
+  </g>
+  ${on("lights") ? glow(67, 70, 46) + glow(67, 170, 46) + glow(179, 76, 52) + glow(179, 186, 44) : ""}
+  <g fill="${wall}"><rect x="10" y="10" width="232" height="8"/><rect x="10" y="228" width="232" height="8"/><rect x="10" y="10" width="8" height="226"/><rect x="234" y="10" width="8" height="226"/>
+    <rect x="116" y="18" width="8" height="78"/><rect x="116" y="124" width="8" height="104"/><rect x="124" y="136" width="70" height="8"/></g>
+  <path d="M10 10 H242 V236 H10 Z M18 18 V228 H234 V18 Z" fill="#000" opacity=".12" fill-rule="evenodd"/>
+  ${on("windows") ? `<g fill="#9fd4ec"><rect x="34" y="12" width="60" height="4"/><rect x="146" y="12" width="66" height="4"/><rect x="236" y="40" width="4" height="70"/><rect x="12" y="120" width="4" height="60"/></g>` : ""}
+  <rect x="200" y="228" width="34" height="8" fill="${floorFill}"/><path d="M200 228 A26 26 0 0 0 226 202" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1.2" stroke-dasharray="3 3"/>
+  ${on("deck") ? `<rect x="22" y="250" width="200" height="100" rx="4" fill="url(#hdeck)" filter="url(#sh)"/>` : ""}
+  ${on("pool") ? `<rect x="36" y="262" width="132" height="76" rx="10" fill="url(#hwater)"/><rect x="36" y="262" width="132" height="76" rx="10" fill="none" stroke="#f2f0ea" stroke-width="4"/>
+    <g fill="none" stroke="#fff" stroke-width="1.2" opacity=".45"><path d="M48 280 q8 -5 16 0 t16 0 t16 0"/><path d="M70 300 q8 -5 16 0 t16 0 t16 0"/><path d="M54 320 q8 -5 16 0 t16 0 t16 0 t16 0"/></g>` : ""}
+  ${on("loungers") ? `<g filter="url(#sh)"><rect x="180" y="262" width="16" height="34" rx="3" fill="#f2f0ea"/><rect x="182" y="264" width="12" height="9" rx="2" fill="#d8d3c8"/><rect x="200" y="262" width="16" height="34" rx="3" fill="#f2f0ea"/><rect x="202" y="264" width="12" height="9" rx="2" fill="#d8d3c8"/><circle cx="198" cy="318" r="14" fill="#e85d3f"/><circle cx="198" cy="318" r="2" fill="#7a2f20"/></g>` : ""}
+  ${on("garden") ? tree(232, 356, 22) + tree(16, 360, 18) + tree(232, 248, 12) : ""}
+  ${g.hsel.car && HITEM[g.hsel.car] ? `<g transform="translate(297 252)" filter="url(#hshB)">${carSVG(g.hsel.car, HITEM[g.hsel.car].c)}</g>` : ""}
+</svg>`;
 }
 
-let gymTab = ls.get("forma.gymtab", "machines");
+let houseTab = ls.get("forma.housetab", "house");
+if (!HOUSE[houseTab]) houseTab = "house";
 function renderGym(v) {
-  const g = gym(), coins = wallet(), placed = g.placed.filter(id => MACH[id]);
-  const shop = gymTab === "machines" ? Object.entries(MACH).map(([id, m]) => { const own = g.owned.includes(id), on = placed.includes(id);
-      return `<button class="item ${on ? "on" : ""}" data-gmach="${id}"><span class="mico"><svg viewBox="-52 -46 104 92"><defs>${MDEFS}</defs><g filter="url(#sh)">${machineSVG(id)}</g></svg></span><span class="iname">${esc(m.name)}</span>
-        <span class="iprice">${on ? "In your gym" : own ? "Owned, tap to place" : `${m.price.toLocaleString()} pts`}</span></button>`; }).join("")
-    : Object.entries(DECOR[gymTab]).map(([k, [name, price, col]]) => { const key = gymTab + ":" + k, own = price === 0 || g.ownedDecor.includes(key), on = g.decor[gymTab] === k;
-      return `<button class="item ${on ? "on" : ""}" data-gdec="${key}"><span class="dot" style="background:${col || (k === "none" ? "transparent" : "#d9cfbf")}"></span><span class="iname">${esc(name)}</span>
-        <span class="iprice">${on ? "In use" : own ? "Owned" : `${price.toLocaleString()} pts`}</span></button>`; }).join("");
-  v.innerHTML = `${demoBanner()}<h1>Gym</h1>
-    <div class="card gymcard"><div class="gymwrap">${gymSVG(g)}</div>
-      <div class="row between" style="margin-top:12px"><div class="sub">Tap a machine to log a new PR. Every PR earns <b>+50 points</b>.</div>
-      <div class="coins"><b class="num">${coins.toLocaleString()}</b><span>points to spend</span></div></div></div>
-    <h2>Your PRs</h2>
-    <div class="card"><div class="earn">${placed.map(id => { const b = bestPR(id, g), m = MACH[id];
-      return `<div class="erow2 prrow" data-mach="${id}"><div class="row between"><span class="el">${esc(m.name)}${m.ex ? ` <span class="sub">${esc(m.ex)}</span>` : ""}</span><span class="num ep">${esc(prText(m.type, b))}</span></div>
-        <div class="sub" style="font-size:12px;margin-top:3px">${b ? `Set ${niceDay(b.d)} · ${(g.prs[id] || []).length} logged` : "Tap to log your first PR"}</div></div>`; }).join("") || `<div class="sub">Place a machine in your gym to track PRs.</div>`}</div></div>
-    <h2>Customise your gym</h2>
-    <div class="chips scrollx">${DECOR_TABS.map(([k, l]) => `<button class="chip ${gymTab === k ? "on" : ""}" data-gtab="${k}">${l}</button>`).join("")}</div>
-    <div class="shop" style="margin-top:12px">${shop}</div>
-    ${gymTab === "machines" ? `<div class="sub" style="margin-top:10px">Your gym fits ${SLOTS} machines (${placed.length} placed). Tap a placed machine here to take it out and make room.</div>` : ""}`;
+  const g = gym(), coins = wallet(), bought = g.hown.length;
+  const items = HOUSE[houseTab].map(([id, name, price, c]) => { const own = hOwned(g, id), act = hOn(g, id);
+    return `<button class="item ${act ? "on" : ""}" data-hitem="${id}"><span class="dot" style="background:${c || "#26262a"}">${c ? "" : ICON.gym}</span><span class="iname">${esc(name)}</span>
+      <span class="iprice">${act ? "In use" : own ? "Owned · tap to use" : `${price.toLocaleString()} pts`}</span></button>`; }).join("");
+  const prCount = Object.keys(MACH).filter(id => (g.prs[id] || []).length).length;
+  v.innerHTML = `${demoBanner()}<div class="row between" style="margin-top:6px"><h1 style="margin:0">House</h1><span class="ptspill"><i></i>${coins.toLocaleString()} pts</span></div>
+    <div class="card gymcard" style="margin-top:12px"><div class="gymwrap">${houseSVG(g)}</div>
+      <div class="sub" style="margin-top:10px">${bought ? `${bought} thing${bought > 1 ? "s" : ""} bought so far.` : "Your house starts empty."} Earn points by logging meals, steps and training, then spend them here.
+      ${prCount ? `Tap a machine in your gym room to log a new PR.` : `Machines appear in your gym room when you log a PR in Train.`}</div></div>
+    <div class="chips" style="margin-top:14px">${HTABS.map(([k, l]) => `<button class="chip ${houseTab === k ? "on" : ""}" data-htab="${k}">${l}</button>`).join("")}</div>
+    <div class="shop" style="margin-top:12px">${items}</div>`;
   bindGym();
 }
 function bindGym() {
   const save = async patch => { S.profile.gym = {...gym(), ...patch}; render(); try { await DB.saveProfile({gym: S.profile.gym}); } catch (e) { toast(e.message); } };
-  const buy = (name, price, after) => { const c = wallet();
-    sheet(`<h3>${esc(name)}</h3><div class="sub">${price.toLocaleString()} points. You have ${c.toLocaleString()}.</div>
-      <div class="row" style="margin-top:16px"><button class="btn ghost grow" id="bC">Not now</button><button class="btn grow" id="bY" ${c < price ? "disabled" : ""}>${c < price ? `Need ${(price - c).toLocaleString()} more` : `Buy for ${price.toLocaleString()}`}</button></div>`);
-    $("#bC").onclick = closeSheet; $("#bY").onclick = () => { closeSheet(); after(); toast(`${name} unlocked`); }; };
-  document.querySelectorAll("[data-gtab]").forEach(b => b.onclick = () => { gymTab = b.dataset.gtab; ls.set("forma.gymtab", gymTab); render(); });
+  const use = (g, id) => { const [k, val] = id.split(":");
+    if (val) return {hsel: {...g.hsel, [k]: val}};
+    if (HITEM[id].cat === "cars") return {hsel: {...g.hsel, car: g.hsel.car === id ? null : id}};
+    return {hon: g.hon.includes(id) ? g.hon.filter(x => x !== id) : [...g.hon, id]}; };
+  document.querySelectorAll("[data-htab]").forEach(b => b.onclick = () => { houseTab = b.dataset.htab; ls.set("forma.housetab", houseTab); render(); });
   document.querySelectorAll("[data-mach]").forEach(el => el.onclick = () => prSheet(el.dataset.mach));
-  document.querySelectorAll("[data-gmach]").forEach(b => b.onclick = () => { const id = b.dataset.gmach, g = gym(), m = MACH[id];
-    if (g.placed.includes(id)) return save({placed: g.placed.filter(x => x !== id)});
-    if (g.owned.includes(id)) return g.placed.length >= SLOTS ? toast(`Your gym is full (${SLOTS}). Take a machine out first.`) : save({placed: [...g.placed, id]});
-    buy(m.name, m.price, () => save({owned: [...g.owned, id], placed: g.placed.length < SLOTS ? [...g.placed, id] : g.placed, spent: (g.spent || 0) + m.price})); });
-  document.querySelectorAll("[data-gdec]").forEach(b => b.onclick = () => { const key = b.dataset.gdec, [slot, k] = key.split(":"), g = gym(), [name, price] = DECOR[slot][k];
-    if (price === 0 || g.ownedDecor.includes(key)) return save({decor: {...g.decor, [slot]: k}});
-    buy(name, price, () => save({ownedDecor: [...g.ownedDecor, key], decor: {...g.decor, [slot]: k}, spent: (g.spent || 0) + price})); });
+  document.querySelectorAll("[data-hitem]").forEach(b => b.onclick = () => { const id = b.dataset.hitem, g = gym(), it = HITEM[id];
+    if (hOwned(g, id)) return save(use(g, id));
+    const c = wallet();
+    sheet(`<h3>${esc(it.name)}</h3><div class="sub">${it.price.toLocaleString()} points. You have ${c.toLocaleString()}.</div>
+      <div class="row" style="margin-top:16px"><button class="btn ghost grow" id="bC">Not now</button><button class="btn grow" id="bY" ${c < it.price ? "disabled" : ""}>${c < it.price ? `Need ${(it.price - c).toLocaleString()} more` : `Buy for ${it.price.toLocaleString()}`}</button></div>`);
+    $("#bC").onclick = closeSheet;
+    $("#bY").onclick = () => { closeSheet(); const g2 = gym(); toast(`${it.name} added to your house`);
+      save({hown: [...g2.hown, id], hspent: (g2.hspent || 0) + it.price, ...use({...g2, hon: g2.hon.filter(x => x !== id)}, id)}); }; });
 }
 function prSheet(id) {
   const g = gym(), m = MACH[id], b = bestPR(id, g), hist = [...(g.prs[id] || [])].sort((a, c) => a.d < c.d ? 1 : -1).slice(0, 6);
