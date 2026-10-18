@@ -154,6 +154,25 @@ def eyes(parent, y, z, dx, r, iris="#3B8BEB", brow_m=None):
     return piv, pup, brows
 
 
+def smile_curve(name, loc, w, m, parent):
+    """A curved smile line (bevelled bezier) - reads as a mouth, not a nose."""
+    cu = bpy.data.curves.new(name, "CURVE")
+    cu.dimensions = "3D"
+    cu.bevel_depth, cu.bevel_resolution = 0.014, 4
+    sp = cu.splines.new("BEZIER")
+    sp.bezier_points.add(2)
+    for bp, (x, z) in zip(sp.bezier_points, ((-w, w * 0.45), (0, -w * 0.25), (w, w * 0.45))):
+        bp.co = (x, 0, z)
+        bp.handle_left_type = bp.handle_right_type = "AUTO"
+    cu.use_fill_caps = True
+    o = bpy.data.objects.new(name, cu)
+    sc.collection.objects.link(o)
+    o.parent = parent
+    o.location = loc
+    o.data.materials.append(m)
+    return o
+
+
 def make_blob(name, color, x=0.0, y=0.0):
     """Round fluffy pet creature (original design): ears, big eyes, oval mouth, little arms + feet."""
     root = empty(name, (x, y, 0))
@@ -169,8 +188,9 @@ def make_blob(name, color, x=0.0, y=0.0):
     sphere(name + "_tuft", 0.09, (0.04, 0.0, 1.08), body_m, piv, scale=(0.7, 0.7, 1.5), rot=(0, 0.35, 0))
     sphere(name + "_tuft2", 0.07, (-0.06, 0.02, 1.06), body_m, piv, scale=(0.7, 0.7, 1.3), rot=(0, -0.4, 0))
     ev, pp, br = eyes(piv, -0.405, 0.74, 0.175, 0.165, "#3B8BEB", mat("#7A1E2A", 0.5))
-    mouth = sphere(name + "_mouth", 0.1, (0, -0.465, 0.47), mat("#5A1020", 0.4), piv, scale=(1.2, 0.35, 0.4))
+    mouth = sphere(name + "_mouth", 0.1, (0, -0.455, 0.44), mat("#5A1020", 0.4), piv, scale=(1.2, 0.35, 0.05))
     sphere(name + "_tongue", 0.06, (0, -0.02, -0.04), mat("#FF5A7A", 0.5), mouth, scale=(1, 0.8, 0.5))
+    smile = smile_curve(name + "_smile", (0, -0.475, 0.455), 0.085, mat("#5A1020", 0.4), piv)
     arms = []
     for side in (-1, 1):
         sh = empty(f"{name}_sh{side}", (side * 0.45, -0.05, 0.55), piv)
@@ -181,7 +201,7 @@ def make_blob(name, color, x=0.0, y=0.0):
         f = sphere(f"{name}_foot{side}", 0.14, (side * 0.2, -0.08, 0.06), mat("#FFD27A", 0.5), root,
                    scale=(1.0, 1.35, 0.55))
         feet.append(f)
-    return dict(root=root, piv=piv, eyes=ev, pupils=pp, brows=br, mouth=mouth, arms=arms, feet=feet)
+    return dict(root=root, piv=piv, eyes=ev, pupils=pp, brows=br, mouth=mouth, smile=smile, arms=arms, feet=feet)
 
 
 def make_chick(name, x=0.0, y=0.0):
@@ -206,7 +226,7 @@ def make_chick(name, x=0.0, y=0.0):
 def make_set():
     grass = mat("#6CCB5F", 0.8)
     box("ground", (40, 40, 0.2), (0, 6, -0.1), grass, bevel=0)
-    box("path", (40, 2.4, 0.02), (0, 0.4, 0.005), mat("#F2D7A6", 0.85), bevel=0)
+    box("path", (40, 2.4, 0.02), (0, 0.4, 0.005), mat("#E3B98A", 0.85), bevel=0)
     houses = [("#FF9EC4", -3.2), ("#8FD3FF", -0.6), ("#FFE27A", 2.2), ("#B7A6FF", 4.8), ("#9EF0C0", -5.8)]
     for i, (c, hx) in enumerate(houses):
         h = 2.2 + (i % 2) * 0.6
@@ -233,8 +253,8 @@ def make_set():
     for i, (cx, cz) in enumerate(((-3.5, 5.5), (1.5, 6.4), (5.5, 5.2))):
         for j, (ox, oz, rr) in enumerate(((0, 0, 0.7), (0.7, -0.15, 0.5), (-0.7, -0.15, 0.5), (0.3, 0.35, 0.5))):
             sphere(f"cloud{i}{j}", rr, (cx + ox, 14, cz + oz), cloud, scale=(1.2, 0.6, 1), sub=1)
-    cyl("lamp", 0.05, 2.2, (-1.6, 1.9, 1.1), mat("#2E3A59", 0.4))
-    sphere("lampbulb", 0.16, (-1.6, 1.9, 2.25), mat("#FFF2B3", 0.3, emit=1.5), sub=1)
+    cyl("lamp", 0.05, 2.2, (-2.6, 1.9, 1.1), mat("#2E3A59", 0.4))
+    sphere("lampbulb", 0.16, (-2.6, 1.9, 2.25), mat("#FFF2B3", 0.3, emit=1.5), sub=1)
     for i, tx in enumerate((-4.5, -1.9, 1.0, 3.6, 6.2)):
         cyl(f"trunk{i}", 0.09, 0.9, (tx, 3.2, 0.45), mat("#9A6A43", 0.7))
         sphere(f"crown{i}", 0.55, (tx, 3.2, 1.25), mat("#3FB64E", 0.7), sub=1)
@@ -277,7 +297,7 @@ def make_world():
     bg.inputs["Strength"].default_value = 1.0
 
     sun_d = bpy.data.lights.new("sun", "SUN")
-    sun_d.energy, sun_d.angle, sun_d.color = 3.6, math.radians(4), (1, 0.93, 0.82)
+    sun_d.energy, sun_d.angle, sun_d.color = 3.2, math.radians(4), (1, 0.93, 0.82)
     sun = bpy.data.objects.new("sun", sun_d)
     sc.collection.objects.link(sun)
     sun.rotation_euler = (math.radians(50), math.radians(10), math.radians(-35))
@@ -373,7 +393,14 @@ def idle_breathe(ch, f0, f1, period=24, amt=0.03):
 
 
 def mouth(ch, f, open_z, w=1.0):
-    key(ch["mouth"], "scale", f, (w, 0.35, open_z))
+    """open_z <= 0.2 -> closed smile; bigger -> open oval mouth of that height."""
+    m, sm = ch["mouth"], ch.get("smile")
+    is_open = open_z > 0.2
+    key(m, "scale", f, (w, 0.35, open_z if is_open else 0.05))
+    if sm is not None:
+        for o, hide in ((sm, is_open), (m, not is_open)):
+            o.hide_render = hide
+            o.keyframe_insert(data_path="hide_render", frame=f)
 
 
 # ---------------------------------------------------------------- the gag
@@ -381,7 +408,8 @@ cake = make_set()
 cam, tgt = make_world()
 pip = make_blob("pip", "#FF4D5E", x=-1.25, y=0.15)
 chick = make_chick("chick", x=0.55, y=0.75)
-chick["root"].location = (0.55, 0.75, -0.9)  # hidden behind the table
+chick["root"].location = (0.6, 0.62, -1.0)  # hidden behind the table
+chick["root"].scale = (1.35, 1.35, 1.35)
 
 # camera: gentle push-in, then a quick reframe for the payoff
 # shot A (1-28): close-up, Pip notices the cake
@@ -392,11 +420,11 @@ key(cam, "location", 28, (-1.22, -2.5, 0.8), "CONSTANT")
 key(tgt, "location", 28, (-1.2, 0.15, 0.68), "CONSTANT")
 key(cam.data, "lens", 28, 50, "CONSTANT")
 # shot B (29-60): wider, the camera follows the hops
-key(cam, "location", 29, (-1.05, -3.7, 0.9))
-key(tgt, "location", 29, (-1.05, 0.2, 0.6))
+key(cam, "location", 29, (-1.05, -3.7, 0.62))
+key(tgt, "location", 29, (-1.05, 0.2, 0.72))
 key(cam.data, "lens", 29, 40)
-key(cam, "location", 60, (-0.15, -3.5, 0.88), "CONSTANT")
-key(tgt, "location", 60, (-0.15, 0.2, 0.6), "CONSTANT")
+key(cam, "location", 60, (-0.15, -3.5, 0.62), "CONSTANT")
+key(tgt, "location", 60, (-0.15, 0.2, 0.72), "CONSTANT")
 key(cam.data, "lens", 60, 40, "CONSTANT")
 # shot C (61-144): two-shot at the table, slow push-in
 key(cam, "location", 61, (0.12, -2.6, 0.8))
@@ -412,26 +440,34 @@ look(pip, 18, 0.05)
 eyes_big(pip, 22)
 brows(pip, 22, 0.05)
 brows(pip, 34, 0.0)
-mouth(pip, 18, 0.35)
+mouth(pip, 1, 0.0)
+mouth(pip, 19, 0.0)
+mouth(pip, 20, 0.3)
 mouth(pip, 24, 0.9, 1.1)  # "oooh"
 eyes_norm(pip, 30)
 hop(pip, 28, -1.25, -0.95, 0.35)
 hop(pip, 42, -0.95, -0.6, 0.35)
 hop(pip, 56, -0.6, -0.22, 0.3)
-mouth(pip, 40, 0.5)
-# lean in for a bite
+mouth(pip, 40, 0.0)
+# lean in for a bite (turned a little toward the table)
+key(pip["root"], "rotation_euler", 60, (0, 0, 0))
+key(pip["root"], "rotation_euler", 68, (0, 0, math.radians(28)))
+key(pip["root"], "rotation_euler", 98, (0, 0, math.radians(28)))
+key(pip["root"], "rotation_euler", 104, (0, 0, 0))
 p = pip["piv"]
 key(p, "rotation_euler", 72, (0, 0, 0))
 key(p, "rotation_euler", 82, (0, math.radians(18), 0))
-mouth(pip, 76, 0.4)
+mouth(pip, 74, 0.0)
+mouth(pip, 77, 0.4)
 mouth(pip, 84, 1.6, 1.25)  # big open mouth
 look(pip, 74, 0.04, -0.03)
 blink(pip, 70)
 
 # chick pops up behind the table and slides the cake away
 r = chick["root"]
-key(r, "location", 70, (0.55, 0.75, -0.9))
-key(r, "location", 78, (0.62, 0.62, 0.12))
+key(r, "location", 70, (0.6, 0.62, -1.0))
+key(r, "location", 76, (0.6, 0.62, 0.32))
+key(r, "location", 79, (0.6, 0.62, 0.22))
 sfx(75, "pop")
 sfx(83, "swish")
 sfx(87, "chomp")
@@ -442,8 +478,8 @@ for a in chick["arms"]:
     key(a, "rotation_euler", 84, (0, (1 if a.location[0] > 0 else -1) * -1.2, 0))
 key(cake, "location", 82, (0, 0, 0.67))
 key(cake, "location", 92, (0.42, 0.25, 0.67))
-key(r, "location", 92, (0.95, 0.75, 0.12))
-key(r, "location", 102, (1.05, 0.8, -0.9))  # ducks away with it
+key(r, "location", 92, (0.95, 0.62, 0.22))
+key(r, "location", 102, (1.05, 0.8, -1.0))  # ducks away with it
 key(cake, "location", 102, (0.5, 0.6, 0.0))
 key(cake, "scale", 101, (1, 1, 1))
 key(cake, "scale", 103, (0.01, 0.01, 0.01), "CONSTANT")
@@ -470,7 +506,7 @@ key(p, "scale", 106, (1, 1, 1))
 blink(pip, 116)
 look(pip, 120, -0.04)
 look(pip, 132, 0.04)
-mouth(pip, 126, 0.45)
+mouth(pip, 126, 0.0)
 eyes_norm(pip, 136, 8)
 for a in pip["arms"]:
     key(a, "rotation_euler", 130, tuple(a.rotation_euler))
@@ -493,7 +529,7 @@ sc.cycles.caustics_reflective = sc.cycles.caustics_refractive = False
 sc.render.film_transparent = False
 sc.view_settings.view_transform = "Standard"
 sc.view_settings.look = "None"
-sc.view_settings.exposure = 0.15
+sc.view_settings.exposure = -0.2
 R.resolution_x, R.resolution_y = 1080, 1920
 R.resolution_percentage = int(os.environ.get("RES", "100"))
 R.use_persistent_data = True
