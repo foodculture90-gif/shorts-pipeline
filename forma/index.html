@@ -297,7 +297,7 @@ code,.code{background:rgba(17,17,17,.06)}
 .gymsvg .mach{cursor:pointer}
 .gymsvg .mach:active{opacity:.7}
 .prrow{cursor:pointer}
-.mico{width:54px;height:50px;display:grid;place-items:center}
+.mico{width:64px;height:56px;display:grid;place-items:center}
 .mico svg{width:100%;height:100%}
 .pchart{display:flex;align-items:flex-end;gap:4px;height:96px}
 .pc{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
@@ -1431,95 +1431,132 @@ function bindAvatar() {
   });
 }
 
-/* ---------------- home gym: machines hold your PRs, decorate with points ---------------- */
+/* ---------------- home gym (top-down): machines hold your PRs, decorate with points ---------------- */
 const MACH = {
   bench: {name: "Bench press", type: "lift", price: 0}, rack: {name: "Squat rack", type: "lift", price: 0, ex: "Squat"},
-  dumbbells: {name: "Dumbbells", type: "lift", price: 0, ex: "Dumbbell press"}, deadlift: {name: "Deadlift platform", type: "lift", price: 800, ex: "Deadlift"},
-  pullup: {name: "Pull-up bar", type: "reps", price: 500, ex: "Pull-ups"}, pulldown: {name: "Lat pulldown", type: "lift", price: 900},
-  legpress: {name: "Leg press", type: "lift", price: 1000}, treadmill: {name: "Treadmill", type: "time", price: 1500, ex: "5 km run"},
-  rower: {name: "Rowing machine", type: "time", price: 1500, ex: "2 km row"}, bike: {name: "Spin bike", type: "dist", price: 1200, ex: "20 min ride"},
+  dumbbells: {name: "Dumbbells", type: "lift", price: 0, ex: "Dumbbell press"}, pullup: {name: "Pull-up bar", type: "reps", price: 500, ex: "Pull-ups"},
+  dip: {name: "Dip station", type: "reps", price: 500, ex: "Dips"}, kettlebells: {name: "Kettlebells", type: "lift", price: 600, ex: "KB swing"},
+  box: {name: "Plyo boxes", type: "reps", price: 400, ex: "Box jumps"}, deadlift: {name: "Deadlift platform", type: "lift", price: 800, ex: "Deadlift"},
+  pulldown: {name: "Lat pulldown", type: "lift", price: 900}, legext: {name: "Leg extension", type: "lift", price: 900},
+  legcurl: {name: "Leg curl", type: "lift", price: 900}, chestpress: {name: "Chest press", type: "lift", price: 1000},
+  legpress: {name: "Leg press", type: "lift", price: 1000}, bag: {name: "Punching bag", type: "reps", price: 700, ex: "Rounds"},
+  ropes: {name: "Battle ropes", type: "dur", price: 700, ex: "Longest set"}, sled: {name: "Push sled", type: "lift", price: 1100, ex: "Sled push"},
+  bike: {name: "Spin bike", type: "dist", price: 1200, ex: "20 min ride"}, smith: {name: "Smith machine", type: "lift", price: 1400},
+  treadmill: {name: "Treadmill", type: "time", price: 1500, ex: "5 km run"}, rower: {name: "Rowing machine", type: "time", price: 1500, ex: "2 km row"},
+  stair: {name: "Stair climber", type: "reps", price: 1600, ex: "Floors in 10 min"}, cable: {name: "Cable crossover", type: "lift", price: 1800, ex: "Cable fly"},
 };
 const DECOR = {
-  wall: {cream: ["Cream", 0, "#efe6d6"], white: ["White", 150, "#f6f4ef"], brick: ["Brick", 400, "#b8735a"], concrete: ["Concrete", 600, "#8d8a85"], wood: ["Wood panels", 800, "#a77b52"], dark: ["Dark", 700, "#2c2a27"]},
-  floor: {wood: ["Wood", 0, "#c99c6b"], rubber: ["Rubber mats", 300, "#3a3a3a"], concrete: ["Concrete", 400, "#a8a49c"], marble: ["Marble", 1000, "#ebe7e0"]},
-  light: {none: ["None", 0], pendant: ["Pendant lamps", 400], strip: ["LED strip", 500], neon: ["Neon PR sign", 700]},
-  wallart: {none: ["None", 0], poster: ["Poster", 250], window: ["Window", 800], tv: ["TV", 1100], trophies: ["Trophy shelf", 900]},
-  plant: {none: ["None", 0], small: ["Plant", 200], big: ["Big plant", 400]},
-  floorart: {none: ["None", 0], rug: ["Rug", 300], speaker: ["Speaker", 450], cooler: ["Water cooler", 350]},
+  wall: {cream: ["Cream", 0, "#e7dcc8"], white: ["White", 150, "#f4f2ed"], brick: ["Brick", 400, "#a8644d"], concrete: ["Concrete", 600, "#8d8a85"], wood: ["Wood panels", 800, "#8f6640"], dark: ["Dark", 700, "#2c2a27"]},
+  floor: {wood: ["Wood", 0, "#c99c6b"], rubber: ["Rubber mats", 300, "#353535"], concrete: ["Concrete", 400, "#a8a49c"], marble: ["Marble", 1000, "#ebe7e0"]},
+  light: {none: ["None", 0], pendant: ["Ceiling lights", 400], strip: ["LED strip", 500], neon: ["Neon PR sign", 700]},
+  wallart: {none: ["None", 0], window: ["Windows", 800], tv: ["TV", 1100], trophies: ["Trophy shelf", 900], mirror: ["Mirror wall", 1200]},
+  plant: {none: ["None", 0], small: ["Plants", 200], big: ["Big plants", 400]},
+  floorart: {none: ["None", 0], rug: ["Rug", 300], speaker: ["Speakers", 450], cooler: ["Water cooler", 350]},
 };
-const DECOR_TABS = [["machines", "Machines"], ["wall", "Walls"], ["floor", "Floors"], ["light", "Lights"], ["wallart", "Wall art"], ["plant", "Plants"], ["floorart", "Extras"]];
-const SLOTS = 6;
+const DECOR_TABS = [["machines", "Machines"], ["wall", "Walls"], ["floor", "Floors"], ["light", "Lights"], ["wallart", "Wall"], ["plant", "Plants"], ["floorart", "Extras"]];
+const SLOTS = 12;
 const gymDefault = () => ({owned: ["bench", "rack", "dumbbells"], placed: ["bench", "rack", "dumbbells"], decor: {wall: "cream", floor: "wood", light: "none", wallart: "none", plant: "none", floorart: "none"}, ownedDecor: ["wall:cream", "floor:wood"], prs: {}, spent: 0});
-const gym = () => { const g = {...gymDefault(), ...(S.profile.gym || {})}; g.decor = {...gymDefault().decor, ...(g.decor || {})}; return g; };
-const prScore = (type, e) => type === "lift" ? e.w * (1 + (e.r || 1) / 30) : type === "reps" ? e.r : type === "time" ? -(e.t || 0) : e.km;
-const prText = (type, e) => !e ? "No PR yet" : type === "lift" ? `${r1(e.w)} kg × ${e.r}` : type === "reps" ? `${e.r} reps` : type === "time" ? `${Math.floor(e.t / 60)}:${String(Math.round(e.t % 60)).padStart(2, "0")}` : `${r1(e.km)} km`;
+const gym = () => { const g = {...gymDefault(), ...(S.profile.gym || {})}; g.decor = {...gymDefault().decor, ...(g.decor || {})}; if (!DECOR.wallart[g.decor.wallart]) g.decor.wallart = "none"; return g; };
+const prScore = (type, e) => type === "lift" ? e.w * (1 + (e.r || 1) / 30) : type === "reps" ? e.r : type === "time" ? -(e.t || 0) : type === "dur" ? e.t : e.km;
+const mmss = t => `${Math.floor(t / 60)}:${String(Math.round(t % 60)).padStart(2, "0")}`;
+const prText = (type, e) => !e ? "No PR yet" : type === "lift" ? `${r1(e.w)} kg × ${e.r}` : type === "reps" ? `${e.r} reps` : type === "time" || type === "dur" ? mmss(e.t) : `${r1(e.km)} km`;
 function bestPR(id, g = gym()) { const list = g.prs[id] || [], t = MACH[id].type; return list.reduce((b, e) => !b || prScore(t, e) > prScore(t, b) ? e : b, null); }
-// every new personal best earns points
 function prBonus(g = gym()) {
   let pts = 0;
   for (const [id, list] of Object.entries(g.prs || {})) { if (!MACH[id]) continue; let best = null;
     for (const e of [...list].sort((a, b) => a.d < b.d ? -1 : 1)) if (!best || prScore(MACH[id].type, e) > prScore(MACH[id].type, best)) { pts += 50; best = e; } }
   return pts;
 }
-// one wallet for the whole app: points earned minus everything bought
 const wallet = () => avatarPoints().coins;
 
-/* ---- drawing ---- */
+/* ---- top-down drawing: shaded metal, rubber, upholstery, soft shadows ---- */
+const MDEFS = `<linearGradient id="gm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2e2e2"/><stop offset=".5" stop-color="#a9a9a9"/><stop offset="1" stop-color="#6e6e6e"/></linearGradient>
+  <linearGradient id="gmv" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e2e2e2"/><stop offset=".5" stop-color="#a9a9a9"/><stop offset="1" stop-color="#6e6e6e"/></linearGradient>
+  <radialGradient id="gp" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#5a5a5a"/><stop offset="1" stop-color="#1f1f1f"/></radialGradient>
+  <radialGradient id="gpl" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#3d3d3d"/><stop offset=".7" stop-color="#141414"/><stop offset="1" stop-color="#000"/></radialGradient>
+  <linearGradient id="gw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d7aa72"/><stop offset="1" stop-color="#b98a55"/></linearGradient>
+  <radialGradient id="gr" cx=".5" cy=".4" r=".7"><stop offset="0" stop-color="#7a2a22"/><stop offset="1" stop-color="#3d120e"/></radialGradient>
+  <filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="2.5" dy="3.5" stdDeviation="2.2" flood-color="#000" flood-opacity=".38"/></filter>`;
 function machineSVG(id) {
-  const K = "#1d1814", s = `stroke="${K}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`, M = "#9a958c", P2 = PAPER;
-  const plate = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${K}"/><circle cx="${x}" cy="${y}" r="${r * .35}" fill="${M}"/>`;
+  const plateV = (x, y, h = 26, w = 6) => `<rect x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" rx="2" fill="url(#gpl)"/><rect x="${x - w / 2 + 1}" y="${y - h / 2 + 2}" width="1.4" height="${h - 4}" fill="#555" opacity=".6"/>`;
+  const barH = (y, x1 = -46, x2 = 46) => `<rect x="${x1}" y="${y - 1.6}" width="${x2 - x1}" height="3.2" rx="1.6" fill="url(#gm)"/>`;
+  const post = (x, y, s = 7) => `<rect x="${x - s / 2}" y="${y - s / 2}" width="${s}" height="${s}" rx="1.2" fill="#2b2b2b"/><rect x="${x - s / 2 + 1}" y="${y - s / 2 + 1}" width="${s - 2}" height="${s - 2}" fill="url(#gm)" opacity=".55"/>`;
+  const pad = (x, y, w, h, r = 4) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#gp)"/><rect x="${x + 2}" y="${y + 2}" width="${w - 4}" height="${Math.min(4, h / 3)}" rx="2" fill="#fff" opacity=".12"/>`;
+  const stack = (x, y, w = 14, h = 30) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="#262626"/>${Array.from({length: Math.floor(h / 4)}, (_, i) => `<rect x="${x + 1.5}" y="${y + 1.5 + i * 4}" width="${w - 3}" height="2.6" fill="url(#gm)" opacity=".75"/>`).join("")}`;
+  const dumb = (x, y, s = 1) => `<rect x="${x - 7 * s}" y="${y - 1}" width="${14 * s}" height="2" fill="url(#gm)"/><rect x="${x - 8 * s}" y="${y - 4 * s}" width="${4 * s}" height="${8 * s}" rx="1.5" fill="url(#gpl)"/><rect x="${x + 4 * s}" y="${y - 4 * s}" width="${4 * s}" height="${8 * s}" rx="1.5" fill="url(#gpl)"/>`;
+  const kb = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#gpl)"/><path d="M${x - r * .6} ${y - r * .2} a${r * .6} ${r * .55} 0 0 1 ${r * 1.2} 0" stroke="#777" stroke-width="1.6" fill="none"/>`;
   return {
-    bench: `<path d="M-24 0 V-22 M24 0 V-22 M-18 0 L-14 -16 M18 0 L14 -16" ${s} fill="none"/><rect x="-30" y="-24" width="52" height="7" rx="3" fill="${P2}" ${s}/><path d="M22 -20 L28 -34" ${s}/><path d="M-26 -22 V-52 M26 -22 V-52" ${s}/><path d="M-46 -50 H46" ${s} stroke-width="3"/>${plate(-40, -50, 8)}${plate(40, -50, 8)}`,
-    rack: `<path d="M-32 0 V-84 M32 0 V-84 M-32 -84 H32 M-38 0 H38 M-32 -30 H-22 M32 -30 H22" ${s} fill="none"/><path d="M-48 -60 H48" ${s} stroke-width="3"/>${plate(-42, -60, 9)}${plate(42, -60, 9)}`,
-    dumbbells: `<path d="M-38 0 V-46 M38 0 V-46 M-40 -14 H40 M-40 -34 H40" ${s} fill="none"/>${[-26, -9, 9, 26].map(x => `<rect x="${x - 7}" y="-22" width="14" height="5" rx="2" fill="${K}"/><rect x="${x - 6}" y="-42" width="12" height="4" rx="2" fill="${K}"/>`).join("")}`,
-    deadlift: `<rect x="-48" y="-5" width="96" height="5" fill="${P2}" ${s}/><path d="M-50 -16 H50" ${s} stroke-width="3"/>${plate(-38, -16, 13)}${plate(38, -16, 13)}`,
-    pullup: `<path d="M-30 0 V-90 M30 0 V-90 M-38 -84 H38 M-38 0 H-22 M22 0 H38" ${s} fill="none"/>`,
-    pulldown: `<path d="M-14 0 V-92 M-14 -92 H18 M16 -92 V-58 M-40 -58 H40 M-30 0 H20 M-8 -20 H14 M2 -20 V0" ${s} fill="none"/><rect x="-6" y="-26" width="22" height="6" rx="3" fill="${P2}" ${s}/><rect x="-24" y="-80" width="10" height="40" fill="${M}" ${s}/>`,
-    legpress: `<path d="M-46 0 H46 M-40 0 L-10 -40 M30 0 L30 -26" ${s} fill="none"/><rect x="-38" y="-30" width="30" height="8" rx="3" fill="${P2}" ${s} transform="rotate(-20 -23 -26)"/><rect x="18" y="-58" width="9" height="34" fill="${P2}" ${s} transform="rotate(25 22 -41)"/>`,
-    treadmill: `<path d="M-46 -4 L36 -10" ${s} stroke-width="7" stroke="${K}"/><path d="M-46 -4 L36 -10" stroke="${M}" stroke-width="3"/><path d="M30 -10 L40 -62 M24 -40 L38 -42" ${s} fill="none"/><rect x="28" y="-72" width="22" height="12" rx="3" fill="${P2}" ${s}/>`,
-    rower: `<path d="M-48 -4 H30" ${s} stroke-width="3"/><circle cx="36" cy="-14" r="13" fill="${P2}" ${s}/><circle cx="36" cy="-14" r="4" fill="${K}"/><rect x="-30" y="-12" width="16" height="6" rx="3" fill="${P2}" ${s}/><path d="M10 -12 L16 -22 M-48 -4 V0 M24 -4 V0" ${s}/>`,
-    bike: `<circle cx="-24" cy="-12" r="12" fill="${P2}" ${s}/><path d="M-24 -12 L4 -14 L-4 -40 M4 -14 L22 -44 M-10 -42 H2 M16 -48 H30 M-30 0 H30" ${s} fill="none"/>`,
+    bench: `${pad(-8, -10, 16, 46, 6)}${post(-30, -22)}${post(30, -22)}${barH(-24)}${plateV(-38, -24)}${plateV(-31, -24, 22, 5)}${plateV(38, -24)}${plateV(31, -24, 22, 5)}`,
+    rack: `<rect x="-40" y="-34" width="80" height="68" rx="3" fill="url(#gw)"/>${[[-30, -26], [30, -26], [-30, 26], [30, 26]].map(([x, y]) => post(x, y, 8)).join("")}<path d="M-30 -26 H30 M-30 26 H30 M-30 -26 V26 M30 -26 V26" stroke="#2b2b2b" stroke-width="2.5"/>${barH(-8, -48, 48)}${plateV(-41, -8, 28, 6)}${plateV(41, -8, 28, 6)}`,
+    dumbbells: `<rect x="-44" y="-24" width="88" height="48" rx="4" fill="#2a2a2a"/><rect x="-42" y="-22" width="84" height="20" rx="3" fill="#3a3a3a"/><rect x="-42" y="2" width="84" height="20" rx="3" fill="#3a3a3a"/>${[-30, -10, 10, 30].map((x, i) => dumb(x, -12, .9 + i * .1) + dumb(x, 12, 1.1 + i * .1)).join("")}`,
+    pullup: `${post(-34, 0, 9)}${post(34, 0, 9)}<rect x="-34" y="-2" width="68" height="4" rx="2" fill="url(#gm)"/><rect x="-44" y="-8" width="10" height="16" rx="2" fill="#2b2b2b" opacity=".6"/><rect x="34" y="-8" width="10" height="16" rx="2" fill="#2b2b2b" opacity=".6"/>`,
+    dip: `${post(-14, -22)}${post(14, -22)}${post(-14, 22)}${post(14, 22)}<rect x="-16" y="-24" width="4" height="48" rx="2" fill="url(#gmv)"/><rect x="12" y="-24" width="4" height="48" rx="2" fill="url(#gmv)"/><rect x="-26" y="-30" width="52" height="60" rx="4" fill="none" stroke="#2b2b2b" stroke-width="3"/>`,
+    kettlebells: `<rect x="-44" y="-14" width="88" height="28" rx="4" fill="#2f2f2f"/>${[[-34, 6], [-18, 7], [0, 8], [19, 9], [37, 10]].map(([x, r]) => kb(x, 0, r)).join("")}`,
+    box: `<rect x="-38" y="-24" width="40" height="40" rx="3" fill="url(#gw)" stroke="#8a6238" stroke-width="1.5"/><rect x="-6" y="-14" width="34" height="34" rx="3" fill="#d4a46c" stroke="#8a6238" stroke-width="1.5"/><rect x="18" y="-26" width="24" height="24" rx="3" fill="#c79761" stroke="#8a6238" stroke-width="1.5"/>`,
+    deadlift: `<rect x="-46" y="-30" width="92" height="60" rx="2" fill="#262626"/><rect x="-22" y="-30" width="44" height="60" fill="url(#gw)"/>${barH(0, -50, 50)}${plateV(-40, 0, 34, 7)}${plateV(-32, 0, 34, 7)}${plateV(40, 0, 34, 7)}${plateV(32, 0, 34, 7)}`,
+    pulldown: `${stack(-40, -30, 16, 34)}<rect x="-24" y="-24" width="40" height="4" fill="#2b2b2b"/>${pad(-6, -6, 22, 20, 4)}${pad(-4, 16, 18, 8, 3)}<rect x="-30" y="-36" width="60" height="3" rx="1.5" fill="url(#gm)"/><path d="M-32 -18 L0 -34" stroke="#888" stroke-width="1"/>`,
+    legext: `${stack(-42, -26, 14, 30)}${pad(-18, -14, 26, 24, 4)}${pad(8, -18, 8, 32, 3)}<rect x="18" y="-14" width="22" height="5" rx="2.5" fill="url(#gp)"/><rect x="18" y="6" width="22" height="5" rx="2.5" fill="url(#gp)"/>`,
+    legcurl: `${stack(28, -26, 14, 30)}${pad(-40, -10, 60, 20, 5)}<rect x="-46" y="-8" width="6" height="16" rx="3" fill="url(#gp)"/><rect x="20" y="-12" width="5" height="24" rx="2.5" fill="url(#gm)"/>`,
+    chestpress: `${stack(-12, -36, 24, 16)}${pad(-12, 2, 24, 22, 5)}${pad(-10, -14, 20, 14, 4)}<path d="M-30 -10 Q-34 4 -26 12 M30 -10 Q34 4 26 12" stroke="url(#gm)" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+    legpress: `<rect x="-44" y="-26" width="88" height="52" rx="4" fill="#2a2a2a"/><path d="M-40 -18 H40 M-40 18 H40" stroke="url(#gm)" stroke-width="3"/>${pad(-36, -14, 30, 28, 5)}<rect x="10" y="-20" width="12" height="40" rx="2" fill="url(#gm)"/>${plateV(30, -16, 14, 6)}${plateV(30, 16, 14, 6)}`,
+    bag: `<circle cx="0" cy="0" r="22" fill="url(#gr)"/><circle cx="0" cy="0" r="22" fill="none" stroke="#2b0c09" stroke-width="2"/><circle cx="-6" cy="-7" r="7" fill="#fff" opacity=".12"/><circle cx="0" cy="0" r="4" fill="url(#gm)"/>`,
+    ropes: `<rect x="-46" y="-6" width="8" height="12" rx="2" fill="#2b2b2b"/><path d="M-38 -2 C-20 -16 -4 10 14 -6 S34 -10 44 -16" stroke="#3b3b3b" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M-38 2 C-18 18 0 -8 18 8 S36 12 44 18" stroke="#3b3b3b" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M-38 -2 C-20 -16 -4 10 14 -6" stroke="#666" stroke-width="1" fill="none"/>`,
+    sled: `<path d="M-30 -22 H22 L30 -14 V14 L22 22 H-30" stroke="url(#gm)" stroke-width="4" fill="none"/><rect x="-24" y="-16" width="40" height="32" rx="3" fill="#2b2b2b"/>${plateV(-8, 0, 30, 7)}${plateV(2, 0, 30, 7)}<rect x="28" y="-26" width="4" height="52" rx="2" fill="url(#gmv)"/>`,
+    bike: `<rect x="-40" y="-3" width="56" height="6" rx="3" fill="#2b2b2b"/><ellipse cx="-34" cy="0" rx="8" ry="14" fill="url(#gpl)"/>${pad(4, -5, 16, 10, 5)}<rect x="-24" y="-16" width="4" height="32" rx="2" fill="url(#gm)"/><rect x="-28" y="-18" width="12" height="5" rx="2" fill="#222"/>`,
+    smith: `${[[-36, -24], [36, -24], [-36, 24], [36, 24]].map(([x, y]) => post(x, y, 8)).join("")}<rect x="-38" y="-26" width="4" height="52" fill="url(#gmv)"/><rect x="34" y="-26" width="4" height="52" fill="url(#gmv)"/>${barH(-4, -46, 46)}${plateV(-28, -4, 26, 6)}${plateV(28, -4, 26, 6)}${pad(-7, 4, 14, 28, 5)}`,
+    treadmill: `<rect x="-20" y="-40" width="40" height="80" rx="6" fill="#2a2a2a"/><rect x="-14" y="-26" width="28" height="62" rx="3" fill="#111"/>${Array.from({length: 10}, (_, i) => `<path d="M-14 ${-22 + i * 6} H14" stroke="#262626" stroke-width="1"/>`).join("")}<rect x="-24" y="-40" width="48" height="12" rx="4" fill="#333"/><rect x="-12" y="-38" width="24" height="7" rx="2" fill="#3a6f8f"/><rect x="-24" y="-30" width="4" height="34" rx="2" fill="url(#gmv)"/><rect x="20" y="-30" width="4" height="34" rx="2" fill="url(#gmv)"/>`,
+    rower: `<rect x="-6" y="-42" width="12" height="80" rx="3" fill="url(#gmv)"/><circle cx="0" cy="-30" r="14" fill="#2b2b2b"/>${Array.from({length: 8}, (_, i) => `<path d="M0 -30 L${13 * Math.cos(i * Math.PI / 4)} ${-30 + 13 * Math.sin(i * Math.PI / 4)}" stroke="#555" stroke-width="1.4"/>`).join("")}<circle cx="0" cy="-30" r="3" fill="url(#gm)"/>${pad(-8, 8, 16, 12, 4)}<rect x="-16" y="-12" width="32" height="5" rx="2" fill="#222"/>`,
+    stair: `<rect x="-24" y="-38" width="48" height="76" rx="5" fill="#2a2a2a"/>${Array.from({length: 7}, (_, i) => `<rect x="-18" y="${-24 + i * 8}" width="36" height="6" rx="1" fill="${i % 2 ? "#3a3a3a" : "#444"}"/>`).join("")}<rect x="-26" y="-38" width="52" height="10" rx="3" fill="#333"/><rect x="-10" y="-36" width="20" height="6" rx="2" fill="#3a6f8f"/>`,
+    cable: `${stack(-46, -24, 14, 40)}${stack(32, -24, 14, 40)}<rect x="-46" y="-30" width="92" height="5" rx="2.5" fill="url(#gm)"/><path d="M-32 -6 L-8 8 M32 -6 L8 8" stroke="#999" stroke-width="1.2"/><rect x="-12" y="6" width="8" height="5" rx="2" fill="#222"/><rect x="4" y="6" width="8" height="5" rx="2" fill="#222"/>`,
   }[id] || "";
 }
 function gymSVG(g) {
-  const K = "#1d1814", d = g.decor, wall = DECOR.wall[d.wall][2], floor = DECOR.floor[d.floor][2], dark = d.wall === "dark" || d.wall === "concrete";
-  const ink = `stroke="${K}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"`;
-  const wallTex = d.wall === "brick" ? Array.from({length: 7}, (_, r) => Array.from({length: 10}, (_, c) => `<rect x="${c * 40 - (r % 2) * 20}" y="${r * 20}" width="40" height="20" fill="none" stroke="#8e4f3a" stroke-width="1.2"/>`).join("")).join("")
-    : d.wall === "wood" ? Array.from({length: 12}, (_, c) => `<path d="M${c * 32} 0 V140" stroke="#7c5636" stroke-width="1.2"/>`).join("") : "";
-  const floorTex = d.floor === "wood" ? Array.from({length: 7}, (_, r) => `<path d="M0 ${150 + r * 28} H360" stroke="#a37a4f" stroke-width="1"/>`).join("")
-    : d.floor === "rubber" ? Array.from({length: 7}, (_, c) => `<path d="M${c * 60} 122 V340" stroke="#555" stroke-width="1"/>`).join("")
-    : d.floor === "marble" ? `<path d="M20 170 q40 10 70 40 M200 160 q30 30 90 40 M120 290 q40 -10 90 10" stroke="#c9c2b6" stroke-width="1" fill="none"/>` : "";
-  const art = {poster: `<rect x="30" y="34" width="46" height="62" fill="${PAPER}" ${ink}/><path d="M40 50 H66 M40 60 H60 M40 70 H64" stroke="${K}" stroke-width="2"/><text x="53" y="88" font-size="9" font-weight="800" text-anchor="middle" fill="${K}">LIFT</text>`,
-    window: `<rect x="24" y="26" width="70" height="60" fill="#bfdde6" ${ink}/><path d="M59 26 V86 M24 56 H94" ${ink}/><circle cx="80" cy="40" r="6" fill="#ffe08a"/>`,
-    tv: `<rect x="22" y="36" width="76" height="46" rx="3" fill="#202020" ${ink}/><path d="M34 66 l10 -12 l10 8 l10 -14 l14 18" stroke="#4fc3a1" stroke-width="2" fill="none"/>`,
-    trophies: `<path d="M20 86 H100" ${ink}/>${[34, 60, 86].map((x, i) => `<path d="M${x - 7} ${70 - i * 4} h14 l-2 10 h-10 z M${x} ${80 - i * 4} v6" fill="#d6b56f" ${ink}/>`).join("")}`}[d.wallart] || "";
-  const light = {pendant: [90, 180, 270].map(x => `<path d="M${x} 0 V22" ${ink}/><path d="M${x - 12} 34 Q${x} 18 ${x + 12} 34 Z" fill="${PAPER}" ${ink}/><ellipse cx="${x}" cy="44" rx="22" ry="6" fill="#ffe7a3" opacity=".5"/>`).join(""),
-    strip: `<path d="M0 6 H360" stroke="#7fe3ff" stroke-width="4"/><path d="M0 6 H360" stroke="#7fe3ff" stroke-width="12" opacity=".25"/>`,
-    neon: `<text x="250" y="72" font-size="34" font-weight="900" text-anchor="middle" fill="none" stroke="#ff4fa0" stroke-width="2.5">PR</text><text x="250" y="72" font-size="34" font-weight="900" text-anchor="middle" fill="none" stroke="#ff4fa0" stroke-width="8" opacity=".25">PR</text>`}[d.light] || "";
-  const plant = d.plant === "none" ? "" : d.plant === "big" ? `<g transform="translate(0 92)">` + `<path d="M336 232 l-6 -26 h20 z" fill="#b77b52" ${ink}/><path d="M340 206 q-24 -20 -14 -60 q18 26 14 60 q4 -40 22 -54 q4 34 -22 54" fill="#6fae7d" ${ink}/></g>`
-    : `<g transform="translate(0 0)"><path d="M332 140 l-4 -16 h14 z" fill="#b77b52" ${ink}/><path d="M335 124 q-12 -10 -8 -26 q10 12 8 26 q2 -18 12 -22 q2 16 -12 22" fill="#6fae7d" ${ink}/></g>`;
-  const floorart = {rug: `<ellipse cx="180" cy="306" rx="140" ry="16" fill="#c46a4c" opacity=".55"/>`, speaker: `<rect x="8" y="196" width="26" height="40" rx="3" fill="#222" ${ink}/><circle cx="21" cy="208" r="5" fill="#555"/><circle cx="21" cy="224" r="7" fill="#555"/>`,
-    cooler: `<rect x="10" y="194" width="22" height="42" fill="${PAPER}" ${ink}/><rect x="12" y="176" width="18" height="18" rx="4" fill="#9fd3ec" ${ink}/>`}[d.floorart] || "";
-  const pos = [[70, 196, .86], [180, 196, .86], [290, 196, .86], [70, 314, 1.06], [180, 314, 1.06], [290, 314, 1.06]];
-  const machines = g.placed.slice(0, SLOTS).map((id, i) => { const [x, y, k] = pos[i], b = bestPR(id, g), label = b ? prText(MACH[id].type, b) : "Tap to log PR", w = Math.max(54, label.length * 5.6);
-    return `<g class="mach" data-mach="${id}" role="button" aria-label="${esc(MACH[id].name)}: ${esc(label)}"><rect x="${x - 56}" y="${y - 100 * k}" width="112" height="${100 * k + 22}" fill="transparent"/>
-      <ellipse cx="${x}" cy="${y + 1}" rx="${50 * k}" ry="${5 * k}" fill="#000" opacity=".18"/>
-      <g transform="translate(${x} ${y}) scale(${k})" filter="url(#halo)">${machineSVG(id)}</g>
-      <rect x="${x - w / 2}" y="${y + 6}" width="${w}" height="16" rx="8" fill="${b ? K : "rgba(29,24,20,.55)"}"/><text x="${x}" y="${y + 17.5}" font-size="9.5" font-weight="700" text-anchor="middle" fill="#fff">${esc(label)}</text></g>`; }).join("");
-  return `<svg viewBox="0 0 360 340" class="gymsvg" role="img" aria-label="Your home gym">
-    <defs><filter id="halo" x="-20%" y="-20%" width="140%" height="140%"><feMorphology in="SourceAlpha" operator="dilate" radius="2.2" result="d"/><feFlood flood-color="${PAPER}" flood-opacity=".9"/><feComposite in2="d" operator="in" result="h"/><feMerge><feMergeNode in="h"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
-    <rect x="0" y="0" width="360" height="124" fill="${wall}"/>${wallTex}${light}${art}
-    <rect x="0" y="120" width="360" height="220" fill="${floor}"/>${floorTex}<path d="M0 120 H360" stroke="${dark ? "#111" : "#1d1814"}" stroke-width="2.5"/>
-    ${floorart}${plant}${machines}
+  const d = g.decor, wall = DECOR.wall[d.wall][2], floor = DECOR.floor[d.floor][2], W = 360, H = 470, T = 16;
+  const wallTex = d.wall === "brick" ? `<pattern id="pb" width="20" height="10" patternUnits="userSpaceOnUse"><rect width="20" height="10" fill="${wall}"/><path d="M0 0 H20 M0 5 H20 M5 0 V5 M15 5 V10" stroke="#7a4434" stroke-width="1"/></pattern>`
+    : d.wall === "wood" ? `<pattern id="pb" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="${wall}"/><path d="M0 0 V8" stroke="#6e4c2f" stroke-width="1"/></pattern>` : "";
+  const floorPat = d.floor === "wood" ? `<pattern id="pf" width="60" height="18" patternUnits="userSpaceOnUse"><rect width="60" height="18" fill="${floor}"/><rect width="60" height="18" fill="url(#gw)" opacity=".35"/><path d="M0 0 H60 M0 9 H60 M18 0 V9 M48 9 V18" stroke="#a37a4f" stroke-width="1"/></pattern>`
+    : d.floor === "rubber" ? `<pattern id="pf" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" fill="${floor}"/><path d="M0 0 H40 V40" stroke="#222" stroke-width="1.2" fill="none"/>${Array.from({length: 6}, (_, i) => `<circle cx="${5 + (i * 13) % 34}" cy="${6 + (i * 17) % 32}" r=".8" fill="#4a4a4a"/>`).join("")}</pattern>`
+    : d.floor === "concrete" ? `<pattern id="pf" width="90" height="90" patternUnits="userSpaceOnUse"><rect width="90" height="90" fill="${floor}"/><path d="M0 0 H90 V90" stroke="#8d8981" stroke-width="1" fill="none"/><circle cx="30" cy="40" r="10" fill="#b3afa7" opacity=".5"/></pattern>`
+    : `<pattern id="pf" width="80" height="80" patternUnits="userSpaceOnUse"><rect width="80" height="80" fill="${floor}"/><path d="M0 0 H80 V80" stroke="#d6d0c6" stroke-width="1" fill="none"/><path d="M8 20 q20 6 34 26 M50 6 q10 20 26 30" stroke="#cfc6b8" stroke-width="1" fill="none"/></pattern>`;
+  const wallFill = wallTex ? "url(#pb)" : wall;
+  const art = {window: [70, 180, 290].map(x => `<rect x="${x - 30}" y="2" width="60" height="${T - 4}" fill="#bfe1ec"/><path d="M${x} 2 V${T - 2}" stroke="#fff" stroke-width="1.5"/>`).join(""),
+    tv: `<rect x="130" y="${T - 2}" width="100" height="7" rx="2" fill="#111"/><rect x="134" y="${T - 1}" width="92" height="3" fill="#2f5d7a"/>`,
+    trophies: `<rect x="110" y="${T - 2}" width="140" height="8" fill="#6b4a2c"/>${[125, 150, 175, 200, 225].map((x, i) => `<circle cx="${x}" cy="${T + 2}" r="${3 + (i % 2)}" fill="#d6b56f" stroke="#8a6d33"/>`).join("")}`,
+    mirror: `<rect x="${T}" y="${T}" width="${W - T * 2}" height="5" fill="#cfe3ea"/><rect x="${T}" y="${T}" width="${W - T * 2}" height="2" fill="#fff" opacity=".7"/>`}[d.wallart] || "";
+  const light = {pendant: [[90, 120], [270, 120], [90, 320], [270, 320]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="70" fill="url(#glow)"/>`).join(""),
+    strip: `<rect x="${T}" y="${T}" width="${W - T * 2}" height="${H - T * 2}" fill="none" stroke="#7fe3ff" stroke-width="3" opacity=".9"/><rect x="${T + 3}" y="${T + 3}" width="${W - T * 2 - 6}" height="${H - T * 2 - 6}" fill="none" stroke="#7fe3ff" stroke-width="8" opacity=".15"/>`,
+    neon: `<text x="${W / 2}" y="${T - 3}" font-size="14" font-weight="900" text-anchor="middle" fill="#ff4fa0">PR</text><ellipse cx="${W / 2}" cy="${T + 10}" rx="60" ry="14" fill="#ff4fa0" opacity=".18"/>`}[d.light] || "";
+  const leaf = (x, y, r) => `<g filter="url(#sh)"><circle cx="${x}" cy="${y}" r="${r * .55}" fill="#8a5a3a"/>${Array.from({length: 7}, (_, i) => { const a = i * 2 * Math.PI / 7; return `<ellipse cx="${x + Math.cos(a) * r * .5}" cy="${y + Math.sin(a) * r * .5}" rx="${r * .45}" ry="${r * .22}" fill="${i % 2 ? "#5f9e6b" : "#78b583"}" transform="rotate(${a * 180 / Math.PI} ${x + Math.cos(a) * r * .5} ${y + Math.sin(a) * r * .5})"/>`; }).join("")}</g>`;
+  const plant = d.plant === "none" ? "" : d.plant === "big" ? leaf(T + 11, T + 11, 15) + leaf(W - T - 11, T + 11, 15) + leaf(T + 11, H - T - 11, 15) + leaf(W - T - 11, H - T - 11, 15) : leaf(T + 10, T + 10, 11) + leaf(W - T - 10, H - T - 10, 11);
+  const floorart = {rug: `<rect x="90" y="150" width="180" height="170" rx="8" fill="#a85a40" opacity=".55"/><rect x="100" y="160" width="160" height="150" rx="6" fill="none" stroke="#e8c9a8" stroke-width="2" opacity=".6"/>`,
+    speaker: [[T + 10, H / 2 - 10], [W - T - 22, H / 2 - 10]].map(([x, y]) => `<g filter="url(#sh)"><rect x="${x}" y="${y}" width="12" height="20" rx="2" fill="#1c1c1c"/><circle cx="${x + 6}" cy="${y + 10}" r="4" fill="#444"/></g>`).join(""),
+    cooler: `<g filter="url(#sh)"><circle cx="${W - T - 14}" cy="${H / 2 + 40}" r="10" fill="#f2f2f2"/><circle cx="${W - T - 14}" cy="${H / 2 + 40}" r="6" fill="#9fd3ec"/></g>`}[d.floorart] || "";
+  const pos = [80, 186, 292, 398].flatMap(y => [65, 180, 295].map(x => [x, y]));
+  const machines = g.placed.slice(0, SLOTS).map((id, i) => { const [x, y] = pos[i], b = bestPR(id, g), label = b ? prText(MACH[id].type, b) : MACH[id].name, w = Math.max(56, label.length * 5.4);
+    return `<g class="mach" data-mach="${id}" role="button" aria-label="${esc(MACH[id].name)}: ${esc(b ? label : "no PR yet")}"><rect x="${x - 54}" y="${y - 48}" width="108" height="100" fill="transparent"/>
+      <g transform="translate(${x} ${y - 6})" filter="url(#sh)">${machineSVG(id)}</g>
+      <rect x="${x - w / 2}" y="${y + 36}" width="${w}" height="15" rx="7.5" fill="${b ? "#1d1814" : "rgba(29,24,20,.6)"}"/><text x="${x}" y="${y + 46.5}" font-size="9" font-weight="700" text-anchor="middle" fill="#fff">${esc(label)}</text></g>`; }).join("");
+  const empty = Array.from({length: Math.max(0, SLOTS - g.placed.length)}, (_, k) => { const [x, y] = pos[g.placed.length + k];
+    return `<rect x="${x - 40}" y="${y - 34}" width="80" height="62" rx="8" fill="none" stroke="${d.floor === "rubber" ? "#666" : "rgba(29,24,20,.25)"}" stroke-width="1.5" stroke-dasharray="5 4"/>`; }).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" class="gymsvg" role="img" aria-label="Your home gym, seen from above">
+    <defs>${MDEFS}${wallTex}${floorPat}<radialGradient id="glow"><stop offset="0" stop-color="#fff3c4" stop-opacity=".55"/><stop offset="1" stop-color="#fff3c4" stop-opacity="0"/></radialGradient>
+      <linearGradient id="wsh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient></defs>
+    <rect width="${W}" height="${H}" fill="url(#pf)"/>
+    ${floorart}${light}
+    <rect x="${T}" y="${T}" width="${W - T * 2}" height="14" fill="url(#wsh)"/><rect x="${T}" y="${T}" width="14" height="${H - T * 2}" fill="url(#wsh)" transform="rotate(0)"/>
+    ${empty}${machines}${plant}
+    <path d="M0 0 H${W} V${H} H0 Z M${T} ${T} V${H - T} H${W - T} V${T} Z" fill="${wallFill}" fill-rule="evenodd"/>
+    <path d="M${T} ${T} H${W - T} V${H - T} H${T} Z" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1.5"/>
+    <rect x="${W / 2 - 26}" y="${H - T}" width="52" height="${T}" fill="url(#pf)"/><path d="M${W / 2 - 26} ${H - T} a26 26 0 0 1 26 -26 V${H - T}" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1.2" stroke-dasharray="3 3"/>
+    ${art}
   </svg>`;
 }
 
 let gymTab = ls.get("forma.gymtab", "machines");
 function renderGym(v) {
-  const g = gym(), coins = wallet();
-  const placed = g.placed.filter(id => MACH[id]);
+  const g = gym(), coins = wallet(), placed = g.placed.filter(id => MACH[id]);
   const shop = gymTab === "machines" ? Object.entries(MACH).map(([id, m]) => { const own = g.owned.includes(id), on = placed.includes(id);
-      return `<button class="item ${on ? "on" : ""}" data-gmach="${id}"><span class="mico"><svg viewBox="-55 -100 110 106">${machineSVG(id)}</svg></span><span class="iname">${esc(m.name)}</span>
+      return `<button class="item ${on ? "on" : ""}" data-gmach="${id}"><span class="mico"><svg viewBox="-52 -46 104 92"><defs>${MDEFS}</defs><g filter="url(#sh)">${machineSVG(id)}</g></svg></span><span class="iname">${esc(m.name)}</span>
         <span class="iprice">${on ? "In your gym" : own ? "Owned, tap to place" : `${m.price.toLocaleString()} pts`}</span></button>`; }).join("")
     : Object.entries(DECOR[gymTab]).map(([k, [name, price, col]]) => { const key = gymTab + ":" + k, own = price === 0 || g.ownedDecor.includes(key), on = g.decor[gymTab] === k;
       return `<button class="item ${on ? "on" : ""}" data-gdec="${key}"><span class="dot" style="background:${col || (k === "none" ? "transparent" : "#d9cfbf")}"></span><span class="iname">${esc(name)}</span>
@@ -1535,7 +1572,7 @@ function renderGym(v) {
     <h2>Customise your gym</h2>
     <div class="chips scrollx">${DECOR_TABS.map(([k, l]) => `<button class="chip ${gymTab === k ? "on" : ""}" data-gtab="${k}">${l}</button>`).join("")}</div>
     <div class="shop" style="margin-top:12px">${shop}</div>
-    ${gymTab === "machines" ? `<div class="sub" style="margin-top:10px">Your gym fits ${SLOTS} machines. Tap a placed machine here to take it out and make room.</div>` : ""}`;
+    ${gymTab === "machines" ? `<div class="sub" style="margin-top:10px">Your gym fits ${SLOTS} machines (${placed.length} placed). Tap a placed machine here to take it out and make room.</div>` : ""}`;
   bindGym();
 }
 function bindGym() {
@@ -1559,7 +1596,7 @@ function prSheet(id) {
   const fields = m.type === "lift" ? `<div class="row"><label class="grow"><span class="eyebrow">Weight (kg)</span><input class="in" id="pW" type="number" inputmode="decimal" step="0.5" placeholder="${b ? b.w : 60}"></label>
       <label class="grow"><span class="eyebrow">Reps</span><input class="in" id="pR" type="number" inputmode="numeric" placeholder="${b ? b.r : 5}"></label></div>`
     : m.type === "reps" ? `<label><span class="eyebrow">Reps</span><input class="in" id="pR" type="number" inputmode="numeric" placeholder="${b ? b.r : 8}"></label>`
-    : m.type === "time" ? `<div class="row"><label class="grow"><span class="eyebrow">Minutes</span><input class="in" id="pM" type="number" inputmode="numeric" placeholder="${b ? Math.floor(b.t / 60) : 25}"></label>
+    : m.type === "time" || m.type === "dur" ? `<div class="row"><label class="grow"><span class="eyebrow">Minutes</span><input class="in" id="pM" type="number" inputmode="numeric" placeholder="${b ? Math.floor(b.t / 60) : (m.type === "dur" ? 1 : 25)}"></label>
       <label class="grow"><span class="eyebrow">Seconds</span><input class="in" id="pS" type="number" inputmode="numeric" placeholder="${b ? Math.round(b.t % 60) : 0}"></label></div>`
     : `<label><span class="eyebrow">Distance (km)</span><input class="in" id="pK" type="number" inputmode="decimal" step="0.1" placeholder="${b ? b.km : 10}"></label>`;
   sheet(`<h3>${esc(m.name)}</h3><div class="sub">${m.ex ? esc(m.ex) + " · " : ""}Best: <b>${esc(prText(m.type, b))}</b></div>
@@ -1568,7 +1605,7 @@ function prSheet(id) {
     <div class="row" style="margin-top:16px"><button class="btn ghost grow" id="pC">Close</button><button class="btn grow" id="pY">Save</button></div>`);
   $("#pC").onclick = closeSheet;
   $("#pY").onclick = async () => { const n = sel => +(($(sel) || {}).value || 0);
-    const e = m.type === "lift" ? {w: n("#pW"), r: n("#pR") || 1} : m.type === "reps" ? {r: n("#pR")} : m.type === "time" ? {t: n("#pM") * 60 + n("#pS")} : {km: n("#pK")};
+    const e = m.type === "lift" ? {w: n("#pW"), r: n("#pR") || 1} : m.type === "reps" ? {r: n("#pR")} : m.type === "time" || m.type === "dur" ? {t: n("#pM") * 60 + n("#pS")} : {km: n("#pK")};
     if (!Object.values(e).some(x => x > 0) || (m.type === "lift" && !e.w)) return toast("Enter your result first");
     e.d = dayStr(); const isPR = !b || prScore(m.type, e) > prScore(m.type, b);
     const g2 = gym(); S.profile.gym = {...g2, prs: {...g2.prs, [id]: [...(g2.prs[id] || []), e]}};
