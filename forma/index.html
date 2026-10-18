@@ -238,7 +238,13 @@ code,.code{background:rgba(17,17,17,.06)}
 .ylegend span{margin:0 4px}
 /* avatar */
 .avcard{display:grid;gap:16px}
-.avwrap{max-width:250px;width:100%;margin:0 auto}
+.avwrap{max-width:250px;width:100%;margin:0 auto;position:relative}
+.avwrap.photo{max-width:270px}
+.avphoto{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:28px;display:block;box-shadow:0 14px 34px rgba(60,40,20,.18)}
+.avwrap.fire::before{content:"";position:absolute;inset:-7px;border-radius:34px;background:conic-gradient(from 0deg,#ff7a1a,#ffd166,#ff4d1a,#ffb02e,#ff7a1a);filter:blur(7px);opacity:.85;z-index:-1;animation:glow 2.4s ease-in-out infinite alternate}
+@keyframes glow{from{opacity:.6;transform:scale(.99)}to{opacity:.95;transform:scale(1.01)}}
+.avdev{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(20,20,20,.72);color:#fff;font-size:12px;font-weight:600;padding:8px 10px;border-radius:12px;text-align:center;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.avdev .linkbtn{color:#ffd166;font-weight:700;background:none;border:none;padding:0 0 0 4px;font-size:12px}
 .avsvg{width:100%;height:auto;display:block;filter:drop-shadow(0 10px 24px rgba(70,52,28,.12))}
 .avlvl{font-family:var(--disp);font-size:24px;font-weight:600;letter-spacing:-.02em}
 .coins{text-align:right;display:grid}
@@ -270,6 +276,14 @@ code,.code{background:rgba(17,17,17,.06)}
 .erow2:last-child{border-bottom:none}
 .erow2 .el{font-weight:600;font-size:14px}
 .erow2 .ep{font-weight:700}
+.erow2.done .el{color:#2f7a3a}
+.pchart{display:flex;align-items:flex-end;gap:4px;height:96px}
+.pc{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+.pc i{display:block;width:100%;border-radius:6px 6px 3px 3px;background:rgba(20,20,20,.18)}
+.pc.now i{background:var(--ink)}
+.pc span{font-size:10px;color:var(--ink2);height:12px;line-height:12px}
+.lvlup{animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
 .flame .fl{transform-box:fill-box;transform-origin:50% 100%;animation:flick 1.6s ease-in-out infinite alternate}
 @keyframes flick{0%{transform:scaleY(.92) skewX(-2deg)}50%{transform:scaleY(1.06) skewX(2deg)}100%{transform:scaleY(.97) skewX(-1deg)}}
 .pet{animation:bob 2.4s ease-in-out infinite}
@@ -1103,7 +1117,7 @@ function dayPoints(d) {
   const tg = targets(S.profile), meals = of("meal", d), tot = dayTotals(d), h = healthOf(d) || {}, m = trainingMap();
   const steps = +h.steps || 0, burn = +h.active_kcal || 0, mins = m.get(d) || 0, stk = streakOn(d, m);
   const off = tg.kcal ? Math.abs(tot.kcal - tg.kcal) / tg.kcal : 1;
-  return [
+  const rows = [
     ["Steps", `${r0(steps).toLocaleString()} steps, 1 point per 100`, Math.min(200, Math.floor(steps / 100)), 200],
     ["Calories burned", `${r0(burn)} kcal, 1 point per 10`, Math.min(100, Math.floor(burn / 10)), 100],
     ["Training", `${mins} min, 1 point per minute`, Math.min(120, mins), 120],
@@ -1114,14 +1128,32 @@ function dayPoints(d) {
     ["Weigh-in", of("weight", d).length ? "Done" : "Not yet", of("weight", d).length ? 10 : 0, 10],
     ["Body check-in", of("scan", d).length ? "Done" : "Not yet", of("scan", d).length ? 30 : 0, 30],
   ];
+  // personal best: beat your best step count of the previous 30 days
+  let best = 0; for (let i = 1; i <= 30; i++) best = Math.max(best, +(healthOf(addDays(d, -i)) || {}).steps || 0);
+  const pb = best > 0 && steps > best;
+  rows.push(["Step record", pb ? `New best! Beat ${r0(best).toLocaleString()} steps` : best ? `Beat ${r0(best).toLocaleString()} steps for +30` : "Sync steps to set a record", pb ? 30 : 0, 30]);
+  // streak multiplier: +10% for every full 5 days in a row, up to +50%
+  const base = rows.reduce((a, x) => a + x[2], 0), mult = Math.min(1.5, 1 + Math.floor(stk / 5) * .1);
+  rows.push(["Streak bonus", mult > 1 ? `x${mult.toFixed(1)} on everything for a ${stk}-day streak` : "Train 5 days in a row for x1.1 on everything", Math.round(base * (mult - 1)), Math.max(1, Math.round(base * .5))]);
+  return rows;
 }
 const dayTotal = d => dayPoints(d).reduce((s, x) => s + x[2], 0);
+// weekly challenges (Monday to Sunday)
+function weekStart(d) { const w = new Date(d + "T12:00:00").getDay(); return addDays(d, -((w + 6) % 7)); }
+function weekChallenges(ws) {
+  const m = trainingMap(); let train = 0, steps = 0, food = 0, prot = 0; const tg = targets(S.profile);
+  for (let i = 0; i < 7; i++) { const d = addDays(ws, i); if (m.has(d)) train++; steps += +(healthOf(d) || {}).steps || 0;
+    if (of("meal", d).length) { food++; if (dayTotals(d).p >= tg.protein * .9) prot++; } }
+  return [["Train on 4 days", train, 4, 150, "days"], ["Walk 50,000 steps", steps, 50000, 150, "steps"], ["Log food on 5 days", food, 5, 100, "days"], ["Hit protein on 4 days", prot, 4, 100, "days"]];
+}
+const weekBonus = ws => weekChallenges(ws).reduce((a, [, have, need, pts]) => a + (have >= need ? pts : 0), 0);
 function avatarPoints() {
   const a = av(), days = {...(a.days || {})}, t = dayStr();
   const seen = new Set(S.entries.map(e => e.day).filter(d => d >= addDays(t, -119) && d <= t));
   let changed = (S.profile.avatar || {}).v !== 3;
   for (const d of seen) { const p = dayTotal(d); if ((days[d] || 0) !== p) { days[d] = p; changed = true; } }
-  const xp = Object.values(days).reduce((s, x) => s + x, 0);
+  const weeks = [...new Set([...seen].map(weekStart))].filter(w => addDays(w, 6) < t || w === weekStart(t));
+  const xp = Object.values(days).reduce((s, x) => s + x, 0) + weeks.reduce((s, w) => s + weekBonus(w), 0);
   return {xp, coins: Math.max(0, xp - (a.spent || 0)), days, changed};
 }
 function levelOf(xp) { let L = 1; while (xp >= 100 * L * (L + 1)) L++; const lo = 100 * L * (L - 1), hi = 100 * L * (L + 1); return {L, lo, hi, pct: Math.min(100, (xp - lo) / (hi - lo) * 100)}; }
@@ -1222,7 +1254,12 @@ function avatarSVG(a, tier, eqOver, stk = 0) {
     return {s: [sx, 84], m: [cx + s * (SW + 2 + t * .4), 102], e: [ex, 124], fm: [cx + s * (SW + 6.5 + t * .4), 136], w: [wx, 160], h: [wx + s * .6, 168]}; };
   const armSkin = s => { const j = arm(s);
     let g = taper(...j.s, A * 1.05, ...j.m, A * 1.08, sk) + taper(...j.m, A * 1.08, ...j.e, Fr * .82, sk) + taper(...j.e, Fr * .82, ...j.fm, Fr, sk) + taper(...j.fm, Fr, ...j.w, Fr * .6, sk);
-    g += `<ellipse cx="${j.h[0]}" cy="${j.h[1]}" rx="${4.2 + t * .25}" ry="${7.2}" fill="${skin}"/><path d="M${j.h[0] - s * 3} ${j.h[1] + 2} q${s * 2} 4 ${s * 5} 2" stroke="${skD}" stroke-width=".8" fill="none" opacity=".6"/>`;
+    { const hx = j.h[0], hy = j.h[1], hw = 4.3 + t * .4, hh = 6.6 + t * .2;
+      g += `<path d="M${hx - hw} ${hy - hh + 1.5} Q${hx - hw - .6} ${hy + hh * .6} ${hx - hw * .4} ${hy + hh} L${hx + hw * .5} ${hy + hh} Q${hx + hw + .6} ${hy + hh * .5} ${hx + hw} ${hy - hh + 2} Q${hx} ${hy - hh - 1.5} ${hx - hw} ${hy - hh + 1.5}Z" fill="${skin}"/>
+        <path d="M${hx - hw} ${hy - hh + 2} Q${hx - hw - .6} ${hy + hh * .6} ${hx - hw * .4} ${hy + hh}" stroke="${s > 0 ? skDD : skL}" stroke-width="1.4" fill="none" opacity=".35" ${B}/>
+        ${[0, 1, 2].map(i => `<path d="M${hx - hw * .55} ${hy + hh * (.05 + i * .32)} Q${hx} ${hy + hh * (.12 + i * .32)} ${hx + hw * .6} ${hy + hh * (.03 + i * .32)}" stroke="${skDD}" stroke-width=".55" fill="none" opacity=".5"/>`).join("")}
+        <path d="M${hx - s * hw * .9} ${hy - hh * .2} Q${hx - s * hw * .2} ${hy + hh * .1} ${hx + s * hw * .2} ${hy - hh * .45}" stroke="${skDD}" stroke-width=".7" fill="none" opacity=".55"/>
+        <ellipse cx="${hx - s * hw * .25}" cy="${hy + hh * .85}" rx="${hw * .55}" ry="1" fill="${skDD}" opacity=".35" ${B}/>`; }
     // muscle shading: tricep shadow on outer side, bicep highlight
     g += `<path d="M${j.s[0] + s * A * .6} ${j.s[1] + 4} Q${j.m[0] + s * A * 1.1} ${j.m[1]} ${j.e[0] + s * Fr * .6} ${j.e[1]}" stroke="${skDD}" stroke-width="${2 + t * .4}" fill="none" opacity=".45" ${B}/>`;
     if (t >= 1) g += `<ellipse cx="${j.m[0] - s * A * .25}" cy="${j.m[1] - 2}" rx="${A * .45}" ry="${A * 1.2}" fill="${skL}" opacity="${.25 + t * .08}" ${B}/>`;
@@ -1379,9 +1416,39 @@ function avatarSVG(a, tier, eqOver, stk = 0) {
 }
 
 let avTab = ls.get("forma.avtab", "top");
+// realistic AI photo of the avatar: described in words, made by Gemini on the server, cached per look
+const SKIN_N = ["fair", "light", "medium tan", "brown", "dark brown"], HAIRC_N = ["black", "dark brown", "light brown", "blonde", "grey"];
+const HAIR_N = {short: "short", fade: "short fade haircut", curly: "curly", long: "long", bun: "hair tied up in a bun", spiky: "spiky textured"};
+const PET_N = {pup: "golden retriever puppy", cat: "black cat", bunny: "white rabbit", dragon: "small green bearded dragon lizard"};
+const BG_N = {bg_plain: "plain cream studio backdrop", bg_sunset: "beach at sunset, golden hour light", bg_beach: "sunny tropical beach",
+  bg_night: "dark moody gym at night", bg_gold: "warm golden studio backdrop"};
+let avNeed = null, avBusy = false, avErr = null, avLevelUp = null;
+function lookOf(a, tier) {
+  const e = a.eq, n = id => id && ITEMS[id] ? ITEMS[id].name : "";
+  const c = {sex: S.profile?.sex === "female" ? "female" : "male", tier, skin: SKIN_N[a.skin] || "medium", hair: HAIR_N[a.hair] || "short",
+    hairColor: HAIRC_N[a.hairColor] || "dark brown", top: n(e.top), bottom: n(e.bottom), shoes: n(e.shoes), head: n(e.head), face: n(e.face),
+    extra: n(e.extra), pet: PET_N[ITEMS[e.pet]?.kind] || "", bg: BG_N[e.bg] || BG_N.bg_plain};
+  let h = 7; for (const ch of JSON.stringify(c)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return {...c, key: "v1" + h.toString(36)};
+}
+async function makeAvatarPhoto(ctx) {
+  avBusy = true;
+  try {
+    const r = await ai("avatar", {context: ctx}), a = av();
+    const photos = {...(a.photos || {}), [ctx.key]: r.url}, keys = Object.keys(photos);
+    while (keys.length > 12) delete photos[keys.shift()];
+    S.profile.avatar = {...a, photos};
+    await DB.saveProfile({avatar: S.profile.avatar});
+  } catch (e) { avErr = e.message; }
+  avBusy = false;
+  if (S.tab === "body") render();
+}
 function avatarSection() {
   const a = av(), P = avatarPoints(), lv = levelOf(P.xp), tier = tierOf(lv.L), today = dayPoints(dayStr()), stk = trainStreak();
+  if (!a.lastL || lv.L < a.lastL) { a.lastL = lv.L; P.changed = true; } else if (lv.L > a.lastL) { avLevelUp = {from: a.lastL, to: lv.L, tierUp: tierOf(a.lastL) < tier}; a.lastL = lv.L; P.changed = true; }
   if (P.changed) { S.profile.avatar = {...a, days: P.days}; DB.saveProfile({avatar: S.profile.avatar}).catch(() => {}); }
+  const hist = Array.from({length: 14}, (_, i) => { const d = addDays(dayStr(), i - 13); return [d, dayTotal(d)]; }), hmax = Math.max(50, ...hist.map(x => x[1]));
+  const wk = weekChallenges(weekStart(dayStr())), wkLeft = 6 - ((new Date().getDay() + 6) % 7);
   const nextTier = [3, 6, 10, 15][tier], todayPts = today.reduce((s, x) => s + x[2], 0);
   const tabs = [["top", "Tops"], ["bottom", "Bottoms"], ["shoes", "Shoes"], ["pet", "Pets"], ["head", "Head"], ["face", "Face"], ["extra", "Extras"], ["bg", "Backdrop"], ["look", "Look"]];
   const flameNote = stk >= 10 ? "Blazing: 10+ days of training in a row" : stk >= 5 ? "On fire: 5+ days of training in a row" : stk >= 3 ? `Warming up: ${stk} days in a row. Reach 5 for the full flame.` : `Train 5 days in a row to light the flame${stk ? ` (${stk} so far)` : ""}.`;
@@ -1394,7 +1461,9 @@ function avatarSection() {
         return `<button class="item ${wearing ? "on" : ""}" data-item="${id || ""}"><span class="dot" style="background:${it.c}"></span><span class="iname">${esc(it.name)}</span>
           <span class="iprice">${wearing ? "Wearing" : owned ? "Owned" : `${it.price.toLocaleString()} pts`}</span></button>`; }).join("")}</div>`;
   return `<div class="card avcard">
-      <div class="avwrap">${avatarSVG(a, tier, null, stk)}</div>
+      ${(() => { const look = lookOf(a, tier), url = (a.photos || {})[look.key]; avNeed = LIVE && !url ? look : null;
+        return url ? `<div class="avwrap photo ${stk >= 5 ? "fire" : ""}"><img class="avphoto" src="${esc(url)}" alt="Your avatar"></div>`
+          : `<div class="avwrap">${avatarSVG(a, tier, null, stk)}${LIVE ? `<div class="avdev">${avErr ? `${esc(avErr)} <button class="linkbtn" data-avretry>Try again</button>` : "Making your realistic photo&hellip;"}</div>` : ""}</div>`; })()}
       <div class="streakline ${stk >= 5 ? "hot" : ""}">${ICON.flame}<span>${flameNote}</span></div>
       <div class="avinfo">
         <div class="row between"><div><div class="avlvl">Level ${lv.L}</div><div class="sub">${TIERS[tier]} body${tier < 4 ? `, next body at level ${nextTier}` : ", max body"}</div></div>
@@ -1402,6 +1471,14 @@ function avatarSection() {
         <div class="bar" style="margin-top:12px;height:8px"><i style="width:${lv.pct}%;background:var(--ink)"></i></div>
         <div class="sub num" style="margin-top:6px">${(P.xp - lv.lo).toLocaleString()} / ${(lv.hi - lv.lo).toLocaleString()} to level ${lv.L + 1}</div>
       </div></div>
+    <h2>Last 14 days</h2>
+    <div class="card"><div class="pchart">${hist.map(([d, p], i) => `<div class="pc ${i === 13 ? "now" : ""}" title="${d}: ${p}"><i style="height:${Math.max(3, p / hmax * 100)}%"></i><span>${i % 2 === 1 ? new Date(d + "T12:00").getDate() : ""}</span></div>`).join("")}</div>
+      <div class="row between sub" style="margin-top:8px;font-size:12px"><span>Best day: <b class="num">${Math.max(...hist.map(x => x[1]))}</b></span><span>14-day total: <b class="num">${hist.reduce((s, x) => s + x[1], 0).toLocaleString()}</b></span></div></div>
+    <h2>This week's challenges <span class="sub">${wkLeft ? `${wkLeft} day${wkLeft > 1 ? "s" : ""} left` : "last day"}</span></h2>
+    <div class="card"><div class="earn">${wk.map(([l, have, need, pts, unit]) => `<div class="erow2 ${have >= need ? "done" : ""}">
+      <div class="row between"><span class="el">${have >= need ? "&#10003; " : ""}${l}</span><span class="num ep">${have >= need ? "+" : ""}${pts}</span></div>
+      <div class="bar" style="height:5px;margin-top:6px"><i style="width:${Math.min(100, have / need * 100)}%;background:var(--ink)"></i></div>
+      <div class="sub" style="font-size:12px;margin-top:4px">${unit === "steps" ? `${r0(have).toLocaleString()} of ${need.toLocaleString()} steps` : `${have} of ${need} ${unit}`}</div></div>`).join("")}</div></div>
     <h2>Today's points <span class="sub num">+${todayPts}</span></h2>
     <div class="card"><div class="earn">${today.map(([l, det, p, max]) => `<div class="erow2">
       <div class="row between"><span class="el">${l}</span><span class="num ep">+${p}</span></div>
@@ -1417,6 +1494,14 @@ function bindAvatar() {
   document.querySelectorAll("[data-skin]").forEach(b => b.onclick = () => save({skin: +b.dataset.skin}));
   document.querySelectorAll("[data-hc]").forEach(b => b.onclick = () => save({hairColor: +b.dataset.hc}));
   document.querySelectorAll("[data-hair]").forEach(b => b.onclick = () => save({hair: b.dataset.hair}));
+  if (avLevelUp) { const u = avLevelUp; avLevelUp = null; const a = av(), stk = trainStreak();
+    sheet(`<div style="text-align:center"><div class="eyebrow">Level up</div><h3 style="font-size:30px;margin:4px 0">Level ${u.to}</h3>
+      <div class="sub">${u.tierUp ? `New body unlocked: <b>${TIERS[tierOf(u.to)]}</b>` : `Next new body at level ${[3, 6, 10, 15].find(x => x > u.to) || "max"}`}</div>
+      <div class="avwrap lvlup" style="max-width:220px;margin:14px auto 0">${avatarSVG(a, tierOf(u.to), null, stk)}</div>
+      <button class="btn" id="lvOk" style="margin-top:16px;width:100%">Nice</button></div>`);
+    $("#lvOk").onclick = closeSheet; }
+  const rt = document.querySelector("[data-avretry]"); if (rt) rt.onclick = () => { avErr = null; render(); };
+  if (avNeed && !avBusy && !avErr) { const k = avNeed.key; setTimeout(() => { if (avNeed && avNeed.key === k && !avBusy && !avErr) makeAvatarPhoto(avNeed); }, 1200); }
   document.querySelectorAll("[data-item]").forEach(b => b.onclick = () => {
     const id = b.dataset.item || null, a = av(), slot = avTab;
     if (!id || a.owned.includes(id)) return save({eq: {...a.eq, [slot]: a.eq[slot] === id && OPTIONAL.includes(slot) ? null : id}});
