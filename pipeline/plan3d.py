@@ -42,36 +42,63 @@ PROP_NAMES = {"cake": "birthday cake", "icecream": "ice cream", "cookie": "cooki
 TABLE_COLORS = ["#FF7AA8", "#7FD1B9", "#FFD23F", "#8FD3FF", "#B7A6FF"]
 
 
-def plan(recent_specs=(), idea=None, rnd=None):
-    """Pick a fresh combination, avoiding the last few gags and hero/friend pairs."""
+SEG_SECONDS = 7.0  # each gag is a 7-second mini story
+
+
+def _segments(recent):
+    for s in recent:
+        for g in (s.get("segments") or [s]):
+            yield g
+
+
+def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60):
+    """One short = 3-5 gags in a row with the same two friends (21-35 s, never under 20 or over 60):
+    longer watch time, a recurring duo, and a fresh mix every day."""
     rnd = rnd or random.Random()
     recent = [s for s in recent_specs if isinstance(s, dict)]
-    recent_gags = [s.get("gag") for s in recent[:4]]
-    gags = [g for g in GAGS if g not in recent_gags] or list(GAGS)
+    lo, hi = max(3, int(-(-min_s // SEG_SECONDS))), min(len(GAGS), int(max_s // SEG_SECONDS))
+    n = rnd.choice([k for k in (3, 4, 4, 5) if lo <= k <= hi] or [lo])
+    recent_gags = [g.get("gag") for g in list(_segments(recent))[:6]]
+    order = [g for g in GAGS if g not in recent_gags] + [g for g in GAGS if g in recent_gags]
+    rnd.shuffle(order)
+    order.sort(key=lambda g: g in recent_gags)  # fresh gags first
     if idea:
         low = idea.lower()
         hits = [g for g in GAGS if any(w in low for w in g.split("_") + GAGS[g]["props"])]
-        gags = hits or gags
-    gag = rnd.choice(gags)
-    g = GAGS[gag]
+        order = hits + [g for g in order if g not in hits]
+    gags = order[:n]
+    rnd.shuffle(gags)
     pairs = {(s.get("hero"), s.get("friend")) for s in recent[:6]}
     cast = list(CAST)
     for _ in range(20):
-        hero, friend = rnd.sample(cast, 2)
-        if (hero, friend) not in pairs:
+        a, b = rnd.sample(cast, 2)
+        if (a, b) not in pairs and (b, a) not in pairs:
             break
-    recent_sets = [s.get("set") for s in recent[:2]]
-    sets = [s for s in g["sets"] if s not in recent_sets] or g["sets"]
-    return {"gag": gag, "set": rnd.choice(sets), "hero": hero, "friend": friend, "prop": rnd.choice(g["props"]),
-            "table_color": rnd.choice(TABLE_COLORS), "seed": rnd.randint(1, 10 ** 6)}
+    # one home set for the whole short when the gags allow it
+    common = [x for x in ["street", "park", "beach", "kitchen"] if all(x in GAGS[g]["sets"] for g in gags)]
+    home = rnd.choice(common) if common else None
+    segs = []
+    for k, gag in enumerate(gags):
+        g = GAGS[gag]
+        hero, friend = (a, b) if k % 2 == 0 else (b, a)  # the two friends take turns being the hero
+        st = home or rnd.choice(g["sets"])
+        segs.append({"gag": gag, "set": st, "hero": hero, "friend": friend, "prop": rnd.choice(g["props"]),
+                     "table_color": rnd.choice(TABLE_COLORS), "seed": rnd.randint(1, 10 ** 6)})
+    return {"hero": a, "friend": b, "set": segs[0]["set"], "gag": segs[0]["gag"], "segments": segs,
+            "seed": rnd.randint(1, 10 ** 6)}
+
+
+def describe_one(seg):
+    g = GAGS[seg["gag"]]
+    return g["story"].format(hero=NAMES[seg["hero"]], friend=NAMES[seg["friend"]], prop=PROP_NAMES[seg["prop"]])
 
 
 def describe(spec):
-    g = GAGS[spec["gag"]]
-    return g["story"].format(hero=NAMES[spec["hero"]], friend=NAMES[spec["friend"]], prop=PROP_NAMES[spec["prop"]])
+    return " Then: ".join(describe_one(s) for s in (spec.get("segments") or [spec]))
 
 
-SYSTEM = """You write the YouTube metadata for a wordless 3D cartoon short (about 7 seconds) for kids aged 2-6,
+SYSTEM = """You write the YouTube metadata for a wordless 3D cartoon short (20-40 seconds, a few funny moments in a row)
+for kids aged 2-6,
 in the style of hit channels like Morphle and Cocomelon. It has only music and cartoon sound effects, no talking.
 - Title: a curiosity hook that makes kids AND parents tap, like "How To Get A FREE Cake!!", "Who Took The Cake?!",
   "Don't Pop The Balloon! 🎈". Max 50 characters, Title Case, one fitting emoji at the end. Name the funny thing
@@ -95,11 +122,13 @@ OFFLINE_TITLES = {
 
 
 def _offline(spec, rnd):
-    t = rnd.choice(OFFLINE_TITLES[spec["gag"]]).format(P=PROP_NAMES[spec["prop"]].title(), H=NAMES[spec["hero"]])
-    return {"title": t, "description": f"{describe(spec)} 😂\nWatch till the end - then watch it again! 🔁",
-            "hashtags": ["kidscartoon", "funnycartoon", "cartoonforkids", spec["prop"]],
+    first = (spec.get("segments") or [spec])[0]
+    t = rnd.choice(OFFLINE_TITLES[first["gag"]]).format(P=PROP_NAMES[first["prop"]].title(), H=NAMES[first["hero"]])
+    return {"title": t, "description": f"{NAMES[spec['hero']]} and {NAMES[spec['friend']]} have the silliest day! 😂\n"
+                                       "Watch till the end - then watch it again! 🔁",
+            "hashtags": ["kidscartoon", "funnycartoon", "cartoonforkids", first["prop"]],
             "tags": ["kids cartoon", "funny cartoon", "3d animation for kids", "cartoon for toddlers",
-                     PROP_NAMES[spec["prop"]], "funny kids video", "preschool cartoon", "cute cartoon",
+                     PROP_NAMES[first["prop"]], "funny kids video", "preschool cartoon", "cute cartoon",
                      "nursery cartoon", "kids shorts", "toddler video", "cartoon shorts"],
             "takeaway": "It's more fun when we laugh together."}
 
