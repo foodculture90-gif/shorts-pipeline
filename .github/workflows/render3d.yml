@@ -14,18 +14,18 @@ env:
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
   EP: ${{ github.event.inputs.episode_id }}
-  PARTS: "12"
-  SAMPLES: "20"
-  RES: "100"
+  PARTS: "20"
+  SAMPLES: "16"
+  RES: "67"          # rendered at 720x1280, sharpened up to 1080x1920 at the end
 
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        part: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        part: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     steps:
       - uses: actions/checkout@v4
       - name: Get Blender + the short's plan
