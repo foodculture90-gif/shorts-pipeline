@@ -13,12 +13,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {gag: steal_treat, set: street, hero: pip, friend: chiko, prop: cake}
-          - {gag: ball_bonk, set: park, hero: bubu, friend: pip, prop: ball}
-          - {gag: balloon_float, set: beach, hero: mimi, friend: gogo, prop: balloon}
-          - {gag: gift_surprise, set: kitchen, hero: gogo, friend: bubu, prop: gift}
-          - {gag: hide_seek, set: park, hero: chiko, friend: mimi, prop: bush}
-          - {gag: slip_peel, set: street, hero: pip, friend: bubu, prop: peel}
+          - {gag: steal_treat, set: playground, hero: tobi, friend: lulu, prop: cake, sky: morning, season: summer, acc: party_hat, acc2: bow}
+          - {gag: ball_bonk, set: snow, hero: teo, friend: popo, prop: ball, sky: day, season: summer, acc: cap, acc2: bowtie}
+          - {gag: balloon_float, set: park, hero: lulu, friend: teo, prop: balloon, sky: golden, season: autumn, acc: flower, acc2: none}
+          - {gag: gift_surprise, set: beach, hero: popo, friend: tobi, prop: gift, sky: sunset, season: summer, acc: crown, acc2: party_hat}
+          - {gag: hide_seek, set: street, hero: teo, friend: mimi, prop: bush, sky: morning, season: spring, acc: bowtie, acc2: crown}
+          - {gag: slip_peel, set: kitchen, hero: popo, friend: lulu, prop: peel, sky: day, season: summer, acc: party_hat, acc2: flower}
     steps:
       - uses: actions/checkout@v4
       - name: Get Blender
@@ -33,9 +33,19 @@ jobs:
       - name: Render preview frames
         env: {SAMPLES: "10", RES: "30"}
         run: |
-          echo '{"gag":"${{ matrix.gag }}","set":"${{ matrix.set }}","hero":"${{ matrix.hero }}","friend":"${{ matrix.friend }}","prop":"${{ matrix.prop }}","seed":7}' > spec.json
+          echo '{"gag":"${{ matrix.gag }}","set":"${{ matrix.set }}","hero":"${{ matrix.hero }}","friend":"${{ matrix.friend }}","prop":"${{ matrix.prop }}","seed":7,"color":"blue","theme":{"sky":"${{ matrix.sky }}","season":"${{ matrix.season }}","pal":1${{ strategy.job-index }}7},"looks":{"${{ matrix.hero }}":["${{ matrix.acc }}","#FF4D6D"],"${{ matrix.friend }}":["${{ matrix.acc2 }}","#FFD23F"]}}' > spec.json
           ./bl/blender -b --python blender/scene.py -- spec.json out every:12 2>&1 | grep -E "^frame|done|Error|Traceback|rror|line [0-9]+" | head -60
           ls out/frames | wc -l
+          sudo apt-get install -y -qq fluidsynth fluid-soundfont-gm > /dev/null && pip install -q numpy
+          python3 blender/audio.py out/events.json sound.wav 7 7 && ffmpeg -y -loglevel error -i sound.wav -b:a 128k "sound_${{ matrix.gag }}.mp3" || true
+          python3 - <<'PY' || true
+          import sys; sys.path.insert(0, "blender"); import audio as A, numpy as np, json
+          ev = json.load(open("out/events.json"))
+          m = A.music(7, 7) * 0.42
+          fx = A.mix(ev["events"], 24, 7, 7, music_gain=0.0, sets=ev.get("sets"))
+          rms = lambda x: float(np.sqrt(np.mean(x ** 2)) + 1e-9)
+          print("LEVELS music_rms", round(rms(m), 4), "fx_rms", round(rms(fx), 4), "ratio_db", round(20 * np.log10(rms(m) / rms(fx)), 1))
+          PY
           ffmpeg -y -loglevel error -pattern_type glob -i 'out/frames/*.png' -filter_complex "scale=324:576,tile=7x2:padding=4" -frames:v 1 -q:v 3 "sheet_${{ matrix.gag }}.jpg"
       - name: Upload sheet
         if: always()
@@ -43,9 +53,10 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          for f in sheet_*.jpg; do
+          for f in sheet_*.jpg sound_*.mp3; do
             [ -f "$f" ] || continue
+            case "$f" in *.mp3) ct=audio/mpeg;; *) ct=image/jpeg;; esac
             curl -sS -X POST "$SUPABASE_URL/storage/v1/object/media/tests/$f" \
-              -H "Authorization: Bearer $KEY" -H "apikey: $KEY" -H "x-upsert: true" -H "Content-Type: image/jpeg" \
+              -H "Authorization: Bearer $KEY" -H "apikey: $KEY" -H "x-upsert: true" -H "Content-Type: $ct" \
               --data-binary @"$f"; echo
           done
