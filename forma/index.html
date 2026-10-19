@@ -1545,8 +1545,8 @@ const MACH = {
 };
 /* house: everything here is bought with points; machines are free and appear in the gym room once you log a PR */
 const HOUSE = {
-  house: [["home:starter", "Starter house", 0], ["home:villa", "L-shaped villa", 6000], ["home:long", "Modern long house", 12000], ["home:mansion", "Mansion", 25000],
-    ["bbq", "BBQ grill", 300], ["hammock", "Hammock", 250], ["outkitchen", "Outdoor kitchen", 900], ["firepit", "Fire pit", 500],
+  homes: [["home:starter", "Starter house", 0], ["home:villa", "L-shaped villa", 6000], ["home:long", "Modern long house", 12000], ["home:mansion", "Mansion", 25000]],
+  house: [    ["bbq", "BBQ grill", 300], ["hammock", "Hammock", 250], ["outkitchen", "Outdoor kitchen", 900], ["firepit", "Fire pit", 500],
     ["hottub", "Hot tub", 1200], ["sauna", "Sauna", 1500], ["fountain", "Fountain", 2000], ["tennis", "Tennis court", 4000], ["helipad", "Helipad", 5000],
     ["windows", "Windows", 300], ["lights", "Ceiling lights", 250], ["garden", "Garden and trees", 500], ["paving", "Paved driveway", 400],
     ["fence", "Garden hedge", 450], ["deck", "Wooden deck", 700], ["pool", "Swimming pool", 2500], ["loungers", "Pool loungers", 400]],
@@ -1559,7 +1559,7 @@ const HOUSE = {
   decor: [["sofa", "Sofa", 600], ["rug", "Rug", 250], ["table", "Coffee table", 200], ["tv", "TV wall", 900], ["lamp", "Floor lamp", 180], ["plant", "Plants", 150],
     ["counter", "Kitchen counter", 700], ["island", "Kitchen island", 600], ["stools", "Bar stools", 200], ["gymfloor", "Gym floor mats", 300], ["mirror", "Gym mirror", 400], ["speakers", "Speakers", 350]],
 };
-const HTABS = [["house", "House"], ["cars", "Cars"], ["walls", "Walls"], ["decor", "Decor"]];
+const HTABS = [["homes", "Homes"], ["house", "Upgrades"], ["cars", "Cars"], ["walls", "Walls"], ["decor", "Decor"]];
 const HITEM = {};
 for (const [cat, list] of Object.entries(HOUSE)) for (const [id, name, price, c, shape, bays] of list) HITEM[id] = {cat, name, price, c, shape: shape || id, bays};
 const gymDefault = () => ({prs: {}, hown: [], hon: [], hsel: {home: "starter", wall: "plaster", floor: "bare", cars: []}, hspent: 0});
@@ -1569,6 +1569,8 @@ const isGarage = id => HITEM[id]?.shape === "garage";
 const garageBays = g => Math.max(0, ...g.hown.filter(isGarage).map(id => HITEM[id].bays));
 const carCap = g => (HOMES[g.hsel.home] || HOMES.starter).spots.length + garageBays(g);
 const ONLY = {bbq: "starter", hammock: "starter", outkitchen: "villa", firepit: "villa", hottub: "long", sauna: "long", fountain: "mansion", tennis: "mansion", helipad: "mansion"};
+const homeInfo = k => { const L = HOMES[k], [, , w, h] = L.gym, slots = Math.min(12, Math.floor(w / 48) * Math.floor(h / 68));
+  return `<span class="sub" style="display:block;font-size:10.5px;font-weight:400;margin-top:2px">${L.spots.length} parking · ${slots} machines</span>`; };
 const HOME_NAME = {starter: "Starter house", villa: "Villa", long: "Modern house", mansion: "Mansion"};
 const hOwned = (g, id) => HITEM[id].price === 0 || g.hown.includes(id);
 const hOn = (g, id) => { const [k, v] = id.split(":"); return v ? g.hsel[k] === v : isGarage(id) ? g.hown.includes(id) : HITEM[id].cat === "cars" ? g.hsel.cars.includes(id) : g.hon.includes(id); };
@@ -1764,14 +1766,14 @@ function renderGym(v) {
   const g = gym(), coins = wallet(), bought = g.hown.length;
   const home = HOMES[g.hsel.home] ? g.hsel.home : "starter";
   const items = HOUSE[houseTab].filter(([id]) => !ONLY[id] || ONLY[id] === home).map(([id, name, price, c]) => { const own = hOwned(g, id), act = hOn(g, id);
-    return `<button class="item ${act ? "on" : ""}" data-hitem="${id}"><span class="dot" style="background:${c || "#26262a"}">${c ? "" : ICON.gym}</span><span class="iname">${esc(name)}${ONLY[id] ? ` <span class="sub" style="display:block;font-size:10.5px;color:var(--accent)">${HOME_NAME[home]} only</span>` : ""}</span>
-      <span class="iprice">${act ? (isGarage(id) ? "Built" : HITEM[id].cat === "cars" ? "Parked" : "In use") : own ? (HITEM[id].cat === "cars" ? "Owned · tap to park" : "Owned · tap to use") : `${price.toLocaleString()} pts`}</span></button>`; }).join("");
+    return `<button class="item ${act ? "on" : ""}" data-hitem="${id}"><span class="dot" style="background:${c || "#26262a"}">${c ? "" : ICON.gym}</span><span class="iname">${esc(name)}${ONLY[id] ? ` <span class="sub" style="display:block;font-size:10.5px;color:var(--accent)">${HOME_NAME[home]} only</span>` : ""}${id.startsWith("home:") ? homeInfo(id.slice(5)) : ""}</span>
+      <span class="iprice">${act && id.startsWith("home:") ? "You live here" : !act && own && id.startsWith("home:") ? "Owned · tap to move in" : act ? (isGarage(id) ? "Built" : HITEM[id].cat === "cars" ? "Parked" : "In use") : own ? (HITEM[id].cat === "cars" ? "Owned · tap to park" : "Owned · tap to use") : `${price.toLocaleString()} pts`}</span></button>`; }).join("");
   const prCount = Object.keys(MACH).filter(id => (g.prs[id] || []).length).length;
   v.innerHTML = `${demoBanner()}<div class="row between" style="margin-top:6px"><h1 style="margin:0">House</h1><button class="ptspill" id="hPts"><i></i>${coins.toLocaleString()} pts</button></div>
     <div class="card gymcard" style="margin-top:12px"><div class="gymwrap">${houseSVG(g)}</div>
       <div class="sub" style="margin-top:10px">${bought ? `${bought} thing${bought > 1 ? "s" : ""} bought so far.` : "Your house starts empty."} Earn points by logging meals, steps and training, then spend them here.
       ${prCount ? `Tap a machine in your gym room to log a new PR.` : `Machines appear in your gym room when you log a PR in Train.`}</div></div>
-    <div class="chips" style="margin-top:14px">${HTABS.map(([k, l]) => `<button class="chip ${houseTab === k ? "on" : ""}" data-htab="${k}">${l}</button>`).join("")}</div>
+    <div class="chips scrollx" style="margin-top:14px">${HTABS.map(([k, l]) => `<button class="chip ${houseTab === k ? "on" : ""}" data-htab="${k}">${l}</button>`).join("")}</div>
     ${houseTab === "cars" ? `<div class="sub" style="margin-top:10px">Parking: ${Math.min(g.hsel.cars.length, carCap(g))} of ${carCap(g)} spaces used (${(HOMES[g.hsel.home] || HOMES.starter).spots.length} on the driveway, ${garageBays(g)} in the garage). Bigger houses and garages give more spaces. Tap a car you own to park or move it out.</div>` : ""}
     <div class="shop" style="margin-top:12px">${items}</div>`;
   bindGym();
