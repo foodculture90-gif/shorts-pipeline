@@ -4,7 +4,10 @@ No voices. Everything is made here, so it's free and safe to use commercially.
   python3 blender/audio.py events.json out.wav [seconds] [seed]
 
 events.json: {"fps": 24, "frames": 144, "events": [[frame, "kind"], ...]}
-Kinds: boing, land, pop, whoosh, chomp, sparkle, slide_up, slide_down, doink, zip, thud, tick, ding, swish
+Kinds: boing, land, pop, whoosh, chomp, sparkle, slide_up, slide_down, doink, zip, thud, tick, ding, swish,
+       squeak, giggle, tiptoe, tada, drumroll, crash, honk, wahwah, xylo_up, xylo_down, splat, bubble, tweet,
+       twinkle, rattle
+Background: soft birds / waves / wind under the gags, picked from the set ("sets" in events.json).
 Music: written as MIDI here and played with a General MIDI soundfont by fluidsynth (if installed).
 """
 import json, math, os, random, shutil, struct, subprocess, sys, tempfile, wave
@@ -212,11 +215,225 @@ def sfx_ding():
     return norm(bell(1568, 1.0, 0.6) + 0.6 * bell(2093, 1.0, 0.4), 0.6)
 
 
+def _seq(parts, gaps):
+    """Glue sounds one after another (gaps in seconds between starts)."""
+    starts = np.cumsum([0] + list(gaps))
+    n = max(int(SR * st) + len(p) for st, p in zip(starts, parts))
+    out = np.zeros(n)
+    for st, p in zip(starts, parts):
+        i = int(SR * st)
+        out[i:i + len(p)] += p
+    return out
+
+
+def sfx_squeak(pitch=1.0, dur=0.16):
+    """Rubber-toy squeak: quick up-down nasal tone."""
+    tt = t(dur)
+    f = pitch * (950 + 650 * np.sin(np.pi * tt / dur) ** 0.7)
+    s = osc(f, "soft_square") * 0.6 + 0.4 * osc(f * 2)
+    s = bandpass(s, 600, 5000)
+    e = np.clip(tt / 0.01, 0, 1) * np.clip((dur - tt) / 0.03, 0, 1)
+    return fade(norm(s * e, 0.8))
+
+
+def sfx_giggle():
+    """Toy giggle: a little run of squeaks bouncing down (no voice)."""
+    ps = [1.35, 1.2, 1.28, 1.08, 1.15]
+    return fade(norm(_seq([sfx_squeak(p, 0.08) * (1 - k * 0.1) for k, p in enumerate(ps)], [0.1] * 4), 0.8))
+
+
+def sfx_tiptoe():
+    """Four tiny soft steps."""
+    steps = []
+    for k in range(4):
+        n = int(SR * 0.06)
+        f = np.full(n, 900 + 120 * (k % 2))
+        steps.append(osc(f) * env(n, 0.001, 0.03, 7) * 0.6 + bandpass(noise(n), 1500, 4500) * env(n, 0.0005, 0.01, 8) * 0.2)
+    return fade(_seq(steps, [0.11] * 3))
+
+
+def _brass(freq, dur):
+    tt = t(dur)
+    vib = 1 + 0.008 * np.sin(2 * np.pi * 5.5 * tt) * np.clip(tt / 0.15, 0, 1)
+    s = sum((0.8 / k) * osc(freq * k * vib) for k in range(1, 7))
+    e = np.clip(tt / 0.025, 0, 1) * np.clip((dur - tt) / 0.08, 0, 1)
+    return lowpass(s * e, 3200)
+
+
+def sfx_tada():
+    """Ta-daa! fanfare: short pickup + big major chord + sparkle."""
+    a = _brass(523.25, 0.12)
+    chord = sum(_brass(f, 0.8) for f in (523.25, 659.25, 783.99, 1046.5)) / 2.5
+    out = _seq([a, chord], [0.13])
+    sp = sfx_sparkle(2093) * 0.35
+    out[int(SR * 0.13):int(SR * 0.13) + len(sp)] += sp[: len(out) - int(SR * 0.13)]
+    return fade(norm(out, 0.8))
+
+
+def sfx_drumroll(dur=0.9):
+    """Snare roll that grows, then a hit."""
+    n = int(SR * dur)
+    hits = np.zeros(n)
+    k = 0
+    while True:
+        i = int(SR * k / 28)
+        if i >= n:
+            break
+        m = int(SR * 0.03)
+        hits[i:i + m] += (bandpass(noise(m), 1200, 7000) * env(m, 0.0005, 0.02, 5))[: n - i] * (0.3 + 0.7 * i / n)
+        k += 1
+    m = int(SR * 0.35)
+    crash = bandpass(noise(m), 800, 9000) * env(m, 0.001, 0.35, 4) + osc(np.full(m, 90)) * env(m, 0.001, 0.15, 6)
+    return fade(norm(np.concatenate([hits, crash]), 0.8))
+
+
+def sfx_crash(dur=1.1):
+    """Cymbal-ish crash for big bumps."""
+    n = int(SR * dur)
+    x = bandpass(noise(n), 3000, 12000) * env(n, 0.001, dur, 4.5)
+    return fade(norm(x, 0.7))
+
+
+def sfx_honk(pitch=1.0):
+    """Clown bike horn: honk-honk."""
+    def one(d):
+        tt = t(d)
+        f = 410 * pitch * (1 + 0.05 * np.sin(2 * np.pi * 30 * tt))
+        s = osc(f, "soft_square") + 0.5 * osc(f * 1.5, "soft_square")
+        s = bandpass(s, 300, 2600)
+        return s * np.clip(tt / 0.01, 0, 1) * np.clip((d - tt) / 0.03, 0, 1)
+    return fade(norm(_seq([one(0.14), one(0.2)], [0.18]), 0.8))
+
+
+def sfx_wahwah():
+    """Sad trombone 'wah wah wah wahhh' for a fail."""
+    notes = [(392.0, 0.28), (370.0, 0.28), (349.2, 0.28), (329.6, 0.75)]
+    parts = []
+    for k, (f, d) in enumerate(notes):
+        b = _brass(f * 0.5, d)
+        tt = t(d)
+        wah = 0.55 + 0.45 * np.sin(np.pi * np.clip(tt / d, 0, 1))
+        if k == 3:
+            b = _brass(f * 0.5 * (1 - 0.04 * tt / d), d)
+        parts.append(b * wah)
+    return fade(norm(_seq(parts, [0.3, 0.3, 0.3]), 0.7))
+
+
+def _xylo(f, d=0.35):
+    tt = t(d)
+    s = osc(np.full(len(tt), f)) + 0.25 * osc(np.full(len(tt), f * 3.9)) * np.exp(-tt * 40)
+    return s * np.exp(-tt * 9) * np.clip(tt / 0.002, 0, 1)
+
+
+def sfx_xylo(up=True):
+    """Quick xylophone run up (rising, jumping) or down (falling)."""
+    sc = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5, 1174.7]
+    if not up:
+        sc = sc[::-1]
+    return fade(norm(_seq([_xylo(f) for f in sc], [0.045] * (len(sc) - 1)), 0.7))
+
+
+def sfx_splat():
+    n = int(SR * 0.3)
+    tt = t(0.3)
+    low = osc(140 * np.exp(-tt * 10) + 50) * env(n, 0.002, 0.2, 5)
+    sq = lowpass(noise(n), 1500) * env(n, 0.001, 0.12, 5) * 0.6
+    return fade(norm(low + sq, 0.8))
+
+
+def sfx_bubble():
+    parts = []
+    for k in range(4):
+        d = 0.07
+        tt = t(d)
+        f = (500 + 180 * k) * (1 + 1.5 * tt / d)
+        parts.append(osc(f) * np.sin(np.pi * tt / d) * 0.7)
+    return fade(_seq(parts, [0.09, 0.07, 0.11]))
+
+
+def sfx_tweet():
+    """Little birdies (dizzy): three chirps."""
+    parts = []
+    for k in range(3):
+        d = 0.09
+        tt = t(d)
+        f = 3600 - 1400 * tt / d + 200 * np.sin(2 * np.pi * 60 * tt)
+        parts.append(osc(f) * np.sin(np.pi * tt / d) ** 2 * 0.5)
+    return fade(_seq(parts, [0.13, 0.13]))
+
+
+def sfx_twinkle():
+    out = _seq([bell(f, 0.4, 0.5) * 0.5 for f in (2637, 3136, 2637, 3520)], [0.12, 0.12, 0.12])
+    return fade(norm(out, 0.5))
+
+
+def sfx_rattle():
+    parts = [bandpass(noise(int(SR * 0.03)), 800, 3500) * env(int(SR * 0.03), 0.0005, 0.02, 6) for _ in range(5)]
+    return fade(norm(_seq(parts, [0.045] * 4), 0.6))
+
+
 SFX = dict(boing=sfx_boing, land=sfx_land, pop=sfx_pop, whoosh=sfx_whoosh, swish=sfx_swish, chomp=sfx_chomp,
            sparkle=sfx_sparkle, slide_up=lambda: sfx_slide(True), slide_down=lambda: sfx_slide(False),
-           doink=sfx_doink, zip=sfx_zip, thud=sfx_thud, tick=sfx_tick, ding=sfx_ding)
+           doink=sfx_doink, zip=sfx_zip, thud=sfx_thud, tick=sfx_tick, ding=sfx_ding,
+           squeak=sfx_squeak, giggle=sfx_giggle, tiptoe=sfx_tiptoe, tada=sfx_tada, drumroll=sfx_drumroll,
+           crash=sfx_crash, honk=sfx_honk, wahwah=sfx_wahwah, xylo_up=lambda: sfx_xylo(True),
+           xylo_down=lambda: sfx_xylo(False), splat=sfx_splat, bubble=sfx_bubble, tweet=sfx_tweet,
+           twinkle=sfx_twinkle, rattle=sfx_rattle)
 GAIN = dict(boing=0.55, land=0.6, pop=0.55, whoosh=0.45, swish=0.4, chomp=0.65, sparkle=0.4, slide_up=0.45,
-            slide_down=0.45, doink=0.55, zip=0.5, thud=0.7, tick=0.35, ding=0.4)
+            slide_down=0.45, doink=0.55, zip=0.5, thud=0.7, tick=0.35, ding=0.4, squeak=0.4, giggle=0.4,
+            tiptoe=0.45, tada=0.5, drumroll=0.45, crash=0.3, honk=0.5, wahwah=0.5, xylo_up=0.45, xylo_down=0.45,
+            splat=0.6, bubble=0.4, tweet=0.3, twinkle=0.3, rattle=0.45)
+# effects that sound more alive slightly higher/lower each time they play (tuned ones stay in tune)
+TUNED = {"sparkle", "ding", "tada", "wahwah", "xylo_up", "xylo_down", "twinkle"}
+
+
+def repitch(x, p):
+    if abs(p - 1) < 1e-3:
+        return x
+    idx = np.arange(0, len(x) - 1, p)
+    return np.interp(idx, np.arange(len(x)), x)
+
+
+# ------------------------------------------------------------------ background (very quiet)
+def amb_birds(n, r):
+    out = np.zeros(n)
+    i = int(SR * r.uniform(0.3, 1.5))
+    while i < n:
+        c = sfx_tweet() if r.random() < 0.5 else sfx_tweet()[: int(SR * 0.22)]
+        c = repitch(c, r.uniform(0.75, 1.15)) * r.uniform(0.4, 1.0)
+        out[i:i + len(c)] += c[: n - i]
+        i += int(SR * r.uniform(1.2, 3.5))
+    return out
+
+
+def amb_waves(n, r):
+    x = lowpass(noise(n), 900)
+    tt = np.arange(n) / SR
+    swell = 0.35 + 0.65 * (0.5 + 0.5 * np.sin(2 * np.pi * tt / r.uniform(5.5, 7.5) + r.uniform(0, 6))) ** 2
+    return norm(x * swell, 0.8)
+
+
+def amb_wind(n, r):
+    x = bandpass(noise(n), 200, 900)
+    tt = np.arange(n) / SR
+    return norm(x * (0.4 + 0.3 * np.sin(2 * np.pi * tt / 4.3) + 0.2 * np.sin(2 * np.pi * tt / 1.7)), 0.7)
+
+
+AMBIENCE = {"park": [(amb_birds, 0.13)], "street": [(amb_birds, 0.09)], "playground": [(amb_birds, 0.1)],
+            "beach": [(amb_waves, 0.1), (amb_birds, 0.04)], "snow": [(amb_wind, 0.07)], "kitchen": []}
+
+
+def ambience(sets, fps, n, r):
+    out = np.zeros(n)
+    sets = sorted(sets or [])
+    for k, (f0, name) in enumerate(sets):
+        i0 = int((f0 - 1) / fps * SR)
+        i1 = int((sets[k + 1][0] - 1) / fps * SR) if k + 1 < len(sets) else n
+        seg = np.zeros(max(0, i1 - i0))
+        for fn, g in AMBIENCE.get(name, []):
+            seg += fn(len(seg), r) * g
+        out[i0:i0 + len(seg)] += fade(seg, 0.15, 0.15) if len(seg) > SR else seg
+    return out
 
 
 def reverb(x, wet=0.12, length=0.9):
@@ -360,7 +577,7 @@ def music(seconds, seed=0):
 
 
 # ------------------------------------------------------------------ mix
-def mix(events, fps, seconds, seed=0, music_gain=0.75):
+def mix(events, fps, seconds, seed=0, music_gain=0.42, sets=None):
     n = int(SR * seconds)
     fx = np.zeros(n + SR)
     duck = np.ones(n + SR)
@@ -369,6 +586,8 @@ def mix(events, fps, seconds, seed=0, music_gain=0.75):
         if kind not in SFX:
             continue
         s = SFX[kind]() * GAIN.get(kind, 0.5) * r.uniform(0.85, 1.0)
+        if kind not in TUNED:
+            s = repitch(s, r.uniform(0.88, 1.14))
         i = int(frame / fps * SR)
         if i >= n:
             continue
@@ -376,8 +595,12 @@ def mix(events, fps, seconds, seed=0, music_gain=0.75):
         fx[i:i + len(s)] += s
         # duck the music a little under each effect
         dn = min(len(s) + int(SR * 0.1), len(duck) - i)
-        duck[i:i + dn] = np.minimum(duck[i:i + dn], 0.7)
+        duck[i:i + dn] = np.minimum(duck[i:i + dn], 0.55)
     fx = reverb(fx[:n], 0.12)
+    try:
+        fx = fx + ambience(sets, fps, n, random.Random(seed + 5))
+    except Exception as e:  # noqa: BLE001  (background is a nice-to-have)
+        print("ambience skipped:", e, file=sys.stderr)
     duck = lowpass(duck[:n], 12)
     m = music(seconds, seed) * music_gain * duck
     out = fx + m
@@ -400,5 +623,5 @@ if __name__ == "__main__":
     fps = ev.get("fps", 24)
     secs = float(sys.argv[3]) if len(sys.argv) > 3 else ev["frames"] / fps
     seed = int(sys.argv[4]) if len(sys.argv) > 4 else ev.get("seed", 0)
-    save(sys.argv[2], mix(ev["events"], fps, secs, seed))
+    save(sys.argv[2], mix(ev["events"], fps, secs, seed, sets=ev.get("sets")))
     print("audio ok", sys.argv[2])

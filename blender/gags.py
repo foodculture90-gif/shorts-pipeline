@@ -60,6 +60,7 @@ def steal_treat(spec, cam, tgt):
     T.key(r, "location", 76, (0.6, 0.62, sz + 0.12))
     T.key(r, "location", 79, (0.6, 0.62, sz))
     T.look(sn, 79, -0.05)
+    T.sfx(66, "tiptoe")
     T.sfx(75, "pop")
     T.sfx(83, "swish")
     T.arms(sn, 84, 0.3, fwd=-1.4, d=6)
@@ -79,6 +80,7 @@ def steal_treat(spec, cam, tgt):
     T.turn(hero, 104, 0, 6)
     T.eyes_big(hero, 100, 1.4, 5, sound="doink")
     T.sfx(101, "slide_down")
+    T.sfx(112, "wahwah")
     T.brows(hero, 100, 0.08)
     T.mouth_set(hero, 100, 1.3, 0.9)
     T.look(hero, 100, 0.0, 0.0)
@@ -141,7 +143,9 @@ def ball_bonk(spec, cam, tgt):
     T.key(b, "rotation_euler", 34, (0, 0, 0))
     T.key(b, "rotation_euler", 72, (math.radians(900), 0, 0))
     T.sfx(46, "doink")
+    T.sfx(48, "honk")
     T.sfx(62, "boing")
+    T.sfx(68, "rattle")
     T.look(hero, 40, 0.05, 0.02)
     T.look(fr, 36, -0.05, 0.0)
     T.eyes_big(fr, 44, 1.3, 4, sound=None)
@@ -165,8 +169,10 @@ def ball_bonk(spec, cam, tgt):
     T.look(hero, 118, 0.05)
     T.eyes_big(hero, 120, 1.15, 3, sound=None)
     T.brows(fr, 128, 0.0)
+    T.sfx(122, "squeak")
     T.jump_joy(fr, 130)
     T.jump_joy(hero, 132, sound=None)
+    T.sfx(150, "tada")
     return 168, 47
 
 
@@ -204,7 +210,9 @@ def balloon_float(spec, cam, tgt):
     T.key(r, "location", 52, (x, 0.15, 0.35))
     T.key(r, "location", 92, (x + 0.1, 0.15, 1.7))
     T.sfx(42, "slide_up")
+    T.sfx(56, "bubble")
     T.sfx(70, "sparkle")
+    T.sfx(84, "twinkle")
     T.look(hero, 52, 0.0, -0.05)
     T.eyes_big(hero, 56, 1.3, 4, sound=None)
     T.mouth_set(hero, 56, 0.8)
@@ -216,6 +224,7 @@ def balloon_float(spec, cam, tgt):
     T.arms(hero, 104, 2.2, d=3, hold=False)
     # POP! hang... fall
     T.sfx(100, "pop")
+    T.sfx(100, "crash")
     T.key(bal, "scale", 99, (1, 1, 1))
     T.key(bal, "scale", 101, (1.4, 1.4, 1.4))
     T.key(bal, "scale", 102, (0.01, 0.01, 0.01), "CONSTANT")
@@ -223,9 +232,10 @@ def balloon_float(spec, cam, tgt):
     T.eyes_big(hero, 101, 1.5, 1, sound=None)
     T.key(r, "location", 104, (x + 0.1, 0.15, 1.7))
     T.key(r, "location", 115, (x + 0.1, 0.15, 0.0))
-    T.sfx(103, "slide_down")
+    T.sfx(103, "xylo_down")
     T.stretch(hero, 110, 0.25, 4, 5)
     T.sfx(115, "thud")
+    T.sfx(116, "splat")
     T.squash(hero, 116, 0.32, 1, 8)
     T.arms(hero, 116, 0.2)
     T.dizzy_stars(hero, 117, 150)
@@ -265,7 +275,8 @@ def gift_surprise(spec, cam, tgt):
     T.hop(hero, 42, -1.0, -0.78, 0.3)
     T.hop(hero, 56, -0.78, -0.56, 0.3)
     T.lean(hero, 68, 14, 6)
-    T.wobble(gift, 72, 82, 7, 2)
+    T.wobble(gift, 72, 82, 7, 2, sound="rattle")
+    T.sfx(60, "drumroll")
     # POP - lid flies, friend springs out
     T.sfx(82, "pop")
     T.key(lid, "location", 82, (0, 0, 0.62))
@@ -284,7 +295,7 @@ def gift_surprise(spec, cam, tgt):
     T.arms(fr, 88, 2.4, d=4)
     T.eyes_happy(fr, 88)
     T.mouth_set(fr, 88, 1.0, 1.1)
-    T.sfx(90, "sparkle")
+    T.sfx(90, "tada")
     # hero jumps back startled
     T.lean(hero, 84, 0, 2)
     T.hop(hero, 84, -0.56, -0.8, 0.35, 10, sound=False)
@@ -301,6 +312,7 @@ def gift_surprise(spec, cam, tgt):
     T.laugh(hero, 114, 134, sound=False)
     T.hop(hero, 138, -0.8, -0.6, 0.3)
     T.jump_joy(hero, 152)
+    T.sfx(97, "squeak")
     return 168, 92
 
 
@@ -328,8 +340,9 @@ def hide_seek(spec, cam, tgt):
     T.mouth_set(hero, 4, 0.0)
     T.hop(hero, 10, -0.15, 0.2, 0.15, 10, 0.15, 0.6, sound=False)
     T.hop(hero, 24, 0.2, 0.5, 0.15, 10, 0.6, 0.95, sound=False)
-    T.sfx(12, "swish")
-    T.sfx(26, "swish")
+    T.sfx(11, "tiptoe")
+    T.sfx(25, "tiptoe")
+    T.sfx(38, "squeak")
     p = hero["piv"]
     T.key(p, "scale", 36, (1, 1, 1))
     T.key(p, "scale", 40, (1.2, 1.2, 0.55))
@@ -344,11 +357,13 @@ def hide_seek(spec, cam, tgt):
     T.brows(seek, 64, -0.02)
     T.hop(seek, 70, -0.75, -0.25, 0.3)
     T.wobble(bush, 78, 92, 4, 3, 1, sound=None)
-    T.sfx(78, "swish")
+    T.sfx(78, "rattle")
+    T.sfx(86, "rattle")
     T.look(seek, 84, 0.05, 0.01)
     T.lean(seek, 92, 10, 6)
     # BOO!
     T.sfx(99, "pop")
+    T.sfx(100, "honk")
     T.key(p, "scale", 100, (0.9, 0.9, 1.25))
     T.key(p, "scale", 106, (1, 1, 1))
     r = hero["root"]
@@ -401,8 +416,10 @@ def slip_peel(spec, cam, tgt):
     T.hop(hero, 32, -0.6, -0.08, 0.35)
     # whoops!
     r, pv = hero["root"], hero["piv"]
+    T.sfx(43, "squeak")
     T.sfx(45, "slide_up")
     T.sfx(45, "swish")
+    T.sfx(53, "xylo_down")
     T.key(r, "location", 44, (-0.08, 0.15, 0))
     T.key(r, "location", 52, (0.2, 0.15, 0.95))
     T.key(r, "location", 61, (0.42, 0.15, 0.0))
@@ -418,6 +435,7 @@ def slip_peel(spec, cam, tgt):
     T.key(peel, "rotation_euler", 44, (0, 0, 0))
     T.key(peel, "rotation_euler", 54, (0, 0, math.radians(540)))
     T.sfx(61, "thud")
+    T.sfx(61, "crash")
     T.squash(hero, 62, 0.33, 1, 8)
     T.arms(hero, 64, 0.3)
     T.look(fr, 46, -0.05, 0.03)
@@ -437,6 +455,7 @@ def slip_peel(spec, cam, tgt):
     T.look(hero, 132, 0.0, 0.0)
     T.laugh(hero, 136, 156, sound=False)
     T.jump_joy(fr, 140)
+    T.sfx(156, "tada")
     return 168, 52
 
 

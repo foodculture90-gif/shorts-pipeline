@@ -23,8 +23,18 @@ segments = spec.get("segments") or [spec]
 samples, res = int(os.environ.get("SAMPLES", "20")), int(os.environ.get("RES", "100"))
 
 
+COLORS = {"red": "#FF3B6E", "blue": "#4DA6FF", "yellow": "#FFD23F", "green": "#5CCB6B", "purple": "#B57BFF",
+          "orange": "#FF8A3D", "pink": "#FF8FC8"}
+
+
 def build(seg):
     T.reset()
+    T.THEME.clear()
+    T.THEME.update(spec.get("theme") or {}, set=seg.get("set", "street"))
+    T.LOOKS.clear()
+    T.LOOKS.update(spec.get("looks") or {})
+    T.VAR = random.Random(seg.get("seed", 1) * 7 + 3)
+    T.PROP_COLOR = COLORS.get(seg.get("color"))
     T.base_mats()
     sky = T.make_set(seg.get("set", "street"), random.Random(seg.get("seed", 1)))
     T.make_world(sky)
@@ -54,6 +64,7 @@ LIST = {int(v) for v in mode.split(":", 1)[1].split(",") if v} if mode.startswit
 
 
 offset, events, thumb_g, done = 0, [], None, 0
+sets = []
 stills = set()
 for i, seg in enumerate(segments):
     end, thumb = build(seg)
@@ -61,6 +72,7 @@ for i, seg in enumerate(segments):
         thumb_g = offset + thumb
     stills |= {offset + thumb, offset + end // 2}
     events += [[f + offset, kind] for f, kind in T.EVENTS]
+    sets.append([offset + 1, seg.get("set", "street")])
     if i:
         events.append([offset + 1, "swish"])  # little whoosh on the cut to the next funny moment
     for f in range(1, end + 1):
@@ -76,5 +88,5 @@ for i, seg in enumerate(segments):
     offset += end
 
 json.dump({"fps": T.FPS, "frames": offset, "events": sorted(events), "thumb": thumb_g,
-           "segments": len(segments)}, open(f"{out}/events.json", "w"))
+           "segments": len(segments), "sets": sets}, open(f"{out}/events.json", "w"))
 print("done", done, "frames of", offset, flush=True)

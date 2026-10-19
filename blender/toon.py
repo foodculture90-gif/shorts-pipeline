@@ -10,6 +10,10 @@ import bpy
 FPS = 24
 MATS = {}
 EVENTS = []  # [frame, sound kind]
+LOOKS = {}   # per short: {character: [accessory, colour]} - same outfit in every gag of the short
+THEME = {}   # per short: {"sky": ..., "season": ..., "pal": seed} - colours of the set
+VAR = random.Random(1)  # per gag: prop colours
+PROP_COLOR = None  # a colour the title may mention (e.g. a blue balloon)
 sc = None
 
 
@@ -221,7 +225,17 @@ CAST = {
     "gogo": dict(kind="blob", body="#5CCB6B", belly="#E9FFD9", feet="#FFB347", iris="#8A4B12", brow="#2A6A2A",
                  ears="none", eyes_top=True, tuft=False, size=0.95),
     "chiko": dict(kind="bird", body="#FFD53D", beak="#FF8A1F", iris="#6B3E1F", size=1.35),
+    "lulu": dict(kind="blob", body="#FF8FC8", belly="#FFE6F3", feet="#FFFFFF", iris="#3B8BEB", brow="#8A2A5A",
+                 ears="round", ear_in="#FFD1E6", tuft=False, size=0.9),
+    "tobi": dict(kind="blob", body="#FF9A3D", belly="#FFF4E6", feet="#6B3E1F", iris="#2FAF5A", brow="#8A3E12",
+                 ears="cat", ear_in="#FFF4E6", tuft=False, tail=True, tail_tip="#FFFFFF", size=0.97),
+    "teo": dict(kind="blob", body="#F2D2A2", belly="#FFF6E8", feet="#FFFFFF", iris="#6B3E1F", brow="#7A4A22",
+                ears="floppy", ear_col="#A0663A", patch="#A0663A", tuft=False, nose=True, size=0.95),
+    "popo": dict(kind="bird", body="#2E4A7A", belly="#FFFFFF", beak="#FFA53D", iris="#3B2A1A", tuft=False,
+                 size=1.3, wing="#2E4A7A"),
 }
+ACCESSORIES = ["party_hat", "bow", "cap", "flower", "bowtie", "crown", "none", "none"]
+ACC_COLORS = ["#FF4D6D", "#FFD23F", "#4DA6FF", "#5CCB6B", "#B57BFF", "#FF8A3D", "#FFFFFF", "#2EC4B6"]
 
 
 def eyes(parent, y, z, dx, r, iris="#3B8BEB", brow_m=None):
@@ -253,18 +267,22 @@ def make_character(name, x=0.0, y=0.0, z=0.0):
     if d["kind"] == "bird":
         yel = mat(d["body"], 0.5)
         sphere(name + "_body", 0.34, (0, 0, 0.38), yel, piv, scale=(1, 0.95, 1.08), sub=2)
-        sphere(name + "_tuft", 0.07, (0, 0, 0.76), yel, piv, scale=(0.6, 0.6, 1.6), rot=(0.3, 0, 0))
-        sphere(name + "_belly", 0.2, (0, -0.2, 0.3), mat("#FFF1B8", 0.6), piv, scale=(1, 0.5, 0.9), sub=2)
+        if d.get("tuft", True):
+            sphere(name + "_tuft", 0.07, (0, 0, 0.76), yel, piv, scale=(0.6, 0.6, 1.6), rot=(0.3, 0, 0))
+        sphere(name + "_belly", 0.2 if d.get("belly") is None else 0.25, (0, -0.19, 0.32),
+               mat(d.get("belly", "#FFF1B8"), 0.6), piv, scale=(1, 0.5, 0.95), sub=2)
         ev, pp, br = eyes(piv, -0.285, 0.5, 0.12, 0.11, d["iris"])
         cone(name + "_beak", 0.07, 0.0, 0.14, (0, -0.33, 0.37), mat(d["beak"], 0.4), piv, rot=(math.radians(90), 0, 0))
         arms = []
         for side in (-1, 1):
             sh = empty(f"{name}_wing{side}", (side * 0.32, 0, 0.4), piv)
-            sphere(f"{name}_w{side}", 0.1, (side * 0.04, 0, -0.06), yel, sh, scale=(0.5, 0.9, 1.4), rot=(0, side * 0.3, 0))
+            sphere(f"{name}_w{side}", 0.1, (side * 0.04, 0, -0.06), mat(d.get("wing", d["body"]), 0.5), sh,
+                   scale=(0.5, 0.9, 1.4), rot=(0, side * 0.3, 0))
             arms.append(sh)
         feet = [sphere(f"{name}_foot{s}", 0.07, (s * 0.12, -0.06, 0.03), mat(d["beak"], 0.4), root, scale=(1, 1.6, 0.5))
                 for s in (-1, 1)]
         ch.update(eyes=ev, pupils=pp, brows=br, arms=arms, feet=feet, top=0.85, head=0.5)
+        accessory(ch, *LOOKS.get(name, ("none", "#FFFFFF")))
         return ch
     body_m = mat(d["body"], 0.55)
     sq = 0.88 if d.get("eyes_top") else 1.05
@@ -275,24 +293,39 @@ def make_character(name, x=0.0, y=0.0, z=0.0):
     ears = d.get("ears", "round")
     for side in (-1, 1):
         if ears == "round":
-            sphere(f"{name}_ear{side}", 0.15, (side * 0.3, 0.02, 1.0), body_m, piv, scale=(0.8, 0.6, 1.2), rot=(0, side * 0.5, 0))
+            e = sphere(f"{name}_ear{side}", 0.15, (side * 0.3, 0.02, 1.0), body_m, piv, scale=(0.8, 0.6, 1.2),
+                       rot=(0, side * 0.5, 0))
+            if d.get("ear_in"):
+                sphere(f"{name}_earin{side}", 0.09, (0, -0.07, -0.01), mat(d["ear_in"], 0.6), e, scale=(0.8, 0.4, 0.8))
+        elif ears == "floppy":
+            sphere(f"{name}_ear{side}", 0.17, (side * 0.47, 0.02, 0.8), mat(d.get("ear_col", d["body"]), 0.6), piv,
+                   scale=(0.45, 0.7, 1.45), rot=(0, side * -0.35, 0))
         elif ears == "bunny":
             e = sphere(f"{name}_ear{side}", 0.11, (side * 0.17, 0.05, 1.22), body_m, piv, scale=(0.75, 0.5, 2.6),
                        rot=(0, side * 0.22, 0))
             sphere(f"{name}_earin{side}", 0.07, (0, -0.05, 0.0), mat("#FFB3CF", 0.6), e, scale=(0.8, 0.4, 0.85))
         elif ears == "cat":
             cone(f"{name}_ear{side}", 0.14, 0.02, 0.28, (side * 0.27, 0.0, 1.03), body_m, piv, rot=(0, side * 0.45, 0))
+            if d.get("ear_in"):
+                cone(f"{name}_earin{side}", 0.08, 0.01, 0.18, (side * 0.265, -0.06, 1.01), mat(d["ear_in"], 0.6), piv,
+                     rot=(0, side * 0.45, 0))
     if d.get("tuft"):
         sphere(name + "_tuft", 0.09, (0.04, 0.0, 1.08), body_m, piv, scale=(0.7, 0.7, 1.5), rot=(0, 0.35, 0))
         sphere(name + "_tuft2", 0.07, (-0.06, 0.02, 1.06), body_m, piv, scale=(0.7, 0.7, 1.3), rot=(0, -0.4, 0))
     if d.get("tail"):
-        sphere(name + "_tail", 0.1, (0.0, 0.45, 0.25), body_m, piv, scale=(0.8, 1.6, 0.8), rot=(0.6, 0, 0))
+        tl = sphere(name + "_tail", 0.1, (0.0, 0.45, 0.25), body_m, piv, scale=(0.8, 1.6, 0.8), rot=(0.6, 0, 0))
+        if d.get("tail_tip"):
+            sphere(name + "_tailtip", 0.075, (0, 0.08, 0.0), mat(d["tail_tip"], 0.6), tl, scale=(1, 0.8, 1))
+    if d.get("patch"):  # puppy eye patch
+        sphere(name + "_patch", 0.15, (0.17, -0.37, 0.76), mat(d["patch"], 0.6), piv, scale=(1.1, 0.35, 1.2))
     if d.get("eyes_top"):
         ev, pp, br = eyes(piv, -0.22, 1.0, 0.2, 0.17, d["iris"], mat(d["brow"], 0.5))
         for e in ev:  # eye bumps on top (frog-ish)
             sphere(e.name + "_lid", 0.2, (0, 0.04, -0.02), body_m, e, scale=(1, 0.8, 0.9))
     else:
         ev, pp, br = eyes(piv, -0.405, 0.74, 0.175, 0.165, d["iris"], mat(d["brow"], 0.5))
+    if d.get("nose"):
+        sphere(name + "_nose", 0.05, (0, -0.48, 0.565), mat("#3A2A2A", 0.25, coat=1.0), piv, scale=(1.3, 0.7, 0.85))
     mouth = sphere(name + "_mouth", 0.1, (0, -0.455, 0.44), mat("#5A1020", 0.4), piv, scale=(1.2, 0.35, 0.05))
     sphere(name + "_tongue", 0.06, (0, -0.02, -0.04), mat("#FF5A7A", 0.5), mouth, scale=(1, 0.8, 0.5))
     w = 0.085
@@ -308,26 +341,89 @@ def make_character(name, x=0.0, y=0.0, z=0.0):
     ch.update(eyes=ev, pupils=pp, brows=br, arms=arms, feet=feet, mouth=mouth, smile=smile, top=1.15,
               head=1.0 if d.get("eyes_top") else 0.74)
     mouth_set(ch, 1, 0.0)
+    accessory(ch, *LOOKS.get(name, ("none", "#FFFFFF")))
     return ch
+
+
+def accessory(ch, kind, color):
+    """A little outfit piece so the same friends look a bit different from short to short."""
+    if not kind or kind == "none":
+        return
+    name, piv, d = ch["name"], ch["piv"], CAST[ch["name"]]
+    bird = d["kind"] == "bird"
+    top = 0.72 if bird else (0.96 if d.get("eyes_top") else 1.06)
+    c, m2 = mat(color, 0.4, coat=0.3), mat("#FFFFFF", 0.4)
+    k = 0.75 if bird or d.get("eyes_top") else 1.0
+    if kind == "party_hat":
+        h = empty(name + "_hat", (0.05, 0.0, top - 0.04), piv)
+        h.rotation_euler = (0, 0.22, 0)
+        cone(name + "_hatc", 0.14 * k, 0.01, 0.34 * k, (0, 0, 0.17 * k), checker(color, "#FFFFFF", 5.0, 0.4), h)
+        sphere(name + "_hatpom", 0.05 * k, (0, 0, 0.35 * k), m2, h, sub=1)
+    elif kind == "crown":
+        h = empty(name + "_crown", (0, 0.0, top - 0.03), piv)
+        gold = mat("#FFD23F", 0.2, coat=1.0, metal=0.6)
+        cyl(name + "_crb", 0.15 * k, 0.07 * k, (0, 0, 0.035 * k), gold, h, bevel=0.01)
+        for i in range(5):
+            a = i / 5 * math.tau
+            cone(f"{name}_crp{i}", 0.04 * k, 0.0, 0.1 * k, (math.cos(a) * 0.13 * k, math.sin(a) * 0.13 * k, 0.11 * k), gold, h)
+        sphere(name + "_crgem", 0.03 * k, (0, -0.15 * k, 0.04 * k), mat(color, 0.1, coat=1.0), h, sub=0)
+    elif kind == "cap":
+        if d.get("ears") in ("bunny", "cat") or d.get("eyes_top"):
+            kind = "bow"  # a cap would hide the ears - wear a bow instead
+        else:
+            h = empty(name + "_cap", (0, 0.0, top - 0.12), piv)
+            sphere(name + "_capd", 0.3 * k, (0, 0, 0), c, h, scale=(1, 1, 0.55), sub=2)
+            cyl(name + "_capb", 0.17 * k, 0.025, (0, -0.27 * k, -0.01), c, h, scale=(1.15, 1.0, 1))
+            sphere(name + "_capt", 0.035 * k, (0, 0, 0.165 * k), m2, h, sub=0)
+    if kind == "bow":
+        h = empty(name + "_bow", (0.2 * k, -0.05, top - 0.06), piv)
+        h.rotation_euler = (0, -0.4, 0)
+        for side in (-1, 1):
+            sphere(f"{name}_bowl{side}", 0.075 * k, (side * 0.07 * k, 0, 0), c, h, scale=(1.2, 0.5, 0.8),
+                   rot=(0, side * 0.4, 0))
+        sphere(name + "_bowk", 0.035 * k, (0, -0.01, 0), c, h, sub=0)
+    elif kind == "flower":
+        h = empty(name + "_flw", (-0.2 * k, -0.08, top - 0.07), piv)
+        h.rotation_euler = (math.radians(70), 0, 0.3)
+        for i in range(5):
+            a = i / 5 * math.tau
+            sphere(f"{name}_pet{i}", 0.045 * k, (math.cos(a) * 0.05 * k, math.sin(a) * 0.05 * k, 0), c, h,
+                   scale=(1, 1, 0.4), sub=0)
+        sphere(name + "_flc", 0.03 * k, (0, 0, 0.01), mat("#FFD23F", 0.4), h, sub=0)
+    elif kind == "bowtie":
+        h = empty(name + "_tie", (0, -0.31, 0.2) if bird else (0, -0.43, 0.27), piv)
+        for side in (-1, 1):
+            cone(f"{name}_tie{side}", 0.06, 0.012, 0.09, (side * 0.045, 0, 0), c, h, rot=(0, side * math.pi / 2, 0),
+                 scale=(1, 0.5, 1))
+        sphere(name + "_tiek", 0.025, (0, -0.01, 0), c, h, sub=0)
 
 
 # ------------------------------------------------------------------ props
 def make_prop(kind, loc, parent=None, name=None):
     name = name or kind
     root = empty(name, loc, parent)
+    v = VAR
     if kind == "cake":
+        body, icing = v.choice([("#FFB3CF", "#FFFFFF"), ("#8A5A3C", "#FFB3CF"), ("#FFE27A", "#FFFFFF"),
+                                ("#B7A6FF", "#FFF4D6"), ("#9EF0C0", "#FFFFFF"), ("#FFFFFF", "#6B3E1F")])
         cyl(name + "_plate", 0.24, 0.02, (0, 0, 0.01), WHITE, root, bevel=0.008)
-        cyl(name + "_body", 0.19, 0.16, (0, 0, 0.1), mat("#FFB3CF", 0.5), root, bevel=0.03)
-        cyl(name + "_icing", 0.2, 0.05, (0, 0, 0.19), mat("#FFFFFF", 0.3, coat=0.5), root, bevel=0.025)
+        cyl(name + "_body", 0.19, 0.16, (0, 0, 0.1), mat(body, 0.5), root, bevel=0.03)
+        cyl(name + "_icing", 0.2, 0.05, (0, 0, 0.19), mat(icing, 0.3, coat=0.5), root, bevel=0.025)
         for i in range(10):
             a = i / 10 * math.tau
             sphere(f"{name}_drip{i}", 0.03, (math.cos(a) * 0.195, math.sin(a) * 0.195, 0.155),
-                   mat("#FFFFFF", 0.3, coat=0.5), root, scale=(1, 1, 1.6), sub=0)
+                   mat(icing, 0.3, coat=0.5), root, scale=(1, 1, 1.6), sub=0)
+        for i in range(8):  # sprinkles
+            a = i / 8 * math.tau + 0.3
+            sphere(f"{name}_spr{i}", 0.013, (math.cos(a) * 0.12, math.sin(a) * 0.12, 0.218),
+                   mat(("#FF4D6D", "#4DA6FF", "#FFD23F", "#5CCB6B")[i % 4], 0.4), root, scale=(1.8, 0.7, 0.7),
+                   rot=(0, 0, a), sub=0)
         sphere(name + "_cherry", 0.045, (0, 0, 0.255), mat("#E0102F", 0.2, coat=1), root, sub=1)
     elif kind == "icecream":
         cone(name + "_cone", 0.02, 0.1, 0.26, (0, 0, 0.13), checker("#E8B36A", "#C98B3F", 14, 0.6), root)
-        sphere(name + "_s1", 0.105, (0, 0, 0.29), mat("#FF9EC4", 0.4, coat=0.3), root)
-        sphere(name + "_s2", 0.09, (0, 0, 0.42), mat("#FFF4D6", 0.4, coat=0.3), root)
+        sc1, sc2 = v.sample(["#FF9EC4", "#FFF4D6", "#8A5A3C", "#9EF0C0", "#B7A6FF", "#FFE27A", "#8FD3FF"], 2)
+        sphere(name + "_s1", 0.105, (0, 0, 0.29), mat(sc1, 0.4, coat=0.3), root)
+        sphere(name + "_s2", 0.09, (0, 0, 0.42), mat(sc2, 0.4, coat=0.3), root)
         sphere(name + "_cherry", 0.035, (0, 0, 0.53), mat("#E0102F", 0.2, coat=1), root, sub=1)
     elif kind == "cookie":
         cyl(name + "_plate", 0.2, 0.02, (0, 0, 0.01), WHITE, root, bevel=0.008)
@@ -335,22 +431,29 @@ def make_prop(kind, loc, parent=None, name=None):
         for i, (cx, cy) in enumerate(((0.05, 0.03), (-0.06, 0.04), (0.0, -0.07), (-0.03, -0.02), (0.08, -0.05))):
             sphere(f"{name}_chip{i}", 0.022, (cx, cy, 0.068), mat("#4A2A12", 0.5), root, sub=0)
     elif kind == "apple":
-        sphere(name + "_body", 0.13, (0, 0, 0.13), mat("#E8232F", 0.25, coat=1), root, scale=(1, 1, 0.9))
+        sphere(name + "_body", 0.13, (0, 0, 0.13), mat(v.choice(["#E8232F", "#E8232F", "#7ED957", "#FFC93D"]), 0.25, coat=1),
+               root, scale=(1, 1, 0.9))
         cyl(name + "_stem", 0.012, 0.07, (0, 0, 0.27), mat("#6B4423", 0.6), root)
         sphere(name + "_leaf", 0.04, (0.04, 0, 0.27), mat("#3FB64E", 0.5), root, scale=(1.4, 0.3, 0.6), rot=(0, -0.5, 0))
     elif kind == "ball":
-        sphere(name + "_body", 0.18, (0, 0, 0.18), checker("#FF3B4E", "#FFFFFF", 2.0, 0.3, 0.6), root, sub=2)
+        c1, c2 = v.choice([("#FF3B4E", "#FFFFFF"), ("#4DA6FF", "#FFD23F"), ("#5CCB6B", "#FFFFFF"), ("#B57BFF", "#FFE27A"),
+                           ("#FF8A3D", "#FFFFFF")])
+        sphere(name + "_body", 0.18, (0, 0, 0.18), checker(c1, c2, 2.0, 0.3, 0.6), root, sub=2)
     elif kind == "balloon":
-        b = sphere(name + "_body", 0.24, (0, 0, 0.0), mat("#FF3B6E", 0.15, coat=1.0), root, scale=(1, 1, 1.2), sub=2)
-        cone(name + "_knot", 0.035, 0.0, 0.05, (0, 0, -0.29), mat("#FF3B6E", 0.2), root, rot=(math.pi, 0, 0))
+        bc = PROP_COLOR or v.choice(["#FF3B6E", "#4DA6FF", "#FFD23F", "#5CCB6B", "#B57BFF", "#FF8A3D"])
+        root["color"] = bc
+        b = sphere(name + "_body", 0.24, (0, 0, 0.0), mat(bc, 0.15, coat=1.0), root, scale=(1, 1, 1.2), sub=2)
+        cone(name + "_knot", 0.035, 0.0, 0.05, (0, 0, -0.29), mat(bc, 0.2), root, rot=(math.pi, 0, 0))
         curve_line(name + "_string", [(0, 0, -0.3), (0.03, 0, -0.55), (-0.02, 0, -0.85)], 0.006, mat("#FFFFFF", 0.5), root)
     elif kind == "gift":
-        wall = mat("#4DA6FF", 0.4, coat=0.3)
+        wc, rc = v.choice([("#4DA6FF", "#FFD23F"), ("#FF4D6D", "#FFFFFF"), ("#5CCB6B", "#FF4D6D"), ("#B57BFF", "#FFD23F"),
+                           ("#FFD23F", "#FF4D6D"), ("#FF9EC4", "#4DA6FF")])
+        wall = mat(wc, 0.4, coat=0.3)
         s = 0.62
         box(name + "_bottom", (s, s, 0.04), (0, 0, 0.02), wall, root, bevel=0.01)
         for i, (px, py, sx, sy) in enumerate(((0, -s / 2, s, 0.04), (0, s / 2, s, 0.04), (-s / 2, 0, 0.04, s), (s / 2, 0, 0.04, s))):
             box(f"{name}_wall{i}", (sx, sy, s), (px, py, s / 2), wall, root, bevel=0.012)
-        rib = mat("#FFD23F", 0.3, coat=0.5)
+        rib = mat(rc, 0.3, coat=0.5)
         box(name + "_rib1", (0.1, 0.05, s), (0, -s / 2 - 0.02, s / 2), rib, root, bevel=0.01)
         lid = empty(name + "_lid", (0, 0, s), root)
         box(name + "_lidbox", (s + 0.08, s + 0.08, 0.12), (0, 0, 0.06), wall, lid, bevel=0.03)
@@ -366,15 +469,20 @@ def make_prop(kind, loc, parent=None, name=None):
         sphere(name + "_c", 0.05, (0, 0, 0.05), y, root, scale=(1, 1, 1.4))
         sphere(name + "_tip", 0.02, (0, 0, 0.12), mat("#5A3A1A", 0.6), root)
     elif kind == "bush":
-        g = mat("#45B85A", 0.75)
+        g = mat(v.choice(["#45B85A", "#3FA64E", "#5CC26A"]), 0.75)
         for j, (ox, oz, rr) in enumerate(((0, 0.32, 0.42), (0.36, 0.25, 0.32), (-0.34, 0.24, 0.3), (0.12, 0.6, 0.28))):
             sphere(f"{name}_{j}", rr, (ox, 0, oz), g, root, sub=1)
+        if THEME.get("set") == "snow":
+            for j, (ox, oz, rr) in enumerate(((0, 0.62, 0.3), (0.12, 0.8, 0.2))):
+                sphere(f"{name}_snow{j}", rr, (ox, 0, oz), mat("#FFFFFF", 0.6), root, scale=(1.1, 1.1, 0.5), sub=1)
         for j in range(5):
-            sphere(f"{name}_berry{j}", 0.035, (-0.3 + j * 0.15, -0.35, 0.3 + (j % 2) * 0.15), mat("#FF4D6D", 0.3, coat=1), root, sub=0)
+            sphere(f"{name}_berry{j}", 0.035, (-0.3 + j * 0.15, -0.35, 0.3 + (j % 2) * 0.15),
+                   mat(v.choice(["#FF4D6D", "#4DA6FF", "#FFD23F"]) if j == 0 else "#FF4D6D", 0.3, coat=1), root, sub=0)
     return root
 
 
 def make_table(loc, color="#FF7AA8"):
+    color = VAR.choice([color, "#FF7AA8", "#7FD1B9", "#FFD23F", "#8FD3FF", "#B7A6FF", "#FF8A3D"])
     t = empty("table", loc)
     cyl("table_leg", 0.06, 0.62, (0, 0, 0.31), mat("#FFFFFF", 0.4), t)
     cyl("table_foot", 0.2, 0.03, (0, 0, 0.015), mat("#FFFFFF", 0.4), t, bevel=0.01)
@@ -383,7 +491,13 @@ def make_table(loc, color="#FF7AA8"):
 
 
 # ------------------------------------------------------------------ sets
-SKY = {"day": ("#D8F1FF", "#5EB8FF"), "sunset": ("#FFD6A8", "#7A8CFF"), "indoor": ("#FFF4E6", "#FFE0C2")}
+SKY = {"day": ("#D8F1FF", "#5EB8FF"), "sunset": ("#FFD6A8", "#7A8CFF"), "indoor": ("#FFF4E6", "#FFE0C2"),
+       "morning": ("#FFE9F2", "#8FD0FF"), "golden": ("#FFE8B0", "#6FB6FF"), "snow": ("#EEF6FF", "#9CC8F2")}
+SUN = {"sunset": (1, 0.78, 0.6), "golden": (1, 0.87, 0.68), "morning": (1, 0.92, 0.9), "snow": (0.95, 0.97, 1)}
+SEASON_CROWNS = {"summer": ["#3FB64E", "#47B856", "#3CA84C"], "spring": ["#FF9EC4", "#FFB8D6", "#47B856"],
+                 "autumn": ["#FF8A3D", "#E8574F", "#FFC23D"]}
+GRASS = ["#6CCB5F", "#73D165", "#7AD36A", "#5FC27A", "#8BD65A"]
+PASTELS = ["#FF9EC4", "#8FD3FF", "#FFE27A", "#B7A6FF", "#9EF0C0", "#FFC09F", "#A0E7E5", "#FFB5E8", "#C5F27A"]
 
 
 def _clouds(z0=5.5, y=14):
@@ -393,16 +507,31 @@ def _clouds(z0=5.5, y=14):
             sphere(f"cloud{i}{j}", rr, (cx + ox, y, cz + oz), cloud, scale=(1.2, 0.6, 1), sub=1)
 
 
-def _trees(xs, y, crown="#3FB64E"):
+def _trees(xs, y, crown=None):
     for i, tx in enumerate(xs):
-        cyl(f"trunk{i}", 0.09, 0.9, (tx, y, 0.45), mat("#9A6A43", 0.7))
-        sphere(f"crown{i}", 0.55, (tx, y, 1.25), mat(crown, 0.7), sub=1)
-        sphere(f"crownb{i}", 0.38, (tx + 0.3, y + 0.1, 1.05), mat(crown, 0.7), sub=1)
+        c = crown or _crown(i)
+        cyl(f"trunk{y}{i}", 0.09, 0.9, (tx, y, 0.45), mat("#9A6A43", 0.7))
+        sphere(f"crown{y}{i}", 0.55, (tx, y, 1.25), mat(c, 0.7), sub=1)
+        sphere(f"crownb{y}{i}", 0.38, (tx + 0.3, y + 0.1, 1.05), mat(c, 0.7), sub=1)
+
+
+def _crown(i):
+    cols = SEASON_CROWNS.get(THEME.get("season", "summer"), SEASON_CROWNS["summer"])
+    return cols[i % len(cols)]
+
+
+def _pines(xs, y, snowy=True):
+    for i, tx in enumerate(xs):
+        cyl(f"ptrunk{y}{i}", 0.08, 0.4, (tx, y, 0.2), mat("#8A5A3C", 0.7))
+        for j, (r, z) in enumerate(((0.62, 0.55), (0.48, 1.0), (0.32, 1.4))):
+            cone(f"pine{y}{i}{j}", r, 0.0, 0.7, (tx, y, z + 0.1), mat("#2E8B57", 0.7))
+            if snowy:
+                cone(f"psnow{y}{i}{j}", r * 0.55, 0.0, 0.32, (tx, y, z + 0.33), mat("#FFFFFF", 0.6))
 
 
 def _flowers(n, y0, y1, xs=(-4, 4), rnd=None):
     rnd = rnd or random.Random(3)
-    cols = ("#FF6B8B", "#FFFFFF", "#FFD53D", "#B57BFF", "#FF8A3D")
+    cols = ("#FF6B8B", "#FFFFFF", "#FFD53D", "#B57BFF", "#FF8A3D", "#4DA6FF", "#FF9EC4")
     for i in range(n):
         x, y = rnd.uniform(*xs), rnd.uniform(y0, y1)
         cyl(f"stem{i}", 0.008, 0.14, (x, y, 0.07), mat("#3FA64E", 0.6))
@@ -411,15 +540,23 @@ def _flowers(n, y0, y1, xs=(-4, 4), rnd=None):
 
 def make_set(kind, rnd=None):
     rnd = rnd or random.Random(1)
-    sky = "day"
+    pal = random.Random(THEME.get("pal", 1))  # same colours in every gag of one short
+    sky = THEME.get("sky", "day")
+    if sky not in SKY or sky in ("indoor", "snow"):
+        sky = "day"
+    grass = pal.choice(GRASS)
+    if THEME.get("season") == "autumn":
+        grass = pal.choice(["#9CCB5F", "#B5C95A", "#8FC260"])
     if kind == "street":
-        box("ground", (40, 40, 0.2), (0, 6, -0.1), mat("#6CCB5F", 0.8), bevel=0)
-        box("path", (40, 2.4, 0.02), (0, 0.4, 0.005), mat("#E3B98A", 0.85), bevel=0)
-        houses = [("#FF9EC4", -3.2), ("#8FD3FF", -0.6), ("#FFE27A", 2.2), ("#B7A6FF", 4.8), ("#9EF0C0", -5.8)]
+        box("ground", (40, 40, 0.2), (0, 6, -0.1), mat(grass, 0.8), bevel=0)
+        box("path", (40, 2.4, 0.02), (0, 0.4, 0.005), mat(pal.choice(["#E3B98A", "#D9C7B0", "#F0D2A0", "#C9B8D9"]), 0.85), bevel=0)
+        cols = pal.sample(PASTELS, 5)
+        houses = [(cols[0], -3.2), (cols[1], -0.6), (cols[2], 2.2), (cols[3], 4.8), (cols[4], -5.8)]
+        roofs = pal.sample(["#E8574F", "#4F7BE8", "#8A5ACF", "#2EA87A", "#E88A2F", "#D94F8A"], 2)
         for i, (c, hx) in enumerate(houses):
             h = 2.2 + (i % 2) * 0.6
             box(f"house{i}", (2.2, 1.8, h), (hx, 5.0, h / 2), mat(c, 0.6), bevel=0.12)
-            cone(f"roof{i}", 1.65, 0.0, 1.2, (hx, 5.0, h + 0.55), mat("#E8574F" if i % 2 else "#4F7BE8", 0.5),
+            cone(f"roof{i}", 1.65, 0.0, 1.2, (hx, 5.0, h + 0.55), mat(roofs[i % 2], 0.5),
                  rot=(0, 0, math.radians(45)), scale=(1, 0.85, 1))
             for wx in (-0.5, 0.5):
                 box(f"wf{i}{wx}", (0.62, 0.08, 0.67), (hx + wx, 4.1, h * 0.62), WHITE, bevel=0.04)
@@ -442,19 +579,21 @@ def make_set(kind, rnd=None):
         _trees((-4.5, -1.9, 1.0, 3.6, 6.2), 3.2)
         _clouds()
     elif kind == "park":
-        box("ground", (40, 40, 0.2), (0, 6, -0.1), mat("#73D165", 0.85), bevel=0)
-        for i, (hx, hr, c) in enumerate(((-5, 4, "#5DBE55"), (1, 5, "#69C95E"), (7, 4.5, "#5DBE55"))):
+        box("ground", (40, 40, 0.2), (0, 6, -0.1), mat(grass, 0.85), bevel=0)
+        hill = pal.choice(["#5DBE55", "#69C95E", "#7CC96A", "#58B88A"])
+        for i, (hx, hr, c) in enumerate(((-5, 4, hill), (1, 5, grass), (7, 4.5, hill))):
             sphere(f"hill{i}", hr, (hx, 14, -hr * 0.55), mat(c, 0.9), scale=(1.6, 1, 1), sub=1)
-        _trees((-3.8, -1.4, 2.4, 4.6), 3.6, "#47B856")
-        _trees((-6.0, 0.6, 6.5), 6.5, "#3CA84C")
+        _trees((-3.8, -1.4, 2.4, 4.6), 3.6)
+        _trees((-6.0, 0.6, 6.5), 6.5)
         pond = cyl("pond", 1.4, 0.02, (2.6, 2.6, 0.012), mat("#4FB3FF", 0.05, coat=1.0), scale=(1.6, 0.7, 1))
         for i in range(6):
             a = i / 6 * math.tau
             sphere(f"rock{i}", 0.12, (2.6 + math.cos(a) * 2.2, 2.6 + math.sin(a) * 0.95, 0.04), mat("#B8B8C8", 0.7),
                    scale=(1.3, 1, 0.6))
         bench = empty("bench", (-2.2, 2.2, 0))
-        box("bench_seat", (1.4, 0.38, 0.07), (0, 0, 0.42), mat("#C0763C", 0.6), bench, bevel=0.02)
-        box("bench_back", (1.4, 0.06, 0.32), (0, 0.18, 0.66), mat("#C0763C", 0.6), bench, bevel=0.02)
+        bc = pal.choice(["#C0763C", "#FF7AA8", "#4DA6FF", "#5CCB6B"])
+        box("bench_seat", (1.4, 0.38, 0.07), (0, 0, 0.42), mat(bc, 0.6), bench, bevel=0.02)
+        box("bench_back", (1.4, 0.06, 0.32), (0, 0.18, 0.66), mat(bc, 0.6), bench, bevel=0.02)
         for sx in (-0.6, 0.6):
             box(f"bench_leg{sx}", (0.06, 0.34, 0.42), (sx, 0, 0.21), mat("#2E3A59", 0.4), bench, bevel=0.01)
         _flowers(26, 1.6, 4.0, rnd=rnd)
@@ -462,12 +601,13 @@ def make_set(kind, rnd=None):
             make_prop("bush", (bx, 3.3, 0), name=f"pbush{i}")
         _clouds()
     elif kind == "beach":
-        box("ground", (40, 22, 0.2), (0, -4.0, -0.1), mat("#F2CF92", 0.9), bevel=0)
-        box("sea", (60, 40, 0.1), (0, 26, -0.07), mat("#2FA8E8", 0.08, coat=1.0), bevel=0)
+        box("ground", (40, 22, 0.2), (0, -4.0, -0.1), mat(pal.choice(["#F2CF92", "#F5D9A8", "#EFC88A"]), 0.9), bevel=0)
+        box("sea", (60, 40, 0.1), (0, 26, -0.07), mat(pal.choice(["#2FA8E8", "#23C2D9", "#3D8FE0"]), 0.08, coat=1.0), bevel=0)
         box("foam", (60, 0.25, 0.02), (0, 7.05, 0.0), mat("#FFFFFF", 0.4), bevel=0)
         um = empty("umbrella", (-2.3, 2.6, 0))
         cyl("um_pole", 0.03, 1.9, (0, 0, 0.95), mat("#FFFFFF", 0.4), um)
-        cone("um_top", 1.0, 0.05, 0.4, (0, 0, 1.95), checker("#FF4D5E", "#FFFFFF", 3.0, 0.5), um)
+        uc = pal.sample(["#FF4D5E", "#4DA6FF", "#FFD23F", "#5CCB6B", "#B57BFF", "#FF8A3D"], 2)
+        cone("um_top", 1.0, 0.05, 0.4, (0, 0, 1.95), checker(uc[0], "#FFFFFF", 3.0, 0.5), um)
         castle = empty("castle", (2.4, 2.8, 0))
         sand = mat("#E9C27D", 0.95)
         cyl("c_base", 0.45, 0.4, (0, 0, 0.2), sand, castle)
@@ -488,25 +628,32 @@ def make_set(kind, rnd=None):
         for i in range(7):
             sphere(f"shell{i}", 0.05, (rnd.uniform(-4, 4), rnd.uniform(0.3, 3.5), 0.02),
                    mat(("#FFB3CF", "#FFFFFF", "#FFD27A")[i % 3], 0.5), scale=(1, 0.8, 0.5))
-        towel = box("towel", (1.0, 0.6, 0.01), (-2.0, 1.6, 0.005), checker("#4DA6FF", "#FFFFFF", 4.0, 0.7), bevel=0)
+        towel = box("towel", (1.0, 0.6, 0.01), (-2.0, 1.6, 0.005), checker(uc[1], "#FFFFFF", 4.0, 0.7), bevel=0)
+        for i, (bx, c) in enumerate(((1.0, uc[1]), (-0.9, uc[0]))):  # beach balls / buckets
+            if i == 0:
+                sphere("bball", 0.16, (bx + 3.2, 3.4, 0.16), checker(c, "#FFFFFF", 2.0, 0.3, 0.6), sub=2)
+            else:
+                cyl("bucket", 0.13, 0.22, (bx - 2.6, 3.0, 0.11), mat(c, 0.3, coat=0.4), scale=(1, 1, 1))
         _clouds(6)
     elif kind == "kitchen":
         sky = "indoor"
-        box("floor", (40, 40, 0.2), (0, 6, -0.1), checker("#FFFFFF", "#9FD9F5", 26.0, 0.45), bevel=0)
-        wall_m = mat("#FFE7B8", 0.8)
+        k = pal.sample(["#9FD9F5", "#FFC2D6", "#C9F2B8", "#FFE08A", "#D7C6FF"], 2)
+        box("floor", (40, 40, 0.2), (0, 6, -0.1), checker("#FFFFFF", k[0], 26.0, 0.45), bevel=0)
+        wall_m = mat(pal.choice(["#FFE7B8", "#FFE0EC", "#E3F4FF", "#E8FFE0", "#F2E8FF"]), 0.8)
         box("wall", (14, 0.2, 5), (0, 4.0, 2.5), wall_m, bevel=0)
         box("skirting", (14, 0.05, 0.15), (0, 3.88, 0.075), WHITE, bevel=0.01)
         box("win_frame", (1.7, 0.1, 1.3), (-1.2, 3.86, 2.1), WHITE, bevel=0.04)
         box("win_sky", (1.5, 0.1, 1.1), (-1.2, 3.84, 2.1), mat("#9FD8FF", 0.5, emit=1.2), bevel=0.02)
         box("win_cross_v", (0.06, 0.1, 1.1), (-1.2, 3.8, 2.1), WHITE, bevel=0.01)
         box("win_cross_h", (1.5, 0.1, 0.06), (-1.2, 3.8, 2.1), WHITE, bevel=0.01)
-        cnt = mat("#7FD1B9", 0.5)
+        cc = pal.choice([("#7FD1B9", "#9BE0CB"), ("#FF9EC4", "#FFB8D6"), ("#8FD3FF", "#B0E0FF"), ("#FFD27A", "#FFE29E")])
+        cnt = mat(cc[0], 0.5)
         box("counter", (3.2, 0.7, 0.9), (2.2, 3.5, 0.45), cnt, bevel=0.04)
         box("counter_top", (3.3, 0.8, 0.08), (2.2, 3.48, 0.94), mat("#FFFFFF", 0.3, coat=0.4), bevel=0.02)
         for i in range(3):
-            box(f"drawer{i}", (0.95, 0.04, 0.7), (1.15 + i * 1.05, 3.13, 0.45), mat("#9BE0CB", 0.5), bevel=0.03)
+            box(f"drawer{i}", (0.95, 0.04, 0.7), (1.15 + i * 1.05, 3.13, 0.45), mat(cc[1], 0.5), bevel=0.03)
             sphere(f"handle{i}", 0.035, (1.15 + i * 1.05, 3.1, 0.65), mat("#FFD23F", 0.2, coat=1), sub=0)
-        box("fridge", (1.0, 0.8, 2.1), (-3.4, 3.45, 1.05), mat("#FF9EC4", 0.35, coat=0.4), bevel=0.1)
+        box("fridge", (1.0, 0.8, 2.1), (-3.4, 3.45, 1.05), mat(pal.choice(["#FF9EC4", "#FFFFFF", "#8FD3FF", "#FFE27A"]), 0.35, coat=0.4), bevel=0.1)
         box("fridge_line", (0.98, 0.02, 0.03), (-3.4, 3.04, 1.35), mat("#E07AA0", 0.4), bevel=0)
         for i, (jx, c) in enumerate(((1.4, "#FF6B8B"), (1.9, "#FFD53D"), (2.4, "#B57BFF"), (2.95, "#5CCB6B"))):
             cyl(f"jar{i}", 0.12, 0.28, (jx, 3.5, 1.12), mat(c, 0.15, coat=1.0))
@@ -517,7 +664,69 @@ def make_set(kind, rnd=None):
         cyl("lamp_cord", 0.01, 1.4, (0.3, 2.4, 4.3), mat("#2E3A59", 0.4))
         cone("lamp_shade", 0.3, 0.08, 0.25, (0.3, 2.4, 3.5), mat("#FFD23F", 0.4))
         sphere("lamp_bulb", 0.08, (0.3, 2.4, 3.36), mat("#FFF2B3", 0.3, emit=3), sub=0)
-        box("rug", (2.6, 1.6, 0.012), (0, 0.6, 0.006), checker("#FFB3CF", "#FFFFFF", 5.0, 0.8), bevel=0)
+        box("rug", (2.6, 1.6, 0.012), (0, 0.6, 0.006), checker(k[1], "#FFFFFF", 5.0, 0.8), bevel=0)
+    elif kind == "playground":
+        box("ground", (40, 40, 0.2), (0, 6, -0.1), mat(grass, 0.85), bevel=0)
+        box("sandpit", (4.2, 2.4, 0.02), (0, 0.5, 0.006), mat("#F2D49A", 0.95), bevel=0)
+        pc = pal.sample(["#FF4D5E", "#4DA6FF", "#FFD23F", "#5CCB6B", "#B57BFF", "#FF8A3D"], 3)
+        metal = mat("#E9EEF5", 0.3, metal=0.4)
+        # slide
+        sl = empty("slide", (-2.6, 3.6, 0))
+        for sx in (-0.3, 0.3):
+            cyl(f"sl_leg{sx}", 0.04, 1.6, (sx, 0.5, 0.8), metal, sl)
+        for j in range(4):
+            box(f"sl_step{j}", (0.62, 0.08, 0.04), (0, 0.5, 0.35 + j * 0.35), metal, sl, bevel=0.01)
+        box("sl_top", (0.75, 0.6, 0.08), (0, 0.15, 1.6), mat(pc[0], 0.4, coat=0.4), sl, bevel=0.03)
+        box("sl_chute", (0.6, 2.4, 0.06), (0, -1.0, 0.85), mat(pc[0], 0.3, coat=0.5), sl,
+            rot=(math.radians(-38), 0, 0), bevel=0.03)
+        # swings
+        sw = empty("swings", (1.9, 4.2, 0))
+        for sx in (-1.0, 1.0):
+            for sy in (-0.35, 0.35):
+                cyl(f"sw_leg{sx}{sy}", 0.045, 2.2, (sx, sy * 0.5, 1.05), mat(pc[1], 0.4), sw,
+                    rot=(math.radians(sy * 30), 0, 0))
+        cyl("sw_bar", 0.05, 2.1, (0, 0, 2.1), mat(pc[1], 0.4), sw, rot=(0, math.pi / 2, 0))
+        for i, sx in enumerate((-0.45, 0.45)):
+            for rx in (-0.16, 0.16):
+                cyl(f"sw_rope{i}{rx}", 0.01, 1.55, (sx + rx, 0, 1.32), mat("#FFFFFF", 0.6), sw)
+            box(f"sw_seat{i}", (0.42, 0.18, 0.05), (sx, 0, 0.55), mat(pc[2], 0.4, coat=0.3), sw, bevel=0.02)
+        # seesaw
+        ss = empty("seesaw", (4.4, 2.8, 0))
+        cone("ss_base", 0.18, 0.05, 0.3, (0, 0, 0.15), mat(pc[2], 0.4), ss)
+        box("ss_plank", (2.0, 0.24, 0.06), (0, 0, 0.33), mat(pc[0], 0.4, coat=0.3), ss, rot=(0, 0.18, 0), bevel=0.02)
+        fence = mat(pal.choice(["#FFFFFF", "#FFE27A", "#8FD3FF"]), 0.5)
+        for i in range(-14, 15):
+            box(f"picket{i}", (0.09, 0.05, 0.5), (i * 0.4, 6.0, 0.25), fence, bevel=0.025)
+        _trees((-5.5, -0.6, 3.4, 6.4), 7.2)
+        _flowers(14, 1.8, 3.0, rnd=rnd)
+        _clouds()
+    elif kind == "snow":
+        sky = "snow"
+        box("ground", (40, 40, 0.2), (0, 6, -0.1), mat("#EAF2FB", 0.7), bevel=0)
+        for i, (hx, hr) in enumerate(((-5, 4), (1, 5), (7, 4.5))):
+            sphere(f"hill{i}", hr, (hx, 14, -hr * 0.55), mat("#F7FBFF", 0.8), scale=(1.6, 1, 1), sub=1)
+        _pines((-4.4, -2.0, 2.8, 5.0), 3.8)
+        _pines((-6.2, 0.4, 6.6), 6.8)
+        sm = empty("snowman", (-2.6, 2.4, 0))
+        snow = mat("#FFFFFF", 0.6)
+        for j, (r, z) in enumerate(((0.36, 0.33), (0.26, 0.86), (0.18, 1.24))):
+            sphere(f"sm_{j}", r, (0, 0, z), snow, sm, sub=2)
+        cone("sm_nose", 0.035, 0.0, 0.18, (0, -0.24, 1.24), mat("#FF8A1F", 0.4), sm, rot=(math.radians(90), 0, 0))
+        for sx in (-0.07, 0.07):
+            sphere(f"sm_eye{sx}", 0.025, (sx, -0.16, 1.3), BLACK, sm, sub=0)
+        hatc = pal.choice(["#FF4D5E", "#4DA6FF", "#5CCB6B", "#B57BFF"])
+        cyl("sm_scarf", 0.21, 0.06, (0, 0, 1.06), mat(hatc, 0.6), sm)
+        cone("sm_hat", 0.17, 0.02, 0.3, (0, 0, 1.5), checker(hatc, "#FFFFFF", 5.0, 0.6), sm)
+        sphere("sm_pom", 0.05, (0, 0, 1.66), snow, sm, sub=0)
+        cab = empty("cabin", (2.6, 4.6, 0))
+        box("cab_body", (1.8, 1.4, 1.3), (0, 0, 0.65), mat(pal.choice(["#C0763C", "#E8574F", "#4F7BE8"]), 0.6), cab, bevel=0.08)
+        cone("cab_roof", 1.4, 0.0, 0.9, (0, 0, 1.75), snow, cab, rot=(0, 0, math.radians(45)), scale=(1, 0.85, 1))
+        box("cab_win", (0.5, 0.1, 0.45), (0.4, -0.72, 0.75), mat("#FFE9A0", 0.3, emit=1.2), cab, bevel=0.04)
+        box("cab_door", (0.45, 0.1, 0.8), (-0.4, -0.72, 0.4), mat("#6B4423", 0.5), cab, bevel=0.05)
+        for i in range(10):
+            sphere(f"snowlump{i}", rnd.uniform(0.08, 0.16), (rnd.uniform(-4, 4), rnd.uniform(1.6, 3.4), 0.0),
+                   snow, scale=(1.4, 1, 0.5), sub=1)
+        _clouds()
     return sky
 
 
@@ -539,7 +748,7 @@ def make_world(sky="day"):
     ramp.color_ramp.elements[0].color = (*lin(lo), 1)
     ramp.color_ramp.elements[1].color = (*lin(hi), 1)
     nt.links.new(ramp.outputs["Color"], bg.inputs["Color"])
-    bg.inputs["Strength"].default_value = 0.35 if sky == "indoor" else 1.0
+    bg.inputs["Strength"].default_value = 0.35 if sky == "indoor" else (0.85 if sky == "snow" else 1.0)
 
     def light(name, kind, energy, loc=None, rot=None, size=None, color=(1, 1, 1), angle=None, target=None):
         d = bpy.data.lights.new(name, kind)
@@ -559,8 +768,8 @@ def make_world(sky="day"):
             tr.target, tr.track_axis, tr.up_axis = target, "TRACK_NEGATIVE_Z", "UP_Y"
         return o
 
-    sun_e = 1.3 if sky == "indoor" else 3.2
-    light("sun", "SUN", sun_e, rot=(math.radians(50), math.radians(10), math.radians(-35)), color=(1, 0.93, 0.82),
+    sun_e = 1.3 if sky == "indoor" else (2.4 if sky == "snow" else 3.2)
+    light("sun", "SUN", sun_e, rot=(math.radians(50), math.radians(10), math.radians(-35)), color=SUN.get(sky, (1, 0.93, 0.82)),
           angle=math.radians(4))
     light("fill", "AREA", 300 if sky != "indoor" else 220, (-2, -5, 3), (math.radians(60), 0, math.radians(-25)), 6,
           (0.9, 0.95, 1))
@@ -734,6 +943,8 @@ def jump_joy(ch, f0, h=0.45, n=12, times=2, sound="ding"):
         sfx(f0, sound)
     eyes_happy(ch, f0 + 2)
     mouth_set(ch, f0 + 2, 0.7, 1.1)
+    if sound:
+        sfx(f0 + 4, "xylo_up")
     f = f0
     for _ in range(times):
         hop(ch, f, x, x, h, n, y, y, sound=False)
@@ -749,10 +960,12 @@ def laugh(ch, f0, f1, sound=True):
     mouth_set(ch, f0 + 2, 0.75, 1.1)
     p = ch["piv"]
     f, k = f0, 0
+    if sound:
+        sfx(f0, "giggle")
     while f < f1:
         key(p, "scale", f, (1.06, 1.06, 0.92) if k % 2 else (0.97, 0.97, 1.05))
-        if sound and k % 2 == 0:
-            sfx(f, "tick")
+        if sound and k % 4 == 2 and f > f0 + 10:
+            sfx(f, "squeak" if k % 8 == 2 else "tick")
         f += 3
         k += 1
     key(p, "scale", f1, (1, 1, 1))
@@ -800,6 +1013,8 @@ def dizzy_stars(ch, f0, f1, n=3):
             for kp in fc.keyframe_points:
                 kp.interpolation = "LINEAR"
     sfx(f0, "sparkle")
+    for f in range(f0 + 12, f1 - 6, 22):
+        sfx(f, "tweet" if (f - f0) % 44 == 12 else "twinkle")
 
 
 # ------------------------------------------------------------------ render
