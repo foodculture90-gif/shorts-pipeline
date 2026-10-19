@@ -45,7 +45,12 @@ def wanted(g, total_known):
         return (g - 1) % n == n // 2
     if mode == "stills":
         return g in total_known
+    if mode.startswith("list:"):
+        return g in LIST
     return mode == "all"
+
+
+LIST = {int(v) for v in mode.split(":", 1)[1].split(",") if v} if mode.startswith("list:") else set()
 
 
 offset, events, thumb_g, done = 0, [], None, 0
