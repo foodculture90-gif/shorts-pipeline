@@ -1,0 +1,19 @@
+name: Asset probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash pipeline/get_assets.sh assets
+      - name: List
+        run: |
+          ls -la assets/hdri
+          find assets/kenney -maxdepth 3 -type d
+          echo "=== GLB FOOD ==="; find assets/kenney/food -name '*.glb' -printf '%f\n' | sort | tr '\n' ' '; echo
+          echo "=== GLB NATURE ==="; find assets/kenney/nature -name '*.glb' -printf '%f\n' | sort | tr '\n' ' '; echo
+          find assets/kenney -name '*.png' | head -5
