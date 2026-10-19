@@ -36,16 +36,16 @@ class KaggleBusy(RuntimeError):
     """Kaggle didn't start the job (no free GPU / weekly GPU hours used up) — try again later."""
 
 
-def run(job: dict, outdir: Path, timeout_min=170, log=print, max_queue_min=25):
+def run(job: dict, outdir: Path, timeout_min=170, log=print, max_queue_min=25, script=SCRIPT, slug=SLUG):
     """Pushes the job, waits for it, downloads clips into outdir. Returns (log_text, result)."""
     user = _env()
     work = outdir / "_kernel"
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir(parents=True)
-    code = SCRIPT.read_text().replace("JOB = {}", "JOB = __import__('json').loads(" + repr(json.dumps(job)) + ")", 1)
-    (work / "animate_job.py").write_text(code)
+    code = script.read_text().replace("JOB = {}", "JOB = __import__('json').loads(" + repr(json.dumps(job)) + ")", 1)
+    (work / script.name).write_text(code)
     (work / "kernel-metadata.json").write_text(json.dumps({
-        "id": f"{user}/{SLUG}", "title": SLUG, "code_file": "animate_job.py", "language": "python",
+        "id": f"{user}/{slug}", "title": slug, "code_file": script.name, "language": "python",
         "kernel_type": "script", "is_private": True, "enable_gpu": True, "enable_internet": True,
         "dataset_sources": [], "competition_sources": [], "kernel_sources": []}))
     log("  pushing job to Kaggle GPU…")
@@ -53,7 +53,7 @@ def run(job: dict, outdir: Path, timeout_min=170, log=print, max_queue_min=25):
     t0, status = time.time(), ""
     while time.time() - t0 < timeout_min * 60:
         time.sleep(30)
-        out = _kaggle("kernels", "status", f"{user}/{SLUG}", check=False)
+        out = _kaggle("kernels", "status", f"{user}/{slug}", check=False)
         st = out.split('"')[-2] if '"' in out else out
         if st != status:
             log(f"  kaggle: {st} ({time.time() - t0:.0f}s)")
@@ -63,7 +63,7 @@ def run(job: dict, outdir: Path, timeout_min=170, log=print, max_queue_min=25):
         if "queued" in st.lower() and time.time() - t0 > max_queue_min * 60:
             raise KaggleBusy(f"Kaggle kept the GPU job waiting for {max_queue_min} min")
     outdir.mkdir(parents=True, exist_ok=True)
-    _kaggle("kernels", "output", f"{user}/{SLUG}", "-p", str(outdir), "--force", check=False)
+    _kaggle("kernels", "output", f"{user}/{slug}", "-p", str(outdir), "--force", check=False)
     logs = ""
     for f in outdir.glob("*.log"):
         try:

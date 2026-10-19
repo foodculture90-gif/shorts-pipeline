@@ -96,14 +96,14 @@ def _refund(n):
 
 
 # ---- commands ------------------------------------------------------------------------
-def _dispatch_render(ep_id):
+def _dispatch_render(ep_id, gpu=None):
     import requests
     tok = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not tok:
         raise RuntimeError("GH_TOKEN missing - can't start the 3D render")
     r = requests.post(f"https://api.github.com/repos/{GH_REPO}/actions/workflows/render3d.yml/dispatches",
                       headers={"Authorization": f"Bearer {tok}", "Accept": "application/vnd.github+json"},
-                      json={"ref": "main", "inputs": {"episode_id": ep_id}}, timeout=30)
+                      json={"ref": "main", "inputs": {"episode_id": ep_id, "gpu": "yes" if gpu else "no"}}, timeout=30)
     if r.status_code >= 300:
         raise RuntimeError(f"could not start the 3D render: {r.status_code} {r.text[:200]}")
 
@@ -126,8 +126,11 @@ def _generate_3d(payload, ch, ep_id, slot=None):
     shutil.rmtree(work, ignore_errors=True)
     _set(ep_id, title=st["title"], takeaway=st.get("takeaway"), story=st, style=f"3D {spec['set']}",
          assets_path=f"{base}/assets")
-    _dispatch_render(ep_id)
-    db.log(f"🎬 Rendering in 3D: {st['title']} ({ch['name']})")
+    gpu = payload.get("gpu")
+    if gpu is None:  # setting gpu_render = true sends every 3D short to Kaggle's free GPU first
+        gpu = str(db.settings().get("gpu_render", "false")).lower() in ("1", "true", "yes")
+    _dispatch_render(ep_id, gpu)
+    db.log(f"🎬 Rendering in 3D{' on the GPU' if gpu else ''}: {st['title']} ({ch['name']})")
     return ep_id
 
 
@@ -464,7 +467,16 @@ def daily():
     return 0
 
 
+def test3d():
+    """One test short on the first channel, rendered on the GPU (Actions -> Worker -> Run workflow -> test3d)."""
+    ch = (db.select("channels", "select=id&auto_daily=eq.true&limit=1") or db.select("channels", "select=id&limit=1"))[0]
+    db.insert("commands", {"type": "generate", "payload": {"channel_id": ch["id"], "gpu": True, "silent": True}})
+    return process_queue()
+
+
 if __name__ == "__main__":
     WORK.mkdir(parents=True, exist_ok=True)
     mode = sys.argv[1] if len(sys.argv) > 1 else "queue"
+    if mode == "test3d":
+        sys.exit(1 if test3d() else 0)
     sys.exit(1 if (daily() if mode == "daily" else process_queue()) else 0)

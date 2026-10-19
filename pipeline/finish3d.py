@@ -26,8 +26,9 @@ def main(ep_id, d):
         st = ep.get("story") or {}
         ev = json.loads((d / "events.json").read_text())
         fps, total = ev.get("fps", 24), ev["frames"]
+        gpu = (d / "gpu.mp4").exists()  # rendered in one go on Kaggle's GPU (full resolution)
         have = {int(p.stem[2:]) for p in (d / "frames").glob("f_*.png")}
-        missing = [g for g in range(1, total + 1) if g not in have]
+        missing = [] if gpu else [g for g in range(1, total + 1) if g not in have]
         if missing:  # a render machine failed: draw its frames here instead of losing the short
             if len(missing) > total * 0.35 or not os.environ.get("BLENDER"):
                 raise RuntimeError(f"only {len(have)} of {total} frames were rendered")
@@ -37,11 +38,16 @@ def main(ep_id, d):
             _run([os.environ["BLENDER"], "-b", "--python", "blender/scene.py", "--", spec_path, d,
                   "list:" + ",".join(map(str, missing))])
         frames = sorted((d / "frames").glob("f_*.png"))
-        if len(frames) < total:
+        if not gpu and len(frames) < total:
             raise RuntimeError(f"only {len(frames)} of {total} frames were rendered")
         secs = total / fps
-        _run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", fps, "-i", d / "frames/f_%04d.png",
-              "-vf", "scale=1080:1920:flags=lanczos,setsar=1", "-c:v", "libx264", "-crf", 18, "-preset", "slow", "-pix_fmt", "yuv420p", d / "video.mp4"])
+        if gpu:
+            _run(["ffmpeg", "-y", "-loglevel", "error", "-i", d / "gpu.mp4", "-c:v", "libx264", "-crf", 17, "-preset", "slow",
+                  "-pix_fmt", "yuv420p", d / "video.mp4"])
+        else:
+            _run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", fps, "-i", d / "frames/f_%04d.png",
+                  "-vf", "scale=1080:1920:flags=lanczos,setsar=1", "-c:v", "libx264", "-crf", 18, "-preset", "slow",
+                  "-pix_fmt", "yuv420p", d / "video.mp4"])
         seed = (st.get("spec") or {}).get("seed", 0)
         _run([sys.executable, "blender/audio.py", d / "events.json", d / "sound.wav", secs, seed])
         _run(["ffmpeg", "-y", "-loglevel", "error", "-i", d / "video.mp4", "-i", d / "sound.wav", "-c:v", "copy",
@@ -52,7 +58,9 @@ def main(ep_id, d):
               d / "preview.mp4"])
         tf = ev.get("thumb") or total // 2
         thumb_src = d / f"frames/f_{tf:04d}.png"
-        if not thumb_src.exists():
+        if gpu and (d / "thumb.png").exists():
+            thumb_src = d / "thumb.png"
+        elif not thumb_src.exists():
             thumb_src = frames[len(frames) // 2]
         _run(["ffmpeg", "-y", "-loglevel", "error", "-i", thumb_src, "-q:v", 3, d / "thumb.jpg"])
         db.upload(d / "final.mp4", f"{base}/final.mp4", "video/mp4")

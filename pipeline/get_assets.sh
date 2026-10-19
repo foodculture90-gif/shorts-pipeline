@@ -13,7 +13,7 @@ done
 get() {
   [ -d "$A/kenney/$1" ] && return 0
   if curl -fsSL "$2" -o "/tmp/k_$1.zip"; then
-    mkdir -p "$A/kenney/$1" && unzip -q -o "/tmp/k_$1.zip" -d "$A/kenney/$1"
+    mkdir -p "$A/kenney/$1" && python3 -m zipfile -e "/tmp/k_$1.zip" "$A/kenney/$1"
     rm -f "/tmp/k_$1.zip"
   else
     echo "kenney $1 unavailable"

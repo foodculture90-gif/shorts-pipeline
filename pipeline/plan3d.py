@@ -30,7 +30,8 @@ ACC_WORDS = {"party_hat": "a party hat", "bow": "a bow", "cap": "a cap", "flower
 NAMES = {k: v.split(",")[0] for k, v in CAST.items()}
 
 GAGS = {
-    "steal_treat": dict(props=["cake", "icecream", "cookie", "apple"], sets=["street", "park", "kitchen", "beach", "playground", "snow"],
+    "steal_treat": dict(props=["cake", "icecream", "cookie", "apple", "donut", "cupcake", "watermelon", "pizza",
+                               "strawberry"], sets=["street", "park", "kitchen", "beach", "playground", "snow"],
                         story="{hero} spots a yummy {prop} on a table and hops over to eat it - but sneaky {friend} "
                               "pops up and slides it away right before the bite! Then {friend} peeks back with a giggle."),
     "ball_bonk": dict(props=["ball"], sets=["park", "street", "beach", "playground", "snow"],
@@ -50,6 +51,8 @@ GAGS = {
                             "dizzy stars... {friend} can't stop laughing, and {hero} laughs too."),
 }
 PROP_NAMES = {"cake": "birthday cake", "icecream": "ice cream", "cookie": "cookie", "apple": "apple",
+              "donut": "donut", "cupcake": "cupcake", "watermelon": "watermelon slice", "pizza": "pizza slice",
+              "strawberry": "big strawberry",
               "ball": "ball", "balloon": "balloon", "gift": "gift box", "bush": "bush", "peel": "banana peel"}
 TABLE_COLORS = ["#FF7AA8", "#7FD1B9", "#FFD23F", "#8FD3FF", "#B7A6FF"]
 
