@@ -4,6 +4,7 @@ description, hashtags and tags (Gemini writes them; offline templates if it is b
 The recurring cast (like Morphle's Mila & Morphle) builds a channel identity: same faces every day,
 new little stories.
 """
+import math
 import random
 
 from . import llm
@@ -14,26 +15,37 @@ CAST = {
     "mimi": "Mimi, a purple kitty-eared fluffball with a tail",
     "gogo": "Gogo, a green frog-like fluffball with eyes on top of his head",
     "chiko": "Chiko, a tiny yellow chick",
+    "lulu": "Lulu, a pink teddy-bear fluffball",
+    "tobi": "Tobi, an orange fox fluffball with a white-tipped tail",
+    "teo": "Teo, a cream puppy fluffball with floppy brown ears",
+    "popo": "Popo, a little navy-blue penguin",
 }
+ALL_SETS = ["street", "park", "beach", "kitchen", "playground", "snow"]
+OUTDOOR = ["street", "park", "beach", "playground", "snow"]
+COLORS = ["red", "blue", "yellow", "green", "purple", "orange", "pink"]
+ACCESSORIES = ["party_hat", "bow", "cap", "flower", "bowtie", "crown"]
+ACC_COLORS = ["#FF4D6D", "#FFD23F", "#4DA6FF", "#5CCB6B", "#B57BFF", "#FF8A3D", "#FFFFFF", "#2EC4B6"]
+ACC_WORDS = {"party_hat": "a party hat", "bow": "a bow", "cap": "a cap", "flower": "a flower", "bowtie": "a bow tie",
+             "crown": "a little crown"}
 NAMES = {k: v.split(",")[0] for k, v in CAST.items()}
 
 GAGS = {
-    "steal_treat": dict(props=["cake", "icecream", "cookie", "apple"], sets=["street", "park", "kitchen", "beach"],
+    "steal_treat": dict(props=["cake", "icecream", "cookie", "apple"], sets=["street", "park", "kitchen", "beach", "playground", "snow"],
                         story="{hero} spots a yummy {prop} on a table and hops over to eat it - but sneaky {friend} "
                               "pops up and slides it away right before the bite! Then {friend} peeks back with a giggle."),
-    "ball_bonk": dict(props=["ball"], sets=["park", "street", "beach"],
+    "ball_bonk": dict(props=["ball"], sets=["park", "street", "beach", "playground", "snow"],
                       story="{hero} kicks a ball - it bonks {friend} right on the head! Dizzy stars spin around, "
                             "{hero} giggles, and then they both jump and laugh together."),
-    "balloon_float": dict(props=["balloon"], sets=["park", "beach", "street"],
-                          story="{hero} holds a big red balloon and floats up, up into the sky while {friend} watches "
+    "balloon_float": dict(props=["balloon"], sets=["park", "beach", "street", "playground", "snow"],
+                          story="{hero} holds a big {color} balloon and floats up, up into the sky while {friend} watches "
                                 "amazed... then POP! {hero} falls down with a bump, dizzy stars, and everyone laughs."),
-    "gift_surprise": dict(props=["gift"], sets=["kitchen", "park", "street"],
+    "gift_surprise": dict(props=["gift"], sets=["kitchen", "park", "street", "playground", "snow", "beach"],
                           story="A gift box wiggles and jiggles... {hero} hops over to peek and - SURPRISE! - "
                                 "{friend} springs out with a big smile! {hero} jumps back, then they laugh together."),
-    "hide_seek": dict(props=["bush"], sets=["park", "street", "beach"],
+    "hide_seek": dict(props=["bush"], sets=["park", "street", "beach", "playground", "snow"],
                       story="{friend} covers their eyes and counts while {hero} tiptoes behind a bush. {friend} "
                             "looks everywhere... the bush wiggles... BOO! {hero} pops out and they both laugh."),
-    "slip_peel": dict(props=["peel"], sets=["street", "park", "kitchen"],
+    "slip_peel": dict(props=["peel"], sets=["street", "park", "kitchen", "playground", "snow", "beach"],
                       story="{hero} hops along happily - and slips on a banana peel! A big flip in the air, a bump, "
                             "dizzy stars... {friend} can't stop laughing, and {hero} laughs too."),
 }
@@ -76,8 +88,9 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None):
     pairs = {(s.get("hero"), s.get("friend")) for s in recent[:6]}
     cast = list(CAST)
     duos = [(x, y) for i, x in enumerate(cast) for y in cast[i + 1:]]
-    if slot is not None:
-        a, b = duos[(slot * 7) % len(duos)]
+    if slot is not None:  # a stride that never shares a factor with the number of duos -> all duos get a turn
+        stride = next(k for k in (7, 11, 13, 17, 19, 23) if math.gcd(k, len(duos)) == 1)
+        a, b = duos[(slot * stride) % len(duos)]
         if rnd.random() < 0.5:
             a, b = b, a
     else:
@@ -86,26 +99,47 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None):
             if (a, b) not in pairs and (b, a) not in pairs:
                 break
     # one home set for the whole short when the gags allow it
-    common = [x for x in ["street", "park", "beach", "kitchen"] if all(x in GAGS[g]["sets"] for g in gags)]
-    home = rnd.choice(common) if common else None
+    common = [x for x in ALL_SETS if all(x in GAGS[g]["sets"] for g in gags)]
+    recent_sets = [s.get("set") for s in recent[:3]]
+    fresh = [x for x in common if x not in recent_sets] or common
+    if slot is not None and fresh:
+        home = fresh[(slot * 5) % len(fresh)]
+    else:
+        home = rnd.choice(fresh) if fresh else None
     segs = []
     for k, gag in enumerate(gags):
         g = GAGS[gag]
         hero, friend = (a, b) if k % 2 == 0 else (b, a)  # the two friends take turns being the hero
         st = home or rnd.choice(g["sets"])
         segs.append({"gag": gag, "set": st, "hero": hero, "friend": friend, "prop": rnd.choice(g["props"]),
-                     "table_color": rnd.choice(TABLE_COLORS), "seed": rnd.randint(1, 10 ** 6)})
+                     "color": rnd.choice(COLORS), "table_color": rnd.choice(TABLE_COLORS),
+                     "seed": rnd.randint(1, 10 ** 6)})
+    # colours of the day: sky/time of day, season and palette of the set, plus a little outfit for each friend
+    theme = {"sky": rnd.choice(["day", "day", "morning", "golden", "sunset"]),
+             "season": rnd.choice(["summer", "summer", "spring", "autumn"]), "pal": rnd.randint(1, 10 ** 6)}
+    looks = {}
+    for c in (a, b):
+        if rnd.random() < 0.75:
+            k = rnd.choice(ACCESSORIES)
+            if k == "cap" and c in ("bubu", "mimi", "gogo", "tobi"):  # ears/eyes on top: a cap would hide them
+                k = "bow"
+            looks[c] = [k, rnd.choice(ACC_COLORS)]
     return {"hero": a, "friend": b, "set": segs[0]["set"], "gag": segs[0]["gag"], "segments": segs,
-            "seed": rnd.randint(1, 10 ** 6)}
+            "theme": theme, "looks": looks, "seed": rnd.randint(1, 10 ** 6)}
 
 
 def describe_one(seg):
     g = GAGS[seg["gag"]]
-    return g["story"].format(hero=NAMES[seg["hero"]], friend=NAMES[seg["friend"]], prop=PROP_NAMES[seg["prop"]])
+    return g["story"].format(hero=NAMES[seg["hero"]], friend=NAMES[seg["friend"]], prop=PROP_NAMES[seg["prop"]],
+                             color=seg.get("color", "red"))
 
 
 def describe(spec):
-    return " Then: ".join(describe_one(s) for s in (spec.get("segments") or [spec]))
+    s = " Then: ".join(describe_one(s) for s in (spec.get("segments") or [spec]))
+    place = {"snow": "in the snow", "playground": "at the playground", "kitchen": "in the kitchen",
+             "beach": "at the beach", "park": "in the park", "street": "on their street"}.get(spec.get("set"))
+    wear = [f"{NAMES[c]} wears {ACC_WORDS[k]}" for c, (k, _) in (spec.get("looks") or {}).items() if k in ACC_WORDS]
+    return s + (f" (It all happens {place}.)" if place else "") + (" " + ", ".join(wear) + "." if wear else "")
 
 
 SYSTEM = """You write the YouTube metadata for a wordless 3D cartoon short (20-40 seconds, a few funny moments in a row)
