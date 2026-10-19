@@ -1548,11 +1548,16 @@ const MACH = {
 };
 /* house: everything here is bought with points; machines are free and appear in the gym room once you log a PR */
 const HOUSE = {
-  homes: [["home:starter", "Starter house", 0], ["home:villa", "L-shaped villa", 6000], ["home:long", "Modern long house", 12000], ["home:mansion", "Mansion", 25000]],
+  homes: [["home:starter", "Starter house", 0], ["home:villa", "L-shaped villa", 6000], ["home:long", "Modern long house", 12000], ["home:mansion", "Mansion", 25000],
+    ["home:beach", "Beach house", 40000], ["home:chalet", "Mountain chalet", 60000], ["home:penthouse", "Sky penthouse", 90000], ["home:island", "Private island", 150000]],
   house: [    ["patio", "Patio set", 400], ["bbq", "BBQ grill", 300], ["hammock", "Hammock", 250],
     ["outkitchen", "Outdoor kitchen", 900], ["pergola", "Pergola lounge", 1200], ["firepit", "Fire pit", 500], ["palms", "Palm trees", 600],
     ["daybeds", "Daybeds", 1000], ["hottub", "Hot tub", 1200], ["sauna", "Sauna", 1500], ["cinema", "Outdoor cinema", 2500],
     ["fountain", "Fountain", 2000], ["statues", "Statue garden", 1500], ["gazebo", "Gazebo", 3000], ["bar", "Outdoor bar", 2500], ["tennis", "Tennis court", 4000], ["helipad", "Helipad", 5000],
+    ["umbrellas", "Beach umbrellas", 1500], ["beachbar", "Beach bar", 3000], ["jetski", "Jet ski", 6000],
+    ["firebowl", "Fire bowl lounge", 2500], ["skibar", "Ski bar", 4000], ["snowmobile", "Snowmobile", 7000],
+    ["skyjacuzzi", "Sky jacuzzi", 4000], ["skybar", "Sky bar", 5000], ["roofheli", "Rooftop helipad", 12000],
+    ["beachclub", "Beach cabanas", 8000], ["yacht", "Yacht", 20000], ["seaplane", "Seaplane", 30000],
     ["windows", "Windows", 300], ["lights", "Ceiling lights", 250], ["garden", "Garden and trees", 500], ["paving", "Paved driveway", 400],
     ["fence", "Garden hedge", 450], ["deck", "Wooden deck", 700], ["pool", "Swimming pool", 2500], ["loungers", "Pool loungers", 400]],
   cars: [["garage1", "Garage · 2 cars", 1500, null, "garage", 1], ["garage2", "Garage · 4 cars", 4000, null, "garage", 3], ["garage3", "Garage · 6 cars", 9000, null, "garage", 5],
@@ -1574,10 +1579,12 @@ const isGarage = id => HITEM[id]?.shape === "garage";
 const garageBays = g => Math.max(0, ...g.hown.filter(isGarage).map(id => HITEM[id].bays));
 const carCap = g => (HOMES[g.hsel.home] || HOMES.starter).spots.length + garageBays(g);
 const ONLY = {patio: "starter", bbq: "starter", hammock: "starter", outkitchen: "villa", pergola: "villa", firepit: "villa", palms: "villa",
-  daybeds: "long", hottub: "long", sauna: "long", cinema: "long", fountain: "mansion", statues: "mansion", gazebo: "mansion", bar: "mansion", tennis: "mansion", helipad: "mansion"};
+  daybeds: "long", hottub: "long", sauna: "long", cinema: "long", fountain: "mansion", statues: "mansion", gazebo: "mansion", bar: "mansion", tennis: "mansion", helipad: "mansion",
+  umbrellas: "beach", beachbar: "beach", jetski: "beach", firebowl: "chalet", skibar: "chalet", snowmobile: "chalet",
+  skyjacuzzi: "penthouse", skybar: "penthouse", roofheli: "penthouse", beachclub: "island", yacht: "island", seaplane: "island"};
 const homeInfo = k => { const L = HOMES[k], [, , w, h] = L.gym, slots = Math.min(12, Math.floor(w / 48) * Math.floor(h / 68));
   return `<span class="sub" style="display:block;font-size:10.5px;font-weight:400;margin-top:2px">${L.spots.length} parking · ${slots} machines</span>`; };
-const HOME_NAME = {starter: "Starter house", villa: "Villa", long: "Modern house", mansion: "Mansion"};
+const HOME_NAME = {starter: "Starter house", villa: "Villa", long: "Modern house", mansion: "Mansion", beach: "Beach house", chalet: "Chalet", penthouse: "Penthouse", island: "Island"};
 const hOwned = (g, id) => HITEM[id].price === 0 || g.hown.includes(id);
 const hOn = (g, id) => { const [k, v] = id.split(":"); return v ? g.hsel[k] === v : isGarage(id) ? g.hown.includes(id) : HITEM[id].cat === "cars" ? g.hsel.cars.includes(id) : g.hon.includes(id); };
 const prScore = (type, e) => type === "lift" ? e.w * (1 + (e.r || 1) / 30) : type === "reps" ? e.r : type === "time" ? -(e.t || 0) : type === "dur" ? e.t : e.km;
@@ -1688,6 +1695,23 @@ const HOMES = {
     drive: [0, 432, 600, 128], spots: [[60, 496], [135, 496], [210, 496], [390, 496], [465, 496], [540, 496]], deck: [222, 142, 76, 196], pool: [230, 152, 60, 150], loung: [12, 352],
     trees: [[28, 30, 16], [480, 412, 10], [150, 420, 10], [370, 420, 10]], hedge: "M6 6 V424 H594 V6", paved: [[218, 140, 84, 206], [170, 346, 180, 82]],
     extra: {fountain: [260, 386], statues: [260, 386], tennis: [478, 20], helipad: [532, 340], gazebo: [30, 240], bar: [372, 352]}},
+  beach: {W: 480, H: 570, lux: true, ground: "beach", shells: [[30, 150, 420, 180]], gym: [38, 158, 196, 164], living: [242, 158, 120, 164], kitchen: [370, 158, 72, 164],
+    pass: [[234, 220, 8, 30], [362, 220, 8, 30], [300, 322, 40, 8]], win: [[50, 152, 170, 4], [250, 152, 180, 4], [50, 324, 170, 4], [380, 324, 60, 4], [444, 180, 4, 120], [32, 180, 4, 120]],
+    drive: [0, 0, 480, 130], spots: [35, 100, 165, 230, 295, 360, 425].map(x => [x, 65]), deck: [30, 342, 420, 100], pool: [48, 356, 200, 64], loung: [270, 360],
+    trees: [[465, 200, 12], [14, 250, 12], [465, 330, 10]], hedge: "", paved: [], extra: {beachbar: [380, 392], umbrellas: [290, 456], jetski: [120, 522]}},
+  chalet: {W: 480, H: 560, lux: true, ground: "snow", shells: [[20, 20, 330, 260]], gym: [28, 28, 150, 244], living: [186, 28, 156, 140], kitchen: [186, 176, 156, 96],
+    pass: [[178, 100, 8, 30], [250, 168, 40, 8], [100, 272, 40, 8]], win: [[40, 22, 120, 4], [200, 22, 130, 4], [344, 40, 4, 200], [22, 60, 4, 180]],
+    drive: [360, 0, 120, 560], spots: [70, 195, 320, 445].flatMap(y => [[390, y], [450, y]]), deck: [30, 300, 200, 150], pool: [44, 314, 172, 120], round: true, loung: [240, 450],
+    trees: [[20, 530, 14], [80, 545, 12], [300, 520, 16], [340, 300, 10], [250, 540, 10], [150, 528, 12]], hedge: "", paved: [[24, 294, 212, 162]],
+    extra: {firebowl: [270, 340], skibar: [240, 390], snowmobile: [110, 500]}},
+  penthouse: {W: 560, H: 580, lux: true, ground: "roof", shells: [[20, 20, 330, 300]], gym: [28, 28, 170, 284], living: [206, 28, 136, 170], kitchen: [206, 206, 136, 106],
+    pass: [[198, 100, 8, 30], [250, 198, 40, 8], [342, 250, 8, 40]], win: [[40, 22, 140, 4], [220, 22, 110, 4], [344, 40, 4, 180], [22, 40, 4, 260], [40, 314, 140, 4], [220, 314, 110, 4]],
+    drive: [0, 450, 560, 130], spots: [40, 100, 160, 220, 280, 340, 400, 460, 520].map(x => [x, 515]), deck: [362, 20, 180, 420], pool: [380, 34, 140, 250], loung: [384, 300],
+    trees: [[36, 346, 10], [336, 346, 10]], hedge: "", paved: [], extra: {roofheli: [100, 392], skybar: [170, 370], skyjacuzzi: [290, 395]}},
+  island: {W: 680, H: 720, lux: true, ground: "island", shells: [[80, 80, 440, 320]], gym: [88, 88, 196, 304], living: [292, 88, 220, 170], kitchen: [292, 266, 220, 126],
+    pass: [[284, 150, 8, 30], [380, 258, 40, 8], [380, 392, 40, 8]], win: [[100, 82, 170, 4], [310, 82, 190, 4], [514, 110, 4, 250], [82, 110, 4, 250], [100, 394, 160, 4], [440, 394, 70, 4]],
+    drive: [150, 440, 300, 250], spots: [180, 240, 300, 360, 420].flatMap(x => [[x, 505], [x, 628]]), deck: [40, 430, 104, 240], pool: [52, 444, 80, 212], loung: [470, 450],
+    trees: [[62, 62, 14], [540, 62, 14], [60, 410, 10], [540, 412, 12], [540, 680, 12], [70, 690, 12]], hedge: "", paved: [], extra: {beachclub: [466, 530], yacht: [630, 400], seaplane: [630, 150]}},
 };
 function houseSVG(g) {
   const on = id => hOn(g, id), wall = HITEM["wall:" + g.hsel.wall]?.c || "#bdb6a8", fl = g.hsel.floor;
@@ -1731,13 +1755,17 @@ function houseSVG(g) {
     <linearGradient id="hinT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".34"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
     <linearGradient id="hinL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".26"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
     <linearGradient id="hpoolT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b4a66" stop-opacity=".55"/><stop offset="1" stop-color="#0b4a66" stop-opacity="0"/></linearGradient>
+    <pattern id="hsand" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#e8d6a8"/><circle cx="3" cy="4" r=".8" fill="#d4bf8a"/><circle cx="9" cy="9" r=".7" fill="#f3e6c4"/></pattern>
+    <pattern id="hsnow" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="#f4f7fa"/><circle cx="4" cy="5" r="1" fill="#dfe7ef"/><circle cx="10" cy="11" r=".8" fill="#e6edf3"/></pattern>
+    <pattern id="hroofp" width="30" height="30" patternUnits="userSpaceOnUse"><rect width="30" height="30" fill="#4a4a50"/><path d="M0 0 H30 M0 0 V30" stroke="#3c3c42" stroke-width="1.2"/></pattern>
+    <pattern id="hsea" width="60" height="30" patternUnits="userSpaceOnUse"><rect width="60" height="30" fill="#2f8fbf"/><path d="M4 12 q8 -5 16 0 t16 0 M30 26 q8 -5 16 0" stroke="#7fd0ee" stroke-width="1.2" fill="none" opacity=".6"/></pattern>
     <pattern id="hstone" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#d8d2c4"/><path d="M0 0 H24 M0 12 H24 M12 0 V12 M0 12 V24" stroke="#bfb7a6" stroke-width="1"/></pattern>
     <filter id="hshB" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="4" dy="6" stdDeviation="4" flood-color="#000" flood-opacity=".4"/></filter>
   </defs>
-  <rect width="${W}" height="${H}" fill="url(#hgrass)"/>
+  ${groundSVG(L, W, H)}
   <rect x="${dx}" y="${dy}" width="${dw}" height="${dh}" fill="${on("paving") ? "url(#hconc)" : "url(#hgravel)"}"/>
   ${on("paving") ? L.spots.map(([x, y]) => `<rect x="${x - 33}" y="${y - 62}" width="66" height="124" rx="3" fill="none" stroke="#e8e6df" stroke-width="1.5" stroke-dasharray="6 5" opacity=".8"/>`).join("") : ""}
-  ${on("fence") ? `<path d="${L.hedge}" stroke="#2f5a26" stroke-width="10" fill="none" stroke-linecap="round" filter="url(#hshB)"/><path d="${L.hedge}" stroke="#4d8040" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="3 6"/>` : ""}
+  ${on("fence") && L.hedge ? `<path d="${L.hedge}" stroke="#2f5a26" stroke-width="10" fill="none" stroke-linecap="round" filter="url(#hshB)"/><path d="${L.hedge}" stroke="#4d8040" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="3 6"/>` : ""}
   ${(L.paved || []).map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#hstone)"/>`).join("")}
   ${on("deck") ? `<rect x="${L.deck[0]}" y="${L.deck[1]}" width="${L.deck[2]}" height="${L.deck[3]}" rx="4" fill="url(#hdeck)" filter="url(#sh)"/>` : ""}
   ${on("pool") ? `<rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="${L.round ? Math.min(pw, ph) / 2 : 10}" fill="url(#hwater)"/><rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="${L.round ? Math.min(pw, ph) / 2 : 10}" fill="none" stroke="#f2f0ea" stroke-width="4"/>
@@ -1774,6 +1802,14 @@ function houseSVG(g) {
 </svg>`;
 }
 
+function groundSVG(L, W, H) {
+  const g = L.ground;
+  if (g === "beach") return `<rect width="${W}" height="${H}" fill="url(#hsand)"/><rect x="0" y="470" width="${W}" height="${H - 470}" fill="url(#hsea)"/><path d="M0 470 Q60 462 120 470 T240 470 T360 470 T480 470" stroke="#fff" stroke-width="3" fill="none" opacity=".7"/>`;
+  if (g === "snow") return `<rect width="${W}" height="${H}" fill="url(#hsnow)"/>`;
+  if (g === "roof") return `<rect width="${W}" height="${H}" fill="url(#hroofp)"/><rect x="4" y="4" width="${W - 8}" height="${H - 8}" fill="none" stroke="#9fd4ec" stroke-width="3" opacity=".7"/>`;
+  if (g === "island") return `<rect width="${W}" height="${H}" fill="url(#hsea)"/><rect x="20" y="20" width="560" height="680" rx="110" fill="url(#hsand)"/><rect x="40" y="40" width="520" height="640" rx="95" fill="url(#hgrass)"/>`;
+  return `<rect width="${W}" height="${H}" fill="url(#hgrass)"/>`;
+}
 function extrasSVG(E, on) {
   const at = (k, f) => E[k] && on(k) ? f(...E[k]) : "";
   return `<g filter="url(#sh)">
@@ -1794,6 +1830,18 @@ function extrasSVG(E, on) {
   ${at("statues", (x, y) => [-74, 74].map(a => `<rect x="${x + a - 9}" y="${y - 9}" width="18" height="18" fill="#cfc9bd"/><circle cx="${x + a}" cy="${y}" r="6" fill="#f1eee8"/><circle cx="${x + a - 2}" cy="${y - 2}" r="2" fill="#fff"/>`).join(""))}
   ${at("gazebo", (x, y) => `<polygon points="${Array.from({length: 8}, (_, i) => `${x + 26 * Math.cos(i * Math.PI / 4 + .39)},${y + 26 * Math.sin(i * Math.PI / 4 + .39)}`).join(" ")}" fill="#f3efe6" stroke="#c9bfae" stroke-width="2"/>${Array.from({length: 8}, (_, i) => `<path d="M${x} ${y} L${x + 26 * Math.cos(i * Math.PI / 4 + .39)} ${y + 26 * Math.sin(i * Math.PI / 4 + .39)}" stroke="#d8d0c0" stroke-width="1"/>`).join("")}<circle cx="${x}" cy="${y}" r="5" fill="#c9a24c"/>`)}
   ${at("bar", (x, y) => `<rect x="${x}" y="${y}" width="64" height="18" rx="3" fill="#3b2a1e"/><rect x="${x + 2}" y="${y + 2}" width="60" height="6" fill="#6b4a2c"/>${[0, 1, 2, 3].map(i => `<circle cx="${x + 10 + i * 15}" cy="${y + 26}" r="5" fill="#c9a24c"/>`).join("")}`)}
+  ${at("roofheli", (x, y) => `<circle cx="${x}" cy="${y}" r="46" fill="#3a3a3e"/><circle cx="${x}" cy="${y}" r="38" fill="none" stroke="#f2c94c" stroke-width="3"/><path d="M${x - 12} ${y - 16} V${y + 16} M${x + 12} ${y - 16} V${y + 16} M${x - 12} ${y} H${x + 12}" stroke="#fff" stroke-width="6"/>`)}
+  ${at("skybar", (x, y) => `<rect x="${x}" y="${y}" width="64" height="18" rx="3" fill="#3b2a1e"/><rect x="${x + 2}" y="${y + 2}" width="60" height="6" fill="#6b4a2c"/>${[0, 1, 2, 3].map(i => `<circle cx="${x + 10 + i * 15}" cy="${y + 26}" r="5" fill="#c9a24c"/>`).join("")}`)}
+  ${at("skyjacuzzi", (x, y) => `<circle cx="${x}" cy="${y}" r="24" fill="#d8d2c4"/><circle cx="${x}" cy="${y}" r="19" fill="url(#hwater)"/><circle cx="${x - 5}" cy="${y - 5}" r="4" fill="#fff" opacity=".5"/>`)}
+  ${at("beachbar", (x, y) => `<circle cx="${x}" cy="${y}" r="24" fill="#c9a25a"/>${Array.from({length: 12}, (_, i) => `<path d="M${x} ${y} L${x + 24 * Math.cos(i * .52)} ${y + 24 * Math.sin(i * .52)}" stroke="#a8823e" stroke-width="1.2"/>`).join("")}<circle cx="${x}" cy="${y}" r="4" fill="#8a6a2e"/>${[0, 1, 2, 3, 4].map(i => `<circle cx="${x + 30 * Math.cos(i * 1.26 + .3)}" cy="${y + 30 * Math.sin(i * 1.26 + .3)}" r="4" fill="#5a4636"/>`).join("")}`)}
+  ${at("umbrellas", (x, y) => [0, 46, 92, 138].map(a => `<rect x="${x + a - 6}" y="${y - 2}" width="12" height="22" rx="2" fill="${["#f4a261", "#e9c46a", "#2a9d8f", "#e76f51"][a / 46]}"/><circle cx="${x + a}" cy="${y}" r="15" fill="#fff"/><path d="M${x + a} ${y - 15} V${y + 15} M${x + a - 15} ${y} H${x + a + 15}" stroke="${["#e63946", "#1d3557", "#e63946", "#1d3557"][a / 46]}" stroke-width="5"/><circle cx="${x + a}" cy="${y}" r="2" fill="#555"/>`).join(""))}
+  ${at("jetski", (x, y) => `<path d="M${x - 40} ${y + 6} q20 6 40 0 M${x - 46} ${y - 4} q20 6 40 0" stroke="#fff" stroke-width="2" fill="none" opacity=".7"/><path d="M${x} ${y - 20} Q${x + 10} ${y - 10} ${x + 9} ${y + 16} L${x - 9} ${y + 16} Q${x - 10} ${y - 10} ${x} ${y - 20} Z" fill="#f4f4f0"/><rect x="${x - 6}" y="${y - 2}" width="12" height="12" rx="3" fill="#d23a2a"/><rect x="${x - 7}" y="${y - 8}" width="14" height="3" rx="1.5" fill="#222"/>`)}
+  ${at("firebowl", (x, y) => `${[0, 1, 2, 3].map(i => `<rect x="${x + 30 * Math.cos(i * 1.57) - 12}" y="${y + 30 * Math.sin(i * 1.57) - 5}" width="24" height="10" rx="3" fill="#7a5a3c" transform="rotate(${i * 90 + 90} ${x + 30 * Math.cos(i * 1.57)} ${y + 30 * Math.sin(i * 1.57)})"/>`).join("")}<circle cx="${x}" cy="${y}" r="16" fill="#6b6b70"/><circle cx="${x}" cy="${y}" r="10" fill="#ff7a1a"/><circle cx="${x}" cy="${y}" r="5" fill="#ffd166"/>`)}
+  ${at("skibar", (x, y) => `<rect x="${x}" y="${y}" width="72" height="24" rx="3" fill="#7a5233"/><rect x="${x + 2}" y="${y + 2}" width="68" height="8" fill="#a06c40"/>${[0, 1, 2, 3, 4].map(i => `<rect x="${x + 6 + i * 13}" y="${y + 28}" width="3" height="26" rx="1.5" fill="${["#e63946", "#1d3557", "#2a9d8f", "#f4a261", "#222"][i]}"/>`).join("")}`)}
+  ${at("snowmobile", (x, y) => `<path d="M${x - 6} ${y + 22} V${y + 60} M${x + 6} ${y + 22} V${y + 60}" stroke="#d6dee6" stroke-width="5"/><path d="M${x} ${y - 22} Q${x + 11} ${y - 14} ${x + 10} ${y + 22} L${x - 10} ${y + 22} Q${x - 11} ${y - 14} ${x} ${y - 22} Z" fill="#f2c94c"/><rect x="${x - 7}" y="${y - 4}" width="14" height="18" rx="4" fill="#222"/><rect x="${x - 12}" y="${y - 12}" width="24" height="3" rx="1.5" fill="#333"/>`)}
+  ${at("beachclub", (x, y) => [0, 40, 80].map(b => `<rect x="${x}" y="${y + b}" width="34" height="32" rx="3" fill="#fbfaf6" stroke="#d8d0c0"/><rect x="${x + 4}" y="${y + b + 4}" width="26" height="18" rx="3" fill="#e8e2d6"/><path d="M${x} ${y + b} l34 32 M${x + 34} ${y + b} l-34 32" stroke="#efe8dc" stroke-width="1"/>`).join(""))}
+  ${at("yacht", (x, y) => `<rect x="${x - 58}" y="${y - 10}" width="34" height="14" fill="#8a6440"/><path d="M${x - 30} ${y + 86} q10 10 30 0 M${x + 30} ${y + 86} q-10 10 -30 0" stroke="#fff" stroke-width="2" fill="none" opacity=".7"/><path d="M${x} ${y - 78} Q${x + 24} ${y - 40} ${x + 22} ${y + 70} Q${x} ${y + 82} ${x - 22} ${y + 70} Q${x - 24} ${y - 40} ${x} ${y - 78} Z" fill="#f7f7f4"/><path d="M${x} ${y - 50} Q${x + 14} ${y - 26} ${x + 13} ${y + 50} L${x - 13} ${y + 50} Q${x - 14} ${y - 26} ${x} ${y - 50} Z" fill="#b88a5a"/><rect x="${x - 11}" y="${y - 20}" width="22" height="40" rx="6" fill="#e9ecef"/><rect x="${x - 8}" y="${y - 16}" width="16" height="10" rx="3" fill="#24313d"/>`)}
+  ${at("seaplane", (x, y) => `<rect x="${x - 26}" y="${y - 30}" width="8" height="70" rx="4" fill="#e4e4e4"/><rect x="${x + 18}" y="${y - 30}" width="8" height="70" rx="4" fill="#e4e4e4"/><rect x="${x - 60}" y="${y - 12}" width="120" height="14" rx="5" fill="#e63946"/><path d="M${x} ${y - 46} Q${x + 9} ${y - 36} ${x + 7} ${y + 40} L${x - 7} ${y + 40} Q${x - 9} ${y - 36} ${x} ${y - 46} Z" fill="#f7f7f4"/><rect x="${x - 22}" y="${y + 34}" width="44" height="8" rx="3" fill="#e63946"/><rect x="${x - 4}" y="${y - 34}" width="8" height="10" rx="3" fill="#24313d"/>`)}
   ${at("helipad", (x, y) => `<circle cx="${x}" cy="${y}" r="46" fill="#3a3a3e"/><circle cx="${x}" cy="${y}" r="38" fill="none" stroke="#f2c94c" stroke-width="3"/><path d="M${x - 12} ${y - 16} V${y + 16} M${x + 12} ${y - 16} V${y + 16} M${x - 12} ${y} H${x + 12}" stroke="#fff" stroke-width="6"/>`)}
   </g>`;
 }
