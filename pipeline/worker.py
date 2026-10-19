@@ -393,7 +393,30 @@ HANDLERS = {"generate": cmd_generate, "animate": cmd_animate, "revise": cmd_revi
             "stats": cmd_stats, "connect_channel": cmd_connect}
 
 
+def retry_failed_renders():
+    """A 3D short whose render machines hiccuped gets one more try instead of staying failed."""
+    for e in db.select("episodes", "select=id,title,story&status=eq.failed&error=like.3D*"
+                                   "&story->>retries=is.null&limit=5"):
+        st = e.get("story") or {}
+        if st.get("engine") != "3d" or not st.get("spec"):
+            continue
+        st["retries"] = 1
+        if not db.update("episodes", f"id=eq.{e['id']}&status=eq.failed",
+                         {"status": "generating", "error": None, "story": st, "updated_at": now().isoformat()}):
+            continue  # another worker took it
+        try:
+            _dispatch_render(e["id"])
+            db.log(f"🔁 Rendering again: {e.get('title') or 'a short'}")
+        except Exception as ex:  # noqa: BLE001
+            _set(e["id"], status="failed", error=f"3D render failed: {ex}"[:400])
+
+
 def process_queue():
+    if WORKER_ID == "1":
+        try:
+            retry_failed_renders()
+        except Exception:  # noqa: BLE001
+            traceback.print_exc()
     stale = (now() - timedelta(minutes=50)).isoformat()
     db.update("commands", f"status=eq.running&created_at=lt.{stale}&finished_at=is.null",
               {"status": "queued", "note": "retrying after a stopped run"})
