@@ -108,15 +108,15 @@ def _dispatch_render(ep_id):
         raise RuntimeError(f"could not start the 3D render: {r.status_code} {r.text[:200]}")
 
 
-def _generate_3d(payload, ch, ep_id):
+def _generate_3d(payload, ch, ep_id, slot=None):
     """Plan a 3D gag (cast, set, prop) + title/description, then hand it to the Blender render machines."""
     from . import plan3d
     _set(ep_id, status="generating", error=None)
     rows = db.select("episodes", f"select=title,story&channel_id=eq.{ch['id']}&title=not.is.null"
                                  "&order=created_at.desc&limit=40")
     recent = [(r.get("story") or {}).get("spec") for r in rows]
-    spec = plan3d.plan(recent, idea=payload.get("idea") or payload.get("feedback"))
-    m = plan3d.meta(spec, [r["title"] for r in rows])
+    spec = plan3d.plan(recent, idea=payload.get("idea") or payload.get("feedback"), slot=slot)
+    m = plan3d.meta(spec, [r["title"] for r in rows], slot=slot)
     st = dict(m, engine="3d", spec=spec, summary=plan3d.describe(spec))
     work = WORK / ep_id
     work.mkdir(parents=True, exist_ok=True)
@@ -141,7 +141,7 @@ def cmd_generate(payload, cmd):
         db.update("commands", f"id=eq.{cmd['id']}", {"payload": payload})
     if _engine() == "3d":
         try:
-            return _generate_3d(payload, ch, ep_id)
+            return _generate_3d(payload, ch, ep_id, slot=int(cmd["id"]) if cmd and cmd.get("id") else None)
         except Exception as e:
             _set(ep_id, status="failed", error=str(e)[:400])
             raise

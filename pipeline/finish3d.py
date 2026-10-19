@@ -4,6 +4,7 @@ frames -> video, + sound effects & music -> app storage -> "To approve".
   python -m pipeline.finish3d <episode_id> <dir containing frames/ and events.json>
 """
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -25,6 +26,16 @@ def main(ep_id, d):
         st = ep.get("story") or {}
         ev = json.loads((d / "events.json").read_text())
         fps, total = ev.get("fps", 24), ev["frames"]
+        have = {int(p.stem[2:]) for p in (d / "frames").glob("f_*.png")}
+        missing = [g for g in range(1, total + 1) if g not in have]
+        if missing:  # a render machine failed: draw its frames here instead of losing the short
+            if len(missing) > total * 0.35 or not os.environ.get("BLENDER"):
+                raise RuntimeError(f"only {len(have)} of {total} frames were rendered")
+            print(f"re-rendering {len(missing)} missing frames", flush=True)
+            spec_path = d / "spec.json"
+            spec_path.write_text(json.dumps(st["spec"]))
+            _run([os.environ["BLENDER"], "-b", "--python", "blender/scene.py", "--", spec_path, d,
+                  "list:" + ",".join(map(str, missing))])
         frames = sorted((d / "frames").glob("f_*.png"))
         if len(frames) < total:
             raise RuntimeError(f"only {len(frames)} of {total} frames were rendered")

@@ -51,7 +51,7 @@ def _segments(recent):
             yield g
 
 
-def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60):
+def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None):
     """One short = 3-5 gags in a row with the same two friends (21-35 s, never under 20 or over 60):
     longer watch time, a recurring duo, and a fresh mix every day."""
     rnd = rnd or random.Random()
@@ -66,14 +66,25 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60):
         low = idea.lower()
         hits = [g for g in GAGS if any(w in low for w in g.split("_") + GAGS[g]["props"])]
         order = hits + [g for g in order if g not in hits]
+    if slot is not None and not idea:  # shorts planned at the same moment still get different lead gags
+        lead = list(GAGS)[slot % len(GAGS)]
+        order = [lead] + [g for g in order if g != lead]
     gags = order[:n]
-    rnd.shuffle(gags)
+    rest = gags[1:]
+    rnd.shuffle(rest)
+    gags = [gags[0]] + rest
     pairs = {(s.get("hero"), s.get("friend")) for s in recent[:6]}
     cast = list(CAST)
-    for _ in range(20):
-        a, b = rnd.sample(cast, 2)
-        if (a, b) not in pairs and (b, a) not in pairs:
-            break
+    duos = [(x, y) for i, x in enumerate(cast) for y in cast[i + 1:]]
+    if slot is not None:
+        a, b = duos[(slot * 7) % len(duos)]
+        if rnd.random() < 0.5:
+            a, b = b, a
+    else:
+        for _ in range(20):
+            a, b = rnd.sample(cast, 2)
+            if (a, b) not in pairs and (b, a) not in pairs:
+                break
     # one home set for the whole short when the gags allow it
     common = [x for x in ["street", "park", "beach", "kitchen"] if all(x in GAGS[g]["sets"] for g in gags)]
     home = rnd.choice(common) if common else None
@@ -100,9 +111,10 @@ def describe(spec):
 SYSTEM = """You write the YouTube metadata for a wordless 3D cartoon short (20-40 seconds, a few funny moments in a row)
 for kids aged 2-6,
 in the style of hit channels like Morphle and Cocomelon. It has only music and cartoon sound effects, no talking.
-- Title: a curiosity hook that makes kids AND parents tap, like "How To Get A FREE Cake!!", "Who Took The Cake?!",
-  "Don't Pop The Balloon! 🎈". Max 50 characters, Title Case, one fitting emoji at the end. Name the funny thing
-  that happens. You may use the characters' names. No clickbait the short doesn't deliver.
+- Title: a curiosity hook that makes kids AND parents tap. Max 50 characters, Title Case, one fitting emoji at the end.
+  Name the funniest thing that happens (it is usually the FIRST moment). You may use the characters' names.
+  Use this title format: FORMAT. Never start with the same first two words as a recent title.
+  No clickbait the short doesn't deliver.
 - Description: 2 short lines. Line 1 = a playful hook about what happens (with 1 emoji). Line 2 = a line that makes
   them watch again (e.g. "Watch till the end for the surprise! 🎁"). No hashtags in it.
 - Hashtags: 4 lowercase hashtags (without #) that real people search, mixing broad and specific.
@@ -133,14 +145,21 @@ def _offline(spec, rnd):
             "takeaway": "It's more fun when we laugh together."}
 
 
-def meta(spec, past_titles=(), rnd=None):
+TITLE_FORMATS = ["How To ... (e.g. \"How To Get A FREE Cake!!\")", "Don't ... (e.g. \"Don't Pop The Balloon!\")",
+                 "a question that is NOT \"Who ...\" (e.g. \"Where Did The Cake Go?!\")", "Name + action (e.g. \"Pip's Big Banana Slip!\")",
+                 "an exclamation (e.g. \"Oops! The Ball Went BONK!\")", "The ... (e.g. \"The Sneakiest Cake Thief Ever!\")",
+                 "a challenge or warning (e.g. \"Try Not To Laugh: Balloon Edition!\")"]
+
+
+def meta(spec, past_titles=(), rnd=None, slot=None):
     rnd = rnd or random.Random()
+    fmt = TITLE_FORMATS[slot % len(TITLE_FORMATS)] if slot is not None else rnd.choice(TITLE_FORMATS)
     cast = "\n".join(f"- {CAST[k]}" for k in (spec["hero"], spec["friend"]))
     recent = "\n".join(f"- {t}" for t in list(past_titles)[:40]) or "- (none yet)"
     prompt = (f"What happens: {describe(spec)}\nCharacters:\n{cast}\n"
               f"Recent titles on this channel (don't repeat them):\n{recent}")
     try:
-        m = llm.generate_json(SYSTEM, prompt, temperature=1.0)
+        m = llm.generate_json(SYSTEM.replace("FORMAT", fmt), prompt, temperature=1.0)
         if not (isinstance(m, dict) and m.get("title")):
             raise ValueError("no title")
         out = _offline(spec, rnd)
