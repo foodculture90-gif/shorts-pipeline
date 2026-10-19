@@ -380,6 +380,9 @@ input,select,textarea,input.in,select.in,textarea.in{font-size:16px}
 .vsession .vt{font-family:var(--disp);font-weight:800;font-size:28px;text-transform:uppercase;line-height:1.1}
 .vplay{width:54px;height:54px;border-radius:99px;background:#0b0b0c;color:var(--accent);display:grid;place-items:center;flex:none}
 .vrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.homes{display:grid;grid-template-columns:1fr 1fr;gap:10px}.homecard{background:var(--card);border:none;border-radius:20px;padding:8px 8px 12px;text-align:left;color:var(--ink);display:grid;gap:6px}
+.homecard.on{outline:2px solid var(--accent);outline-offset:-2px}.hprev{display:block;border-radius:14px;overflow:hidden;pointer-events:none;aspect-ratio:1/1.1;background:#1a1a1c}.hprev svg{width:100%;height:100%;display:block;object-fit:cover}
+.hname{font-family:var(--disp);font-weight:800;font-size:16px;text-transform:uppercase;padding:0 4px;line-height:1.1}.homecard .sub{padding:0 4px}
 .vrow3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.vrow3 .vmini{padding:12px 14px;min-width:0}.vrow3 .vmini b{font-size:22px}
 .vmini{background:var(--card);border-radius:20px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
 .vmini b{font-family:var(--disp);font-weight:800;font-size:24px}
@@ -1546,8 +1549,10 @@ const MACH = {
 /* house: everything here is bought with points; machines are free and appear in the gym room once you log a PR */
 const HOUSE = {
   homes: [["home:starter", "Starter house", 0], ["home:villa", "L-shaped villa", 6000], ["home:long", "Modern long house", 12000], ["home:mansion", "Mansion", 25000]],
-  house: [    ["bbq", "BBQ grill", 300], ["hammock", "Hammock", 250], ["outkitchen", "Outdoor kitchen", 900], ["firepit", "Fire pit", 500],
-    ["hottub", "Hot tub", 1200], ["sauna", "Sauna", 1500], ["fountain", "Fountain", 2000], ["tennis", "Tennis court", 4000], ["helipad", "Helipad", 5000],
+  house: [    ["patio", "Patio set", 400], ["bbq", "BBQ grill", 300], ["hammock", "Hammock", 250],
+    ["outkitchen", "Outdoor kitchen", 900], ["pergola", "Pergola lounge", 1200], ["firepit", "Fire pit", 500], ["palms", "Palm trees", 600],
+    ["daybeds", "Daybeds", 1000], ["hottub", "Hot tub", 1200], ["sauna", "Sauna", 1500], ["cinema", "Outdoor cinema", 2500],
+    ["fountain", "Fountain", 2000], ["statues", "Statue garden", 1500], ["gazebo", "Gazebo", 3000], ["bar", "Outdoor bar", 2500], ["tennis", "Tennis court", 4000], ["helipad", "Helipad", 5000],
     ["windows", "Windows", 300], ["lights", "Ceiling lights", 250], ["garden", "Garden and trees", 500], ["paving", "Paved driveway", 400],
     ["fence", "Garden hedge", 450], ["deck", "Wooden deck", 700], ["pool", "Swimming pool", 2500], ["loungers", "Pool loungers", 400]],
   cars: [["garage1", "Garage · 2 cars", 1500, null, "garage", 1], ["garage2", "Garage · 4 cars", 4000, null, "garage", 3], ["garage3", "Garage · 6 cars", 9000, null, "garage", 5],
@@ -1568,7 +1573,8 @@ const gym = () => { const g = {...gymDefault(), ...(S.profile.gym || {})}; g.prs
 const isGarage = id => HITEM[id]?.shape === "garage";
 const garageBays = g => Math.max(0, ...g.hown.filter(isGarage).map(id => HITEM[id].bays));
 const carCap = g => (HOMES[g.hsel.home] || HOMES.starter).spots.length + garageBays(g);
-const ONLY = {bbq: "starter", hammock: "starter", outkitchen: "villa", firepit: "villa", hottub: "long", sauna: "long", fountain: "mansion", tennis: "mansion", helipad: "mansion"};
+const ONLY = {patio: "starter", bbq: "starter", hammock: "starter", outkitchen: "villa", pergola: "villa", firepit: "villa", palms: "villa",
+  daybeds: "long", hottub: "long", sauna: "long", cinema: "long", fountain: "mansion", statues: "mansion", gazebo: "mansion", bar: "mansion", tennis: "mansion", helipad: "mansion"};
 const homeInfo = k => { const L = HOMES[k], [, , w, h] = L.gym, slots = Math.min(12, Math.floor(w / 48) * Math.floor(h / 68));
   return `<span class="sub" style="display:block;font-size:10.5px;font-weight:400;margin-top:2px">${L.spots.length} parking · ${slots} machines</span>`; };
 const HOME_NAME = {starter: "Starter house", villa: "Villa", long: "Modern house", mansion: "Mansion"};
@@ -1628,20 +1634,36 @@ function machineSVG(id) {
   }[id] || "";
 }
 function carSVG(type, col, k = "") {
-  const dk = shade(col, .55), lt = shade(col, 1.25);
-  const dim = {hatch: [46, 84, 16], pickup: [54, 116, 10], suv: [54, 106, 12], sports: [52, 112, 20], super: [58, 112, 24]}[type] || [50, 100, 14];
-  const [w, h, r] = dim, x = -w / 2, y = -h / 2;
-  const glass = (y1, y2, inset) => `<path d="M${x + inset} ${y1 + 6} Q0 ${y1 - 4} ${-x - inset} ${y1 + 6} L${-x - inset - 3} ${y2} Q0 ${y2 - 5} ${x + inset + 3} ${y2} Z" fill="url(#hglass)"/>`;
-  let body = `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#hcar${k})"/>`;
-  if (type === "pickup") body += `${glass(y + 22, y + 40, 6)}<rect x="${x + 6}" y="${y + 42}" width="${w - 12}" height="14" rx="3" fill="${dk}" opacity=".6"/><rect x="${x + 5}" y="${y + 62}" width="${w - 10}" height="${h - 68}" rx="3" fill="${dk}"/><rect x="${x + 8}" y="${y + 65}" width="${w - 16}" height="${h - 74}" rx="2" fill="#1d1d1f" opacity=".55"/>`;
-  else if (type === "suv") body += `${glass(y + 20, y + 36, 6)}<rect x="${x + 6}" y="${y + 38}" width="${w - 12}" height="${h - 62}" rx="5" fill="${dk}" opacity=".55"/><g stroke="#111" stroke-width="2" opacity=".5"><path d="M${x + 12} ${y + 44} V${y + h - 30} M${-x - 12} ${y + 44} V${y + h - 30}"/></g>${glass(y + h - 22, y + h - 10, 7)}`;
-  else body += `${glass(y + (type === "hatch" ? 18 : 30), y + (type === "hatch" ? 34 : 46), 5)}<rect x="${x + 7}" y="${y + (type === "hatch" ? 36 : 48)}" width="${w - 14}" height="${type === "hatch" ? 26 : 28}" rx="5" fill="${dk}" opacity=".5"/>
-    <path d="M${x + 7} ${y + h - (type === "hatch" ? 18 : 30)} Q0 ${y + h - (type === "hatch" ? 14 : 24)} ${-x - 7} ${y + h - (type === "hatch" ? 18 : 30)} L${-x - 9} ${y + h - (type === "hatch" ? 8 : 18)} Q0 ${y + h - 4 - (type === "hatch" ? 0 : 10)} ${x + 9} ${y + h - (type === "hatch" ? 8 : 18)} Z" fill="url(#hglass)"/>`;
-  if (type === "super" || type === "sports") body += `<path d="M${x + 8} ${y + 8} Q0 ${y + 2} ${-x - 8} ${y + 8}" stroke="${lt}" stroke-width="2" fill="none" opacity=".7"/>`;
-  const lights = `<rect x="${x + 4}" y="${y + 2}" width="11" height="4" rx="2" fill="#fffbe0"/><rect x="${-x - 15}" y="${y + 2}" width="11" height="4" rx="2" fill="#fffbe0"/>
-    <rect x="${x + 4}" y="${-y - 5}" width="11" height="3.5" rx="1.75" fill="#d23a2a"/><rect x="${-x - 15}" y="${-y - 5}" width="11" height="3.5" rx="1.75" fill="#d23a2a"/>`;
-  const mirrors = `<rect x="${x - 4}" y="${y + h * .3}" width="5" height="8" rx="2" fill="${dk}"/><rect x="${-x - 1}" y="${y + h * .3}" width="5" height="8" rx="2" fill="${dk}"/>`;
-  return `<defs><linearGradient id="hcar${k}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${dk}"/><stop offset=".5" stop-color="${lt}"/><stop offset="1" stop-color="${dk}"/></linearGradient></defs>${mirrors}${body}${lights}`;
+  const dk = shade(col, .5), md = shade(col, .78), lt = shade(col, 1.35);
+  // w, length, hood, windshield, roof, rear glass, corner radius, front taper
+  const S = {hatch: [46, 86, 16, 14, 30, 14, 12, 3], suv: [54, 106, 18, 14, 50, 10, 9, 2], pickup: [54, 116, 20, 14, 22, 6, 7, 2],
+    sports: [52, 110, 34, 16, 22, 14, 16, 6], super: [58, 112, 38, 18, 16, 12, 18, 8]}[type] || [50, 100, 22, 14, 30, 12, 12, 4];
+  const [w, h, H1, W1, R, G, r, tp] = S, x = -w / 2, y = -h / 2, f = y + 4;
+  const ws = f + H1, rf = ws + W1, rg = rf + R, tr = rg + G;
+  const body = `M${x + tp + r * .6} ${y} Q0 ${y - 3} ${-x - tp - r * .6} ${y} Q${-x - tp * .3} ${y + 1} ${-x} ${y + r} L${-x} ${-y - r} Q${-x} ${-y} ${-x - r} ${-y} L${x + r} ${-y} Q${x} ${-y} ${x} ${-y - r} L${x} ${y + r} Q${x + tp * .3} ${y + 1} ${x + tp + r * .6} ${y} Z`;
+  const wheel = (cx, cy) => `<rect x="${cx - 4}" y="${cy - 9}" width="8" height="18" rx="3" fill="#141416"/><rect x="${cx - 2.5}" y="${cy - 6}" width="5" height="12" rx="2" fill="#3a3a3e"/>`;
+  const ax1 = f + H1 * .5, ax2 = -y - 18;
+  const wheels = [x + 2, -x - 2].map(cx => wheel(cx, ax1) + wheel(cx, ax2)).join("");
+  const trap = (y1, y2, w1, w2) => `M${-w1 / 2} ${y1} Q0 ${y1 - 2.5} ${w1 / 2} ${y1} L${w2 / 2} ${y2} Q0 ${y2 + (y2 > y1 ? -2 : 2)} ${-w2 / 2} ${y2} Z`;
+  let parts = `<path d="${trap(ws, rf, w - 8, w - 15)}" fill="url(#hglass)"/><path d="M${-w / 2 + 9} ${ws + 3} L${-w / 2 + 16} ${rf - 2}" stroke="#fff" stroke-width="1.6" opacity=".3"/>
+    <rect x="${-(w - 15) / 2}" y="${rf}" width="${w - 15}" height="${R}" rx="4" fill="url(#hroof${k})"/>
+    <rect x="${x + 3.5}" y="${rf + 1}" width="3.2" height="${R - 2}" rx="1.5" fill="#1c232b"/><rect x="${-x - 6.7}" y="${rf + 1}" width="3.2" height="${R - 2}" rx="1.5" fill="#1c232b"/>
+    <path d="${trap(rg, tr, w - 15, w - 10)}" fill="url(#hglass)"/>
+    <path d="M${-w * .2} ${f + 3} L${-w * .16} ${ws - 2} M${w * .2} ${f + 3} L${w * .16} ${ws - 2}" stroke="${dk}" stroke-width="1" opacity=".45"/>
+    <path d="M${-(w - 15) / 2 + 2} ${rf + 3} V${rg - 3}" stroke="#fff" stroke-width="1.2" opacity=".35"/>
+    <path d="M${x + 1} ${rf + R * .5} H${x + 4} M${-x - 1} ${rf + R * .5} H${-x - 4}" stroke="${dk}" stroke-width="1"/>`;
+  if (type === "pickup") parts += `<rect x="${x + 5}" y="${tr + 3}" width="${w - 10}" height="${-y - tr - 9}" rx="2" fill="${dk}"/><rect x="${x + 8}" y="${tr + 6}" width="${w - 16}" height="${-y - tr - 15}" rx="1.5" fill="#24221f"/>
+    ${[0, 1, 2, 3].map(i => `<path d="M${x + 9} ${tr + 12 + i * 10} H${-x - 9}" stroke="#34312c" stroke-width="1.5"/>`).join("")}`;
+  if (type === "suv") parts += `<path d="M${-(w - 15) / 2 + 3} ${rf + 4} V${rg - 4} M${(w - 15) / 2 - 3} ${rf + 4} V${rg - 4}" stroke="#2a2a2c" stroke-width="2.4"/>`;
+  if (type === "super") parts += `${[0, 1, 2, 3, 4].map(i => `<path d="M${-w * .26} ${tr + 4 + i * 4} H${w * .26}" stroke="${dk}" stroke-width="1.6"/>`).join("")}<path d="M${x + 3} ${ax1 + 10} Q${x + 8} ${ax1 + 22} ${x + 3} ${ax2 - 12} M${-x - 3} ${ax1 + 10} Q${-x - 8} ${ax1 + 22} ${-x - 3} ${ax2 - 12}" stroke="${dk}" stroke-width="2.5" fill="none"/>`;
+  if (type === "sports" || type === "super") parts += `<path d="M${-w * .3} ${f + 2} Q0 ${f - 1} ${w * .3} ${f + 2}" stroke="${lt}" stroke-width="1.5" fill="none" opacity=".8"/>`;
+  const lights = `<path d="M${x + tp + 3} ${y + 3} L${x + tp + 13} ${y + 1.5} L${x + tp + 12} ${y + 6} L${x + 3} ${y + 8} Z" fill="#f6f3df"/><path d="M${-x - tp - 3} ${y + 3} L${-x - tp - 13} ${y + 1.5} L${-x - tp - 12} ${y + 6} L${-x - 3} ${y + 8} Z" fill="#f6f3df"/>
+    ${type === "super" ? `<rect x="${x + 4}" y="${-y - 4.5}" width="${w - 8}" height="2.6" rx="1.3" fill="#e0342a"/>` : `<rect x="${x + 3}" y="${-y - 5}" width="11" height="3.4" rx="1.5" fill="#d23a2a"/><rect x="${-x - 14}" y="${-y - 5}" width="11" height="3.4" rx="1.5" fill="#d23a2a"/>`}`;
+  const mirrors = `<path d="M${x} ${ws + 2} l-5 2 l0 4 l5 -1 Z" fill="${dk}"/><path d="M${-x} ${ws + 2} l5 2 l0 4 l-5 -1 Z" fill="${dk}"/>`;
+  return `<defs><linearGradient id="hcar${k}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${dk}"/><stop offset=".22" stop-color="${md}"/><stop offset=".5" stop-color="${lt}"/><stop offset=".78" stop-color="${md}"/><stop offset="1" stop-color="${dk}"/></linearGradient>
+    <linearGradient id="hroof${k}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${md}"/><stop offset=".45" stop-color="${lt}"/><stop offset="1" stop-color="${md}"/></linearGradient>
+    <linearGradient id="hhl${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset=".8" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient></defs>
+    ${wheels}${mirrors}<path d="${body}" fill="url(#hcar${k})"/><path d="${body}" fill="url(#hhl${k})"/><path d="${body}" fill="none" stroke="${dk}" stroke-width=".8" opacity=".6"/>${parts}${lights}`;
 }
 function shade(hex, f) {
   const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.max(0, Math.min(255, Math.round(f > 1 ? v + (255 - v) * (f - 1) : v * f))));
@@ -1649,23 +1671,23 @@ function shade(hex, f) {
 }
 /* house plans: each home has its own shape, size and outdoor layout */
 const HOMES = {
-  starter: {W: 346, H: 380, shells: [[10, 10, 232, 226]], gym: [18, 18, 98, 210], living: [124, 18, 110, 118], kitchen: [124, 144, 110, 84],
+  starter: {W: 346, H: 430, shells: [[10, 10, 232, 226]], gym: [18, 18, 98, 210], living: [124, 18, 110, 118], kitchen: [124, 144, 110, 84],
     pass: [[116, 96, 8, 28], [194, 136, 40, 8], [200, 228, 34, 8]], win: [[34, 12, 60, 4], [146, 12, 66, 4], [236, 40, 4, 70], [12, 120, 4, 60]],
-    drive: [248, 0, 98, 380], spots: [[297, 252]], deck: [22, 250, 200, 100], pool: [36, 262, 132, 76], loung: [180, 262], trees: [[232, 356, 22], [16, 360, 18], [232, 248, 12]], hedge: "M6 6 V374 H244",
-    extra: {bbq: [228, 292], hammock: [40, 366]}},
-  villa: {W: 420, H: 460, shells: [[100, 10, 310, 190], [280, 10, 130, 400]], gym: [288, 122, 114, 280], living: [108, 18, 164, 174], kitchen: [288, 18, 114, 96],
+    drive: [248, 0, 98, 430], spots: [[297, 252]], deck: [22, 250, 200, 100], pool: [36, 262, 132, 76], loung: [180, 262], trees: [[232, 412, 16], [16, 414, 14], [232, 248, 12]], hedge: "M6 6 V424 H244",
+    paved: [], extra: {patio: [24, 368], bbq: [228, 292], hammock: [150, 404]}},
+  villa: {W: 420, H: 500, shells: [[100, 10, 310, 190], [280, 10, 130, 400]], gym: [288, 122, 114, 280], living: [108, 18, 164, 174], kitchen: [288, 18, 114, 96],
     pass: [[272, 60, 16, 30], [320, 114, 40, 8], [150, 192, 40, 8]], win: [[130, 12, 100, 4], [300, 12, 80, 4], [404, 140, 4, 200], [102, 40, 4, 120], [300, 404, 80, 4]],
-    drive: [0, 0, 90, 460], spots: [[45, 110], [45, 260]], deck: [108, 232, 164, 150], pool: [124, 244, 132, 104], round: true, loung: [200, 400], trees: [[118, 444, 12], [268, 440, 14], [100, 220, 8]], hedge: "M96 456 H416",
-    extra: {outkitchen: [110, 206], firepit: [150, 418]}},
-  long: {W: 460, H: 420, shells: [[10, 240, 350, 170]], gym: [18, 248, 160, 154], living: [186, 248, 100, 154], kitchen: [294, 248, 58, 154],
-    pass: [[178, 310, 8, 30], [286, 310, 8, 30], [210, 240, 40, 8]], win: [[30, 242, 130, 4], [196, 242, 80, 4], [300, 242, 46, 4], [354, 270, 4, 100], [12, 270, 4, 100]],
-    drive: [370, 0, 90, 420], spots: [[415, 76], [415, 210], [415, 344]], deck: [16, 20, 344, 206], pool: [30, 34, 300, 74], loung: [40, 136], trees: [[350, 232, 9], [12, 232, 9], [186, 228, 7]], hedge: "M6 4 H364",
-    extra: {hottub: [200, 172], sauna: [262, 144]}},
-  mansion: {W: 600, H: 560, shells: [[60, 10, 400, 130], [60, 10, 160, 330], [300, 10, 160, 330]], gym: [68, 18, 144, 314], living: [228, 18, 224, 114], kitchen: [308, 140, 144, 192],
+    drive: [0, 0, 90, 500], spots: [[45, 110], [45, 260]], deck: [108, 232, 164, 150], pool: [124, 244, 132, 104], round: true, loung: [226, 390], trees: [[270, 488, 9], [100, 222, 8]], hedge: "M96 496 H416",
+    paved: [[100, 200, 180, 192]], extra: {outkitchen: [110, 206], pergola: [108, 396], firepit: [244, 462], palms: [296, 446]}},
+  long: {W: 460, H: 470, lux: true, shells: [[10, 290, 350, 170]], gym: [18, 298, 160, 154], living: [186, 298, 100, 154], kitchen: [294, 298, 58, 154],
+    pass: [[178, 360, 8, 30], [286, 360, 8, 30], [210, 290, 40, 8]], win: [[30, 292, 130, 4], [196, 292, 80, 4], [300, 292, 46, 4], [354, 320, 4, 100], [12, 320, 4, 100]],
+    drive: [370, 0, 90, 470], spots: [[415, 80], [415, 230], [415, 380]], deck: [16, 20, 344, 256], pool: [30, 34, 300, 74], loung: [40, 140], trees: [[350, 282, 9], [12, 282, 9]], hedge: "M6 4 H364",
+    paved: [[10, 14, 356, 270]], extra: {daybeds: [96, 140], hottub: [200, 196], sauna: [262, 150], cinema: [40, 232]}},
+  mansion: {W: 600, H: 560, lux: true, shells: [[60, 10, 400, 130], [60, 10, 160, 330], [300, 10, 160, 330]], gym: [68, 18, 144, 314], living: [228, 18, 224, 114], kitchen: [308, 140, 144, 192],
     pass: [[220, 60, 8, 30], [350, 132, 40, 8], [240, 132, 40, 8]], win: [[90, 12, 110, 4], [250, 12, 180, 4], [454, 40, 4, 280], [62, 60, 4, 240], [90, 334, 90, 4], [330, 334, 100, 4]],
     drive: [0, 432, 600, 128], spots: [[60, 496], [135, 496], [210, 496], [390, 496], [465, 496], [540, 496]], deck: [222, 142, 76, 196], pool: [230, 152, 60, 150], loung: [12, 352],
-    trees: [[28, 30, 16], [28, 200, 14], [480, 412, 10], [30, 300, 10]], hedge: "M6 6 V424 H594 V6",
-    extra: {fountain: [260, 386], tennis: [478, 20], helipad: [532, 340]}},
+    trees: [[28, 30, 16], [480, 412, 10], [150, 420, 10], [370, 420, 10]], hedge: "M6 6 V424 H594 V6", paved: [[218, 140, 84, 206], [170, 346, 180, 82]],
+    extra: {fountain: [260, 386], statues: [260, 386], tennis: [478, 20], helipad: [532, 340], gazebo: [30, 240], bar: [372, 352]}},
 };
 function houseSVG(g) {
   const on = id => hOn(g, id), wall = HITEM["wall:" + g.hsel.wall]?.c || "#bdb6a8", fl = g.hsel.floor;
@@ -1677,7 +1699,7 @@ function houseSVG(g) {
   const machines = recent.map((id, i) => { const x = gx0 + gw0 / cols * (i % cols + .5), y = gy0 + gh0 / rows * (Math.floor(i / cols) + .5), b = bestPR(id, g);
     return `<g class="mach" data-mach="${id}" role="button" aria-label="${esc(MACH[id].name)}: ${esc(prText(MACH[id].type, b))}"><rect x="${x - 24}" y="${y - 30}" width="48" height="60" fill="transparent"/>
       <g transform="translate(${x} ${y}) scale(.42)" filter="url(#sh)">${machineSVG(id)}</g></g>`; }).join("");
-  const tree = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#htree)" filter="url(#hshB)"/><circle cx="${x - r * .3}" cy="${y - r * .3}" r="${r * .35}" fill="#7db562" opacity=".5"/>`;
+  const tree = (x, y, r) => `<ellipse cx="${x + r * .45}" cy="${y + r * .55}" rx="${r}" ry="${r * .8}" fill="#000" opacity=".22"/><circle cx="${x}" cy="${y}" r="${r}" fill="url(#htree)" filter="url(#hshB)"/><circle cx="${x - r * .3}" cy="${y - r * .3}" r="${r * .35}" fill="#7db562" opacity=".5"/>`;
   const glow = ([x, y, w, h]) => `<circle cx="${x + w / 2}" cy="${y + h / 2}" r="${Math.min(w, h) * .5}" fill="url(#hglow)"/>`;
   const [lx, ly, lw, lh] = L.living, [kx, ky, kw, kh] = L.kitchen;
   const sx = lx + 8, sy = ly + lh * .42, ex = lx + lw * .66, by = ly + lh - 6, iw = Math.min(64, kw * .55), ix = kx + (kw - iw) / 2, iy = ky + Math.max(26, kh * .42);
@@ -1706,21 +1728,28 @@ function houseSVG(g) {
     <linearGradient id="hsofa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b6470"/><stop offset="1" stop-color="#434b55"/></linearGradient>
     <radialGradient id="htree" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#6fa356"/><stop offset=".7" stop-color="#3f7432"/><stop offset="1" stop-color="#2c5523"/></radialGradient>
     <radialGradient id="hglow"><stop offset="0" stop-color="#fff3c4" stop-opacity=".45"/><stop offset="1" stop-color="#fff3c4" stop-opacity="0"/></radialGradient>
+    <linearGradient id="hinT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".34"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+    <linearGradient id="hinL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".26"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+    <linearGradient id="hpoolT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b4a66" stop-opacity=".55"/><stop offset="1" stop-color="#0b4a66" stop-opacity="0"/></linearGradient>
+    <pattern id="hstone" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#d8d2c4"/><path d="M0 0 H24 M0 12 H24 M12 0 V12 M0 12 V24" stroke="#bfb7a6" stroke-width="1"/></pattern>
     <filter id="hshB" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="4" dy="6" stdDeviation="4" flood-color="#000" flood-opacity=".4"/></filter>
   </defs>
   <rect width="${W}" height="${H}" fill="url(#hgrass)"/>
   <rect x="${dx}" y="${dy}" width="${dw}" height="${dh}" fill="${on("paving") ? "url(#hconc)" : "url(#hgravel)"}"/>
   ${on("paving") ? L.spots.map(([x, y]) => `<rect x="${x - 33}" y="${y - 62}" width="66" height="124" rx="3" fill="none" stroke="#e8e6df" stroke-width="1.5" stroke-dasharray="6 5" opacity=".8"/>`).join("") : ""}
   ${on("fence") ? `<path d="${L.hedge}" stroke="#2f5a26" stroke-width="10" fill="none" stroke-linecap="round" filter="url(#hshB)"/><path d="${L.hedge}" stroke="#4d8040" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="3 6"/>` : ""}
+  ${(L.paved || []).map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#hstone)"/>`).join("")}
   ${on("deck") ? `<rect x="${L.deck[0]}" y="${L.deck[1]}" width="${L.deck[2]}" height="${L.deck[3]}" rx="4" fill="url(#hdeck)" filter="url(#sh)"/>` : ""}
   ${on("pool") ? `<rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="${L.round ? Math.min(pw, ph) / 2 : 10}" fill="url(#hwater)"/><rect x="${px}" y="${py}" width="${pw}" height="${ph}" rx="${L.round ? Math.min(pw, ph) / 2 : 10}" fill="none" stroke="#f2f0ea" stroke-width="4"/>
+    <rect x="${px + 2}" y="${py + 2}" width="${pw - 4}" height="${Math.min(16, ph / 3)}" rx="8" fill="url(#hpoolT)"/>
     <g fill="none" stroke="#fff" stroke-width="1.2" opacity=".45">${waves}</g>` : ""}
-  ${L.shells.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${wall}" filter="url(#hshB)"/>`).join("")}
+  ${L.shells.map(([x, y, w, h]) => `<rect x="${x + 6}" y="${y + 6}" width="${w + 4}" height="${h + 6}" fill="#000" opacity=".28" filter="url(#hshB)"/><rect x="${x}" y="${y + h - 2}" width="${w}" height="10" fill="${shade(wall, .62)}"/><rect x="${x + w - 2}" y="${y + 4}" width="7" height="${h + 4}" fill="${shade(wall, .76)}"/>`).join("")}
   ${L.shells.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${wall}"/>`).join("")}
   <rect x="${gx0}" y="${gy0}" width="${gw0}" height="${gh0}" fill="${on("gymfloor") ? "url(#hrubber)" : "url(#hbare)"}"/>
   <rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" fill="${floorFill}"/>
   <rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" fill="${fl === "wood" ? "url(#htile)" : floorFill}"/>
   ${L.pass.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${floorFill}"/>`).join("")}
+  ${[L.gym, L.living, L.kitchen].map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="9" fill="url(#hinT)"/><rect x="${x}" y="${y}" width="9" height="${h}" fill="url(#hinL)"/>`).join("")}
   ${on("mirror") ? `<rect x="${gx0 + 1}" y="${gy0 + 4}" width="4" height="${gh0 - 8}" fill="#cfe7ef"/><rect x="${gx0 + 1}" y="${gy0 + 4}" width="1.5" height="${gh0 - 8}" fill="#fff" opacity=".8"/>` : ""}
   ${on("speakers") ? `<g filter="url(#sh)">${[gy0 + 4, gy0 + gh0 - 19].map(y => `<rect x="${gx0 + gw0 - 14}" y="${y}" width="11" height="15" rx="2" fill="#18181b"/><circle cx="${gx0 + gw0 - 8.5}" cy="${y + 8}" r="3.5" fill="#3a3a3e"/>`).join("")}</g>` : ""}
   ${machines}
@@ -1736,7 +1765,7 @@ function houseSVG(g) {
     ${on("stools") ? `<g fill="#7a5a3c">${[.18, .5, .82].map(f => `<circle cx="${ix + iw * f}" cy="${iy + 32}" r="5"/>`).join("")}</g>` : ""}
   </g>
   ${on("lights") ? glow(L.gym) + glow(L.living) + glow(L.kitchen) : ""}
-  ${on("windows") ? `<g fill="#9fd4ec">${L.win.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"/>`).join("")}</g>` : ""}
+  ${on("windows") || L.lux ? `<g fill="#9fd4ec">${L.win.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"/>`).join("")}</g>` : ""}
   ${on("loungers") ? `<g filter="url(#sh)"><rect x="${ux}" y="${uy}" width="16" height="34" rx="3" fill="#f2f0ea"/><rect x="${ux + 2}" y="${uy + 2}" width="12" height="9" rx="2" fill="#d8d3c8"/><rect x="${ux + 20}" y="${uy}" width="16" height="34" rx="3" fill="#f2f0ea"/><rect x="${ux + 22}" y="${uy + 2}" width="12" height="9" rx="2" fill="#d8d3c8"/><circle cx="${ux + 18}" cy="${uy + 56}" r="14" fill="#e85d3f"/><circle cx="${ux + 18}" cy="${uy + 56}" r="2" fill="#7a2f20"/></g>` : ""}
   ${on("garden") ? L.trees.map(([x, y, r]) => tree(x, y, r)).join("") : ""}
   ${extrasSVG(E, on)}
@@ -1756,6 +1785,15 @@ function extrasSVG(E, on) {
   ${at("sauna", (x, y) => `<rect x="${x}" y="${y}" width="62" height="46" rx="3" fill="#a8743f"/><path d="M${x} ${y + 9} H${x + 62} M${x} ${y + 18} H${x + 62} M${x} ${y + 27} H${x + 62} M${x} ${y + 36} H${x + 62}" stroke="#8a5c30" stroke-width="1"/><rect x="${x + 22}" y="${y + 40}" width="18" height="6" fill="#6b4a2c"/>`)}
   ${at("fountain", (x, y) => `<circle cx="${x}" cy="${y}" r="30" fill="#e8e4da"/><circle cx="${x}" cy="${y}" r="25" fill="url(#hwater)"/><circle cx="${x}" cy="${y}" r="9" fill="#e8e4da"/><circle cx="${x}" cy="${y}" r="4" fill="#bfe8f5"/>`)}
   ${at("tennis", (x, y) => `<rect x="${x}" y="${y}" width="110" height="230" fill="#3f7d5a"/><rect x="${x + 10}" y="${y + 12}" width="90" height="206" fill="#4a8f68" stroke="#fff" stroke-width="2"/><path d="M${x + 22} ${y + 12} V${y + 218} M${x + 88} ${y + 12} V${y + 218} M${x + 22} ${y + 66} H${x + 88} M${x + 22} ${y + 164} H${x + 88} M${x + 55} ${y + 66} V${y + 164}" stroke="#fff" stroke-width="1.5" fill="none"/><path d="M${x + 4} ${y + 115} H${x + 106}" stroke="#222" stroke-width="3"/>`)}
+  ${at("patio", (x, y) => `<rect x="${x}" y="${y}" width="104" height="50" rx="3" fill="url(#hstone)"/><circle cx="${x + 52}" cy="${y + 25}" r="12" fill="#eeeae2"/>${[[-20, 0], [20, 0], [0, -17], [0, 17]].map(([a, b]) => `<rect x="${x + 47 + a}" y="${y + 20 + b}" width="10" height="10" rx="2" fill="#5a4636"/>`).join("")}<circle cx="${x + 52}" cy="${y + 25}" r="3" fill="#6fa356"/>`)}
+  ${at("pergola", (x, y) => `<rect x="${x}" y="${y}" width="96" height="74" fill="url(#hstone)"/><rect x="${x + 10}" y="${y + 14}" width="60" height="14" rx="4" fill="#ece6da"/><rect x="${x + 10}" y="${y + 14}" width="14" height="44" rx="4" fill="#ece6da"/><rect x="${x + 40}" y="${y + 38}" width="26" height="16" rx="3" fill="#7a5a3c"/>
+    ${[0, 1, 2, 3, 4, 5].map(i => `<rect x="${x + 4 + i * 17}" y="${y + 2}" width="5" height="70" fill="#8a6440" opacity=".85"/>`).join("")}<path d="M${x + 2} ${y + 6} H${x + 94} M${x + 2} ${y + 68} H${x + 94}" stroke="#6b4a2c" stroke-width="4"/>`)}
+  ${at("palms", (x, y) => [[0, 0], [50, 26], [96, -6]].map(([a, b]) => { const cx = x + a, cy = y + b; return `<ellipse cx="${cx + 8}" cy="${cy + 10}" rx="20" ry="14" fill="#000" opacity=".2"/>${Array.from({length: 8}, (_, i) => { const an = i * Math.PI / 4; return `<ellipse cx="${cx + Math.cos(an) * 11}" cy="${cy + Math.sin(an) * 11}" rx="12" ry="4" fill="${i % 2 ? "#3f7a34" : "#55963f"}" transform="rotate(${an * 57.3} ${cx + Math.cos(an) * 11} ${cy + Math.sin(an) * 11})"/>`; }).join("")}<circle cx="${cx}" cy="${cy}" r="4" fill="#7a5a34"/>`; }).join(""))}
+  ${at("daybeds", (x, y) => [0, 38].map(a => `<rect x="${x + a}" y="${y}" width="32" height="46" rx="4" fill="#f4f1ea"/><rect x="${x + a + 3}" y="${y + 3}" width="26" height="10" rx="3" fill="#d9cfbd"/><path d="M${x + a - 2} ${y - 2} h36 v50 h-36 Z" fill="none" stroke="#c9bfae" stroke-width="1.5" stroke-dasharray="3 3"/>`).join(""))}
+  ${at("cinema", (x, y) => `<rect x="${x}" y="${y}" width="160" height="7" rx="2" fill="#1a1a1c"/><rect x="${x + 4}" y="${y + 1.5}" width="152" height="3" fill="#dfe8ee"/>${[0, 1, 2, 3, 4].map(i => `<ellipse cx="${x + 22 + i * 29}" cy="${y - 20}" rx="11" ry="9" fill="${["#d9534f", "#f0ad4e", "#5bc0de", "#5cb85c", "#9b59b6"][i]}"/>`).join("")}`)}
+  ${at("statues", (x, y) => [-74, 74].map(a => `<rect x="${x + a - 9}" y="${y - 9}" width="18" height="18" fill="#cfc9bd"/><circle cx="${x + a}" cy="${y}" r="6" fill="#f1eee8"/><circle cx="${x + a - 2}" cy="${y - 2}" r="2" fill="#fff"/>`).join(""))}
+  ${at("gazebo", (x, y) => `<polygon points="${Array.from({length: 8}, (_, i) => `${x + 26 * Math.cos(i * Math.PI / 4 + .39)},${y + 26 * Math.sin(i * Math.PI / 4 + .39)}`).join(" ")}" fill="#f3efe6" stroke="#c9bfae" stroke-width="2"/>${Array.from({length: 8}, (_, i) => `<path d="M${x} ${y} L${x + 26 * Math.cos(i * Math.PI / 4 + .39)} ${y + 26 * Math.sin(i * Math.PI / 4 + .39)}" stroke="#d8d0c0" stroke-width="1"/>`).join("")}<circle cx="${x}" cy="${y}" r="5" fill="#c9a24c"/>`)}
+  ${at("bar", (x, y) => `<rect x="${x}" y="${y}" width="64" height="18" rx="3" fill="#3b2a1e"/><rect x="${x + 2}" y="${y + 2}" width="60" height="6" fill="#6b4a2c"/>${[0, 1, 2, 3].map(i => `<circle cx="${x + 10 + i * 15}" cy="${y + 26}" r="5" fill="#c9a24c"/>`).join("")}`)}
   ${at("helipad", (x, y) => `<circle cx="${x}" cy="${y}" r="46" fill="#3a3a3e"/><circle cx="${x}" cy="${y}" r="38" fill="none" stroke="#f2c94c" stroke-width="3"/><path d="M${x - 12} ${y - 16} V${y + 16} M${x + 12} ${y - 16} V${y + 16} M${x - 12} ${y} H${x + 12}" stroke="#fff" stroke-width="6"/>`)}
   </g>`;
 }
@@ -1775,7 +1813,11 @@ function renderGym(v) {
       ${prCount ? `Tap a machine in your gym room to log a new PR.` : `Machines appear in your gym room when you log a PR in Train.`}</div></div>
     <div class="chips scrollx" style="margin-top:14px">${HTABS.map(([k, l]) => `<button class="chip ${houseTab === k ? "on" : ""}" data-htab="${k}">${l}</button>`).join("")}</div>
     ${houseTab === "cars" ? `<div class="sub" style="margin-top:10px">Parking: ${Math.min(g.hsel.cars.length, carCap(g))} of ${carCap(g)} spaces used (${(HOMES[g.hsel.home] || HOMES.starter).spots.length} on the driveway, ${garageBays(g)} in the garage). Bigger houses and garages give more spaces. Tap a car you own to park or move it out.</div>` : ""}
-    <div class="shop" style="margin-top:12px">${items}</div>`;
+    ${houseTab === "homes" ? `<div class="homes" style="margin-top:12px">${HOUSE.homes.map(([id, name, price]) => { const k = id.slice(5), own = hOwned(g, id), act = hOn(g, id);
+      const pg = {prs: {}, hown: [], hon: Object.keys(HITEM).filter(x => ["house", "decor"].includes(HITEM[x].cat) && (!ONLY[x] || ONLY[x] === k)), hsel: {home: k, wall: "white", floor: "wood", cars: []}};
+      return `<button class="homecard ${act ? "on" : ""}" data-hitem="${id}"><span class="hprev">${houseSVG(pg)}</span><b class="hname">${esc(name)}</b>${homeInfo(k)}<span class="iprice" style="padding:0 4px;color:${act ? "var(--accent)" : "var(--ink2)"}">${act ? "You live here" : own ? "Owned · tap to move in" : `${price.toLocaleString()} pts`}</span></button>`; }).join("")}</div>
+      <div class="sub" style="margin-top:8px">Pictures show each home fully upgraded. Each home has its own luxury extras in Upgrades.</div>`
+      : `<div class="shop" style="margin-top:12px">${items}</div>`}`;
   bindGym();
 }
 function bindGym() {
