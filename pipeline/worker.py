@@ -480,7 +480,10 @@ def daily():
 def test3d():
     """One test short on the first channel, rendered on the GPU (Actions -> Worker -> Run workflow -> test3d)."""
     ch = (db.select("channels", "select=id&auto_daily=eq.true&limit=1") or db.select("channels", "select=id&limit=1"))[0]
-    db.insert("commands", {"type": "generate", "payload": {"channel_id": ch["id"], "gpu": True, "silent": True}})
+    payload = {"channel_id": ch["id"], "gpu": True, "silent": True}
+    if os.environ.get("TEST_IDEA"):
+        payload["idea"] = os.environ["TEST_IDEA"]
+    db.insert("commands", {"type": "generate", "payload": payload})
     return process_queue()
 
 
