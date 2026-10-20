@@ -408,10 +408,19 @@ HANDLERS = {"generate": cmd_generate, "animate": cmd_animate, "revise": cmd_revi
 
 def retry_failed_renders():
     """A 3D short whose render machines hiccuped gets one more try instead of staying failed."""
-    for e in db.select("episodes", "select=id,title,story&status=eq.failed&error=like.3D*"
-                                   "&story->>retries=is.null&limit=5"):
+    for e in db.select("episodes", "select=id,title,story,idea,feedback,parent_id,channel_id,error&status=eq.failed"
+                                   "&error=like.*3D*&story->>retries=is.null&limit=12"):
         st = e.get("story") or {}
         if st.get("engine") != "3d" or not st.get("spec"):
+            continue
+        if (e.get("idea") or e.get("feedback")) and str(e.get("error", "")).startswith("could not start"):
+            # never rendered: plan it again so the idea is read by the newest planner
+            st["retries"] = 1
+            if db.update("episodes", f"id=eq.{e['id']}&status=eq.failed", {"status": "queued", "error": None, "story": st}):
+                db.insert("commands", {"type": "generate", "payload": {
+                    "channel_id": e["channel_id"], "episode_id": e["id"], "idea": e.get("idea"),
+                    "feedback": e.get("feedback"), "parent_id": e.get("parent_id"), "silent": True}})
+                db.log(f"🔁 Making your idea again: {e.get('idea') or e.get('feedback')}"[:300])
             continue
         st["retries"] = 1
         if not db.update("episodes", f"id=eq.{e['id']}&status=eq.failed",
