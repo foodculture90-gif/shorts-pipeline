@@ -9,6 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       mode: {description: "queue, or test3d = make 1 test short rendered on the free GPU", default: "queue"}
+      idea: {description: "test3d only: an idea for the test short", default: ""}
 
 concurrency:
   group: worker
@@ -74,6 +75,7 @@ jobs:
       KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
       KAGGLE_USERNAME: storytimeeditor
       WORKER_ID: ${{ matrix.worker }}
+      TEST_IDEA: ${{ github.event.inputs.idea }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
