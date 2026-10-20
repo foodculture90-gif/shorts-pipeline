@@ -97,15 +97,8 @@ def _refund(n):
 
 # ---- commands ------------------------------------------------------------------------
 def _dispatch_render(ep_id, gpu=None):
-    import requests
-    tok = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
-    if not tok:
-        raise RuntimeError("GH_TOKEN missing - can't start the 3D render")
-    r = requests.post(f"https://api.github.com/repos/{GH_REPO}/actions/workflows/render3d.yml/dispatches",
-                      headers={"Authorization": f"Bearer {tok}", "Accept": "application/vnd.github+json"},
-                      json={"ref": "main", "inputs": {"episode_id": ep_id, "gpu": "yes" if gpu else "no"}}, timeout=30)
-    if r.status_code >= 300:
-        raise RuntimeError(f"could not start the 3D render: {r.status_code} {r.text[:200]}")
+    from .slots import dispatch
+    dispatch(ep_id, bool(gpu))
 
 
 def _generate_3d(payload, ch, ep_id, slot=None):
@@ -146,8 +139,14 @@ def _generate_3d(payload, ch, ep_id, slot=None):
     if gpu:
         st["render"] = "gpu"
         _set(ep_id, story=st)
-    _dispatch_render(ep_id, gpu)
-    db.log(f"🎬 Rendering in 3D{' on the GPU' if gpu else ''}: {st['title']} ({ch['name']})")
+        _dispatch_render(ep_id, gpu)
+        db.log(f"🎬 Rendering in 3D on the GPU: {st['title']} ({ch['name']})")
+        return ep_id
+    st["render"] = "wait"   # CPU machines: one short at a time gets all of them (see slots.py)
+    _set(ep_id, story=st)
+    from . import slots
+    slots.kick()
+    db.log(f"🎬 In line to render: {st['title']} ({ch['name']})")
     return ep_id
 
 
@@ -430,14 +429,12 @@ def retry_failed_renders():
                 db.log(f"🔁 Making your idea again: {e.get('idea') or e.get('feedback')}"[:300])
             continue
         st["retries"] = 1
-        if not db.update("episodes", f"id=eq.{e['id']}&status=eq.failed",
-                         {"status": "generating", "error": None, "story": st, "updated_at": now().isoformat()}):
-            continue  # another worker took it
-        try:
-            _dispatch_render(e["id"])
+        st["render"] = "wait"
+        if db.update("episodes", f"id=eq.{e['id']}&status=eq.failed",
+                     {"status": "generating", "error": None, "story": st, "updated_at": now().isoformat()}):
             db.log(f"🔁 Rendering again: {e.get('title') or 'a short'}")
-        except Exception as ex:  # noqa: BLE001
-            _set(e["id"], status="failed", error=f"3D render failed: {ex}"[:400])
+    from . import slots
+    slots.kick()
 
 
 def process_queue():
