@@ -78,7 +78,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: assets
-          key: free-assets-v1
+          key: free-assets-v2
       - name: Free sky photos + toy models
         run: bash pipeline/get_assets.sh assets
       - name: Render my frames
@@ -115,7 +115,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: assets
-          key: free-assets-v1
+          key: free-assets-v2
       - name: Video + sound + upload for approval
         env:
           BLENDER: ${{ github.workspace }}/bl/blender   # used only to redraw frames a render machine dropped

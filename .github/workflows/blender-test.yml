@@ -13,12 +13,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {gag: steal_treat, set: playground, hero: tobi, friend: lulu, prop: donut, sky: morning, season: summer, acc: party_hat, acc2: bow}
-          - {gag: ball_bonk, set: snow, hero: teo, friend: popo, prop: ball, sky: day, season: summer, acc: cap, acc2: bowtie}
-          - {gag: balloon_float, set: park, hero: lulu, friend: teo, prop: balloon, sky: golden, season: autumn, acc: flower, acc2: none}
-          - {gag: gift_surprise, set: beach, hero: popo, friend: tobi, prop: gift, sky: sunset, season: summer, acc: crown, acc2: party_hat}
-          - {gag: hide_seek, set: street, hero: teo, friend: mimi, prop: bush, sky: morning, season: spring, acc: bowtie, acc2: crown}
-          - {gag: slip_peel, set: kitchen, hero: popo, friend: lulu, prop: peel, sky: day, season: summer, acc: party_hat, acc2: flower}
+          - {gag: steal_treat, set: bedroom, hero: tobi, friend: lulu, prop: gingerbread, sky: day, season: summer, acc: party_hat, acc2: bow}
+          - {gag: ball_bonk, set: space, hero: teo, friend: popo, prop: ball, sky: day, season: summer, acc: cap, acc2: bowtie}
+          - {gag: balloon_float, set: pirate, hero: lulu, friend: teo, prop: balloon, sky: golden, season: summer, acc: flower, acc2: none}
+          - {gag: gift_surprise, set: christmas, hero: popo, friend: tobi, prop: gift, sky: day, season: summer, acc: crown, acc2: party_hat}
+          - {gag: hide_seek, set: park, hero: teo, friend: mimi, prop: bush, sky: morning, season: spring, acc: bowtie, acc2: crown}
+          - {gag: slip_peel, set: livingroom, hero: popo, friend: lulu, prop: peel, sky: day, season: summer, acc: party_hat, acc2: flower}
     steps:
       - uses: actions/checkout@v4
       - name: Get Blender
@@ -33,14 +33,14 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: assets
-          key: free-assets-v1
+          key: free-assets-v2
       - name: Free sky photos + toy models
         run: bash pipeline/get_assets.sh assets
       - name: Render preview frames
         env: {SAMPLES: "10", RES: "30", ASSETS: "${{ github.workspace }}/assets"}
         run: |
           echo '{"gag":"${{ matrix.gag }}","set":"${{ matrix.set }}","hero":"${{ matrix.hero }}","friend":"${{ matrix.friend }}","prop":"${{ matrix.prop }}","seed":7,"color":"blue","theme":{"sky":"${{ matrix.sky }}","season":"${{ matrix.season }}","pal":1${{ strategy.job-index }}7},"looks":{"${{ matrix.hero }}":["${{ matrix.acc }}","#FF4D6D"],"${{ matrix.friend }}":["${{ matrix.acc2 }}","#FFD23F"]}}' > spec.json
-          ./bl/blender -b --python blender/scene.py -- spec.json out every:12 2>&1 | grep -E "^frame|done|Error|Traceback|rror|line [0-9]+|kenney|dressing|devices" | head -80
+          ./bl/blender -b --python blender/scene.py -- spec.json out every:12 2>&1 | grep -E "^frame|done|Error|Traceback|rror|line [0-9]+|kenney|dressing|pets|devices" | head -80
           ls out/frames | wc -l
           sudo apt-get install -y -qq fluidsynth fluid-soundfont-gm > /dev/null && pip install -q numpy
           python3 blender/audio.py out/events.json sound.wav 7 7 && ffmpeg -y -loglevel error -i sound.wav -b:a 128k "sound_${{ matrix.gag }}.mp3" || true
