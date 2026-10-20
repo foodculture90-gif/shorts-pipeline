@@ -115,7 +115,17 @@ def _generate_3d(payload, ch, ep_id, slot=None):
     rows = db.select("episodes", f"select=title,story&channel_id=eq.{ch['id']}&title=not.is.null"
                                  "&order=created_at.desc&limit=40")
     recent = [(r.get("story") or {}).get("spec") for r in rows]
-    spec = plan3d.plan(recent, idea=payload.get("idea") or payload.get("feedback"), slot=slot)
+    base = None
+    if payload.get("parent_id"):  # "Change this short": start from the short being changed
+        try:
+            base = (_episode(payload["parent_id"]).get("story") or {}).get("spec")
+        except Exception:  # noqa: BLE001
+            base = None
+    idea = payload.get("idea") or payload.get("feedback")
+    spec = plan3d.plan(recent, idea=idea, slot=slot, base=base)
+    if idea:
+        note = (spec.get("wish") or {}).get("note") or plan3d.describe(spec)[:160]
+        db.log(f"💡 Your idea “{idea[:80]}”: {note}"[:400])
     m = plan3d.meta(spec, [r["title"] for r in rows], slot=slot)
     st = dict(m, engine="3d", spec=spec, summary=plan3d.describe(spec))
     work = WORK / ep_id

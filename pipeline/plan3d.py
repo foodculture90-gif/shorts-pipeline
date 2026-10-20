@@ -66,32 +66,167 @@ def _segments(recent):
             yield g
 
 
-def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None):
+# ---- turning a wish ("Lulu and Popo in the snow with a blue balloon", "different characters") into choices
+WORDS = {  # offline fallback when Gemini is busy
+    "sets": {"snow": ["snow", "winter", "christmas", "ice", "cold", "snowman"], "beach": ["beach", "sea", "sand", "ocean", "summer holiday"],
+             "kitchen": ["kitchen", "home", "house", "inside", "indoor"], "playground": ["playground", "swing", "slide", "seesaw", "school"],
+             "park": ["park", "pond", "garden", "grass", "picnic"], "street": ["street", "town", "road", "village"]},
+    "gags": {"steal_treat": ["steal", "stole", "took", "treat", "eat", "snack", "food", "hungry", "cake", "donut", "pizza", "cupcake",
+                             "ice cream", "cookie", "apple", "watermelon", "strawberry"],
+             "ball_bonk": ["ball", "kick", "football", "soccer", "bonk"], "balloon_float": ["balloon", "fly", "float", "pop"],
+             "gift_surprise": ["gift", "present", "box", "surprise", "birthday"], "hide_seek": ["hide", "seek", "boo", "hiding"],
+             "slip_peel": ["banana", "slip", "fall", "trip", "peel"]},
+    "sky": {"sunset": ["sunset", "evening"], "morning": ["morning", "sunrise", "dawn"], "golden": ["golden", "afternoon"]},
+    "season": {"autumn": ["autumn", "fall leaves", "halloween", "pumpkin"], "spring": ["spring", "blossom", "flowers"]},
+}
+WISH_SYSTEM = """You turn a parent's wish for a wordless kids' 3D cartoon short into choices from a fixed menu.
+Use ONLY ids from the menu. Leave a key out when the wish says nothing about it. If the wish asks for something the
+menu can't do, pick the closest thing that keeps its spirit and say so in "note".
+Reply as JSON with any of these keys:
+"gags": 1-5 gag ids in the order they should happen (put the one the wish is about first),
+"cast": 1-2 character ids who must star, "avoid_cast": character ids to leave out,
+"set": one place id, "props": {gag id: prop id}, "color": one colour (for the balloon/ball),
+"sky": day|morning|golden|sunset, "season": summer|spring|autumn,
+"looks": {character id: [accessory id or "none", "#RRGGBB"]},
+"note": one short friendly sentence saying how the wish was used."""
+
+
+def _menu():
+    gags = "\n".join(f"- {k}: {g['story'].format(hero='HERO', friend='FRIEND', prop='a treat', color='coloured')} "
+                     f"(props: {', '.join(g['props'])}; places: {', '.join(g['sets'])})" for k, g in GAGS.items())
+    cast = "\n".join(f"- {k}: {v}" for k, v in CAST.items())
+    return (f"GAGS:\n{gags}\nCHARACTERS:\n{cast}\nPLACES: {', '.join(ALL_SETS)}\nCOLOURS: {', '.join(COLORS)}\n"
+            f"ACCESSORIES: {', '.join(ACCESSORIES)}")
+
+
+def _wish_offline(text, base=None):
+    low = " " + text.lower() + " "
+    w = {}
+    cast = [k for k in CAST if f" {k}" in low or NAMES[k].lower() in low]
+    if cast:
+        w["cast"] = cast[:2]
+    if any(x in low for x in ("different character", "new character", "other character", "different friends")) and base:
+        w["avoid_cast"] = [base.get("hero"), base.get("friend")]
+    import re
+    hit = lambda words: [m.start() for x in words for m in [re.search(r"\b" + re.escape(x) + r"s?\b", low)] if m]
+    for key in ("sets", "sky", "season"):
+        for opt, words in WORDS[key].items():
+            if hit(words):
+                w["set" if key == "sets" else key] = opt
+                break
+    gags = sorted((min(hit(words)), g) for g, words in WORDS["gags"].items() if hit(words))
+    if gags:
+        w["gags"] = [g for _, g in gags]  # in the order the person mentioned them
+    acc = {"party_hat": ["party hat", "hat"], "bow": ["bow"], "cap": ["cap"], "flower": ["flower"],
+           "bowtie": ["bow tie", "bowtie"], "crown": ["crown"]}
+    found = [k for k, words in acc.items() if hit(words)]
+    if found and cast:
+        w["looks"] = {cast[0]: [found[-1], "#" + {"red": "FF4D6D", "blue": "4DA6FF", "yellow": "FFD23F", "green": "5CCB6B",
+                                                   "purple": "B57BFF", "orange": "FF8A3D", "pink": "FF8FC8"}.get(
+            next((c for c in COLORS if f" {c}" in low), "yellow"))]}
+    props = {}
+    for g in GAGS:
+        for pr in GAGS[g]["props"]:
+            if pr in low.replace(" ", "") or PROP_NAMES[pr] in low:
+                props[g] = pr
+    if props:
+        w["props"] = props
+    col = [c for c in COLORS if f" {c}" in low]
+    if col:
+        w["color"] = col[0]
+    if any(x in low for x in ("different art", "new look", "different colour", "different color", "new colours")):
+        w["restyle"] = True
+    return w
+
+
+def wish(text, base=None):
+    """What the person asked for, as choices the 3D engine can make. Gemini reads it; keyword matching if busy."""
+    if not text:
+        return {}
+    offline = _wish_offline(text, base)
+    prompt = f"MENU\n{_menu()}\n\nWISH: {text}"
+    if base:
+        prompt += ("\n\nThis is a change request for an existing short: "
+                   + describe(base) + f" Stars: {base.get('hero')} and {base.get('friend')}. Keep what the wish doesn't change.")
+    try:
+        w = llm.generate_json(WISH_SYSTEM, prompt, temperature=0.4)
+        if not isinstance(w, dict):
+            raise ValueError("not a dict")
+    except Exception as e:  # noqa: BLE001
+        print("  wish: keyword matching because", str(e)[:150])
+        return offline
+    # keep only valid menu choices
+    out = {}
+    if isinstance(w.get("gags"), list):
+        out["gags"] = [g for g in w["gags"] if g in GAGS][:5]
+    for k in ("cast", "avoid_cast"):
+        if isinstance(w.get(k), list):
+            out[k] = [c for c in w[k] if c in CAST][:2 if k == "cast" else 9]
+    if w.get("set") in ALL_SETS:
+        out["set"] = w["set"]
+    if isinstance(w.get("props"), dict):
+        out["props"] = {g: p for g, p in w["props"].items() if g in GAGS and p in GAGS[g]["props"]}
+    if w.get("color") in COLORS:
+        out["color"] = w["color"]
+    if w.get("sky") in ("day", "morning", "golden", "sunset"):
+        out["sky"] = w["sky"]
+    if w.get("season") in ("summer", "spring", "autumn"):
+        out["season"] = w["season"]
+    if isinstance(w.get("looks"), dict):
+        out["looks"] = {c: [v[0], v[1] if len(v) > 1 and str(v[1]).startswith("#") else "#FF4D6D"]
+                        for c, v in w["looks"].items() if c in CAST and isinstance(v, list) and v
+                        and (v[0] in ACCESSORIES or v[0] == "none")}
+    if w.get("note"):
+        out["note"] = str(w["note"])[:200]
+    for k, v in offline.items():  # names/places the person typed always count
+        if k in ("cast", "set") and k not in out:
+            out[k] = v
+    return {k: v for k, v in out.items() if v not in ([], {}, None, "")}
+
+
+def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, base=None):
     """One short = 3-5 gags in a row with the same two friends (21-35 s, never under 20 or over 60):
-    longer watch time, a recurring duo, and a fresh mix every day."""
+    longer watch time, a recurring duo, and a fresh mix every day.
+    idea = what the person typed (new short idea or "change this short" feedback); base = the short being changed."""
     rnd = rnd or random.Random()
     recent = [s for s in recent_specs if isinstance(s, dict)]
+    w = wish(idea, base) if idea else {}
     lo, hi = max(3, int(-(-min_s // SEG_SECONDS))), min(len(GAGS), int(max_s // SEG_SECONDS))
     n = rnd.choice([k for k in (3, 4, 4, 5) if lo <= k <= hi] or [lo])
     recent_gags = [g.get("gag") for g in list(_segments(recent))[:6]]
     order = [g for g in GAGS if g not in recent_gags] + [g for g in GAGS if g in recent_gags]
     rnd.shuffle(order)
     order.sort(key=lambda g: g in recent_gags)  # fresh gags first
-    if idea:
-        low = idea.lower()
-        hits = [g for g in GAGS if any(w in low for w in g.split("_") + GAGS[g]["props"])]
-        order = hits + [g for g in order if g not in hits]
-    if slot is not None and not idea:  # shorts planned at the same moment still get different lead gags
+    wanted = list(w.get("gags") or [])
+    if base and not wanted and not w.get("restyle"):  # a change request keeps the same funny moments
+        wanted = [s["gag"] for s in (base.get("segments") or [base])]
+    if w.get("set"):  # a place was asked for: only gags that can happen there
+        order = [g for g in order if w["set"] in GAGS[g]["sets"]]
+        wanted = [g for g in wanted if w["set"] in GAGS[g]["sets"]]
+    if wanted:
+        n = max(min(len(wanted), hi), lo) if len(wanted) >= lo else n
+        order = wanted + [g for g in order if g not in wanted]
+    elif slot is not None:  # shorts planned at the same moment still get different lead gags
         lead = list(GAGS)[slot % len(GAGS)]
         order = [lead] + [g for g in order if g != lead]
     gags = order[:n]
-    rest = gags[1:]
-    rnd.shuffle(rest)
-    gags = [gags[0]] + rest
+    if not wanted:
+        rest = gags[1:]
+        rnd.shuffle(rest)
+        gags = [gags[0]] + rest
     pairs = {(s.get("hero"), s.get("friend")) for s in recent[:6]}
-    cast = list(CAST)
+    avoid = set(w.get("avoid_cast") or [])
+    cast = [c for c in CAST if c not in avoid] or list(CAST)
+    want_cast = [c for c in (w.get("cast") or []) if c in cast]
+    if not want_cast and base and not avoid:
+        want_cast = [base.get("hero"), base.get("friend")]
     duos = [(x, y) for i, x in enumerate(cast) for y in cast[i + 1:]]
-    if slot is not None:  # a stride that never shares a factor with the number of duos -> all duos get a turn
+    if len(want_cast) >= 2:
+        a, b = want_cast[:2]
+    elif want_cast:
+        a = want_cast[0]
+        b = rnd.choice([c for c in cast if c != a])
+    elif slot is not None:  # a stride that never shares a factor with the number of duos -> all duos get a turn
         stride = next(k for k in (7, 11, 13, 17, 19, 23) if math.gcd(k, len(duos)) == 1)
         a, b = duos[(slot * stride) % len(duos)]
         if rnd.random() < 0.5:
@@ -105,30 +240,43 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None):
     common = [x for x in ALL_SETS if all(x in GAGS[g]["sets"] for g in gags)]
     recent_sets = [s.get("set") for s in recent[:3]]
     fresh = [x for x in common if x not in recent_sets] or common
-    if slot is not None and fresh:
+    if w.get("set") in common:
+        home = w["set"]
+    elif base and base.get("set") in common and not w.get("restyle"):
+        home = base["set"]
+    elif slot is not None and fresh:
         home = fresh[(slot * 5) % len(fresh)]
     else:
         home = rnd.choice(fresh) if fresh else None
+    props = w.get("props") or {}
     segs = []
     for k, gag in enumerate(gags):
         g = GAGS[gag]
         hero, friend = (a, b) if k % 2 == 0 else (b, a)  # the two friends take turns being the hero
         st = home or rnd.choice(g["sets"])
-        segs.append({"gag": gag, "set": st, "hero": hero, "friend": friend, "prop": rnd.choice(g["props"]),
-                     "color": rnd.choice(COLORS), "table_color": rnd.choice(TABLE_COLORS),
+        segs.append({"gag": gag, "set": st, "hero": hero, "friend": friend,
+                     "prop": props.get(gag) or rnd.choice(g["props"]),
+                     "color": w.get("color") or rnd.choice(COLORS), "table_color": rnd.choice(TABLE_COLORS),
                      "seed": rnd.randint(1, 10 ** 6)})
     # colours of the day: sky/time of day, season and palette of the set, plus a little outfit for each friend
-    theme = {"sky": rnd.choice(["day", "day", "morning", "golden", "sunset"]),
-             "season": rnd.choice(["summer", "summer", "spring", "autumn"]), "pal": rnd.randint(1, 10 ** 6)}
+    theme = {"sky": w.get("sky") or rnd.choice(["day", "day", "morning", "golden", "sunset"]),
+             "season": w.get("season") or rnd.choice(["summer", "summer", "spring", "autumn"]),
+             "pal": rnd.randint(1, 10 ** 6)}
     looks = {}
     for c in (a, b):
-        if rnd.random() < 0.75:
+        if c in (w.get("looks") or {}):
+            if w["looks"][c][0] != "none":
+                looks[c] = w["looks"][c]
+        elif rnd.random() < 0.75:
             k = rnd.choice(ACCESSORIES)
             if k == "cap" and c in ("bubu", "mimi", "gogo", "tobi"):  # ears/eyes on top: a cap would hide them
                 k = "bow"
             looks[c] = [k, rnd.choice(ACC_COLORS)]
-    return {"hero": a, "friend": b, "set": segs[0]["set"], "gag": segs[0]["gag"], "segments": segs,
+    spec = {"hero": a, "friend": b, "set": segs[0]["set"], "gag": segs[0]["gag"], "segments": segs,
             "theme": theme, "looks": looks, "seed": rnd.randint(1, 10 ** 6)}
+    if idea:
+        spec["wish"] = {"text": idea[:300], "note": w.get("note") or ""}
+    return spec
 
 
 def describe_one(seg):
@@ -193,7 +341,8 @@ def meta(spec, past_titles=(), rnd=None, slot=None):
     fmt = TITLE_FORMATS[slot % len(TITLE_FORMATS)] if slot is not None else rnd.choice(TITLE_FORMATS)
     cast = "\n".join(f"- {CAST[k]}" for k in (spec["hero"], spec["friend"]))
     recent = "\n".join(f"- {t}" for t in list(past_titles)[:40]) or "- (none yet)"
-    prompt = (f"What happens: {describe(spec)}\nCharacters:\n{cast}\n"
+    wish_line = f"The parent asked for: {spec['wish']['text']}\n" if spec.get("wish") else ""
+    prompt = (f"{wish_line}What happens: {describe(spec)}\nCharacters:\n{cast}\n"
               f"Recent titles on this channel (don't repeat them):\n{recent}")
     try:
         m = llm.generate_json(SYSTEM.replace("FORMAT", fmt), prompt, temperature=1.0)
