@@ -42,7 +42,7 @@ jobs:
           n=$(curl -s "$SUPABASE_URL/rest/v1/commands?status=eq.queued&run_after=lte.$(date -u +%Y-%m-%dT%H:%M:%SZ)&select=id" \
                 -H "apikey: $SUPABASE_SERVICE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
               | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)")
-          r=$(curl -s "$SUPABASE_URL/rest/v1/episodes?status=eq.failed&error=like.3D*&story->>retries=is.null&select=id" \
+          r=$(curl -s "$SUPABASE_URL/rest/v1/episodes?status=eq.failed&error=like.*3D*&story->>retries=is.null&select=id" \
                 -H "apikey: $SUPABASE_SERVICE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
               | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)")
           n=$((n + r))   # 3D shorts whose render failed once get one more try
