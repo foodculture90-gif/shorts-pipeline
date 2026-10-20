@@ -419,8 +419,34 @@ def amb_wind(n, r):
     return norm(x * (0.4 + 0.3 * np.sin(2 * np.pi * tt / 4.3) + 0.2 * np.sin(2 * np.pi * tt / 1.7)), 0.7)
 
 
+def amb_space(n, r):
+    """Soft dreamy hum with slow wobble."""
+    tt = np.arange(n) / SR
+    x = sum(np.sin(2 * np.pi * f * tt + r.uniform(0, 6)) * a for f, a in ((55, 0.5), (82.5, 0.3), (110.3, 0.2)))
+    return norm(x * (0.6 + 0.4 * np.sin(2 * np.pi * tt / 6.0)) + 0.15 * lowpass(noise(n), 400), 0.6)
+
+
+def amb_bells(n, r):
+    """Far-away sleigh-bell jingles now and then."""
+    out = np.zeros(n)
+    i = int(SR * r.uniform(0.3, 1.5))
+    while i < n:
+        for k in range(r.randint(4, 9)):
+            j = i + int(k * SR * r.uniform(0.05, 0.09))
+            m = min(int(SR * 0.25), n - j)
+            if m <= 0:
+                break
+            t = np.arange(m) / SR
+            f = r.uniform(2400, 3600)
+            out[j:j + m] += (np.sin(2 * np.pi * f * t) + 0.5 * np.sin(2 * np.pi * f * 2.76 * t)) * np.exp(-t * 18)
+        i += int(SR * r.uniform(2.0, 4.5))
+    return norm(out, 0.7)
+
+
 AMBIENCE = {"park": [(amb_birds, 0.13)], "street": [(amb_birds, 0.09)], "playground": [(amb_birds, 0.1)],
-            "beach": [(amb_waves, 0.1), (amb_birds, 0.04)], "snow": [(amb_wind, 0.07)], "kitchen": []}
+            "beach": [(amb_waves, 0.1), (amb_birds, 0.04)], "snow": [(amb_wind, 0.07)], "kitchen": [],
+            "pirate": [(amb_waves, 0.1), (amb_birds, 0.03)], "christmas": [(amb_wind, 0.05), (amb_bells, 0.05)],
+            "space": [(amb_space, 0.06)], "bedroom": [], "livingroom": []}
 
 
 def ambience(sets, fps, n, r):

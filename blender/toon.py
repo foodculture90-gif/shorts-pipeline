@@ -401,7 +401,8 @@ def accessory(ch, kind, color):
 # ------------------------------------------------------------------ props
 KENNEY_FOOD = {"donut": ["donut*"], "cupcake": ["cupcake*"], "watermelon": ["watermelon*"], "pizza": ["pizza*"],
                "strawberry": ["strawberry*"], "pie": ["pie*"], "burger": ["burger*"]}
-FOOD_H = {"donut": 0.12, "cupcake": 0.22, "watermelon": 0.16, "pizza": 0.08, "strawberry": 0.14, "pie": 0.12,
+KENNEY_TREATS = {"gingerbread": ("holiday", ["gingerbread-*"])}
+FOOD_H = {"gingerbread": 0.24, "donut": 0.12, "cupcake": 0.22, "watermelon": 0.16, "pizza": 0.08, "strawberry": 0.14, "pie": 0.12,
           "burger": 0.2}
 
 
@@ -409,8 +410,8 @@ def make_prop(kind, loc, parent=None, name=None):
     name = name or kind
     root = empty(name, loc, parent)
     v = VAR
-    if kind in KENNEY_FOOD:  # toy-style food from the free Kenney Food Kit, on a little plate
-        files = kenney_find("food", KENNEY_FOOD[kind])
+    if kind in KENNEY_FOOD or kind in KENNEY_TREATS:  # toy-style food from the free Kenney kits, on a little plate
+        files = kenney_find(*KENNEY_TREATS[kind]) if kind in KENNEY_TREATS else kenney_find("food", KENNEY_FOOD[kind])
         if files:
             cyl(name + "_plate", 0.2, 0.02, (0, 0, 0.01), WHITE, root, bevel=0.008)
             if kenney(v.choice(files[:3]), name + "_k", (0, 0, 0.02), FOOD_H[kind], root, rot_z=v.uniform(-0.6, 0.6)):
@@ -505,8 +506,9 @@ def make_table(loc, color="#FF7AA8"):
 
 # ------------------------------------------------------------------ sets
 SKY = {"day": ("#D8F1FF", "#5EB8FF"), "sunset": ("#FFD6A8", "#7A8CFF"), "indoor": ("#FFF4E6", "#FFE0C2"),
-       "morning": ("#FFE9F2", "#8FD0FF"), "golden": ("#FFE8B0", "#6FB6FF"), "snow": ("#EEF6FF", "#9CC8F2")}
-SUN = {"sunset": (1, 0.78, 0.6), "golden": (1, 0.87, 0.68), "morning": (1, 0.92, 0.9), "snow": (0.95, 0.97, 1)}
+       "morning": ("#FFE9F2", "#8FD0FF"), "golden": ("#FFE8B0", "#6FB6FF"), "snow": ("#EEF6FF", "#9CC8F2"),
+       "space": ("#3A2F7A", "#0A0C2A")}
+SUN = {"sunset": (1, 0.78, 0.6), "golden": (1, 0.87, 0.68), "morning": (1, 0.92, 0.9), "snow": (0.95, 0.97, 1), "space": (0.92, 0.93, 1)}
 SEASON_CROWNS = {"summer": ["#3FB64E", "#47B856", "#3CA84C"], "spring": ["#FF9EC4", "#FFB8D6", "#47B856"],
                  "autumn": ["#FF8A3D", "#E8574F", "#FFC23D"]}
 GRASS = ["#6CCB5F", "#73D165", "#7AD36A", "#5FC27A", "#8BD65A"]
@@ -563,7 +565,35 @@ DRESS = {  # free Kenney Nature Kit pieces placed behind the action (they never 
 }
 
 
+PETS = {  # free Kenney Cube Pets that hop around in the background
+    "park": ["bunny", "chick", "deer", "fox", "hog", "cow", "pig", "dog", "cat", "koala", "beaver"],
+    "playground": ["dog", "cat", "bunny", "chick", "pig"], "street": ["dog", "cat", "bunny"],
+    "beach": ["crab", "parrot", "crab"], "pirate": ["parrot", "crab", "monkey"], "snow": ["penguin", "polar"],
+    "christmas": ["penguin", "polar", "deer"], "space": [], "bedroom": ["cat", "dog"], "livingroom": ["cat", "dog"],
+}
+PET_SPOTS = {"bedroom": [(0.6, 3.1)], "livingroom": [(1.3, 2.7)], "beach": [(-1.6, 3.0), (3.3, 3.2)],
+             "pirate": [(-1.6, 3.0), (3.3, 3.2)]}
+
+
+def _pets(kind, rnd):
+    names = PETS.get(kind) or []
+    files = kenney_find("pets", [f"animal-{n}.glb" for n in names])
+    if not files:
+        return
+    spots = PET_SPOTS.get(kind, [(-2.9, 3.0), (2.8, 3.3)])
+    for i, (x, y) in enumerate(spots[:rnd.choice((1, 2))]):
+        o = kenney(rnd.choice(files), f"pet{i}", (x + rnd.uniform(-0.3, 0.3), y, 0), 0.42 if kind in ("bedroom", "livingroom") else 0.5,
+                   rot_z=rnd.uniform(-0.5, 0.5))
+        if o:
+            hop(o, phase=rnd.randint(0, 30), height=0.08, every=rnd.randint(36, 60))
+
+
 def _dress(kind, rnd):
+    try:
+        _pets(kind, random.Random(rnd.random()))
+    except Exception as e:  # noqa: BLE001
+        print("pets skipped:", e)
+    kind = {"pirate": "beach", "christmas": "snow"}.get(kind, kind)
     spots, pats = DRESS.get(kind, ([], []))
     if THEME.get("season") == "autumn" and kind in ("park", "playground", "street"):
         pats = pats + ["crop_pumpkin*", "mushroom_*"]
@@ -578,11 +608,32 @@ def _dress(kind, rnd):
                rot_z=rnd.uniform(0, math.tau))
 
 
+def _room(pal):
+    """A cosy indoor room: floor, back wall with a window, little pictures and bunting."""
+    floor = pal.choice([("#E6C29A", "#D9B386"), ("#F2D7B6", "#E6C6A0"), ("#FFFFFF", "#CFE8FF"), ("#FFE3EE", "#FFFFFF")])
+    box("floor", (40, 40, 0.2), (0, 6, -0.1), checker(*floor, 14.0, 0.5), bevel=0)
+    box("wall", (14, 0.2, 5), (0, 4.0, 2.5), mat(pal.choice(["#CFE8FF", "#FFE0EC", "#E8FFE0", "#F2E8FF", "#FFF1C9"]), 0.8), bevel=0)
+    box("skirting", (14, 0.05, 0.15), (0, 3.88, 0.075), WHITE, bevel=0.01)
+    wx = pal.choice((-1.6, 0.4))
+    box("win_frame", (1.5, 0.1, 1.2), (wx, 3.86, 2.3), WHITE, bevel=0.04)
+    box("win_sky", (1.3, 0.1, 1.0), (wx, 3.84, 2.3), mat("#9FD8FF", 0.5, emit=1.2), bevel=0.02)
+    box("win_cross", (0.06, 0.1, 1.0), (wx, 3.8, 2.3), WHITE, bevel=0.01)
+    for i, (px, c) in enumerate(((wx + 1.6, pal.choice(PASTELS)), (wx - 1.5, pal.choice(PASTELS)))):
+        box(f"pic{i}", (0.55, 0.06, 0.45), (px, 3.87, 2.4), mat("#FFFFFF", 0.4), bevel=0.02)
+        box(f"picin{i}", (0.45, 0.06, 0.35), (px, 3.85, 2.4), mat(c, 0.6), bevel=0.01)
+        sphere(f"picsun{i}", 0.07, (px - 0.1, 3.82, 2.47), mat("#FFD23F", 0.5), sub=0, scale=(1, 0.3, 1))
+    flags = pal.sample(["#FF4D5E", "#4DA6FF", "#FFD23F", "#5CCB6B", "#B57BFF", "#FF8A3D"], 4)
+    for i in range(13):  # bunting
+        x = -3.6 + i * 0.6
+        box(f"bunt{i}", (0.22, 0.02, 0.22), (x, 3.85, 3.35 - 0.12 * math.sin(i / 12 * math.pi)), mat(flags[i % 4], 0.6),
+            rot=(0, math.radians(45), 0), bevel=0.005)
+
+
 def make_set(kind, rnd=None):
     rnd = rnd or random.Random(1)
     pal = random.Random(THEME.get("pal", 1))  # same colours in every gag of one short
     sky = THEME.get("sky", "day")
-    if sky not in SKY or sky in ("indoor", "snow"):
+    if sky not in SKY or sky in ("indoor", "snow", "space"):
         sky = "day"
     grass = pal.choice(GRASS)
     if THEME.get("season") == "autumn":
@@ -640,7 +691,7 @@ def make_set(kind, rnd=None):
         for i, bx in enumerate((-4.5, 0.2, 4.2)):
             make_prop("bush", (bx, 3.3, 0), name=f"pbush{i}")
         _clouds()
-    elif kind == "beach":
+    elif kind in ("beach", "pirate"):
         box("ground", (40, 22, 0.2), (0, -4.0, -0.1), mat(pal.choice(["#F2CF92", "#F5D9A8", "#EFC88A"]), 0.9), bevel=0)
         box("sea", (60, 40, 0.1), (0, 26, -0.07), mat(pal.choice(["#2FA8E8", "#23C2D9", "#3D8FE0"]), 0.08, coat=1.0), bevel=0)
         box("foam", (60, 0.25, 0.02), (0, 7.05, 0.0), mat("#FFFFFF", 0.4), bevel=0)
@@ -648,7 +699,7 @@ def make_set(kind, rnd=None):
         cyl("um_pole", 0.03, 1.9, (0, 0, 0.95), mat("#FFFFFF", 0.4), um)
         uc = pal.sample(["#FF4D5E", "#4DA6FF", "#FFD23F", "#5CCB6B", "#B57BFF", "#FF8A3D"], 2)
         cone("um_top", 1.0, 0.05, 0.4, (0, 0, 1.95), checker(uc[0], "#FFFFFF", 3.0, 0.5), um)
-        castle = empty("castle", (2.4, 2.8, 0))
+        castle = empty("castle", (2.4, 2.8, 0) if kind == "beach" else (2.4, 2.8, -5))
         sand = mat("#E9C27D", 0.95)
         cyl("c_base", 0.45, 0.4, (0, 0, 0.2), sand, castle)
         for i, a in enumerate((0, 2.1, 4.2)):
@@ -674,6 +725,15 @@ def make_set(kind, rnd=None):
                 sphere("bball", 0.16, (bx + 3.2, 3.4, 0.16), checker(c, "#FFFFFF", 2.0, 0.3, 0.6), sub=2)
             else:
                 cyl("bucket", 0.13, 0.22, (bx - 2.6, 3.0, 0.11), mat(c, 0.3, coat=0.4), scale=(1, 1, 1))
+        if kind == "pirate":  # free Kenney Pirate Kit
+            kk("pirate", ["ship-pirate-*"], "ship", (pal.uniform(1.5, 4.0), 13.0, -0.05), 3.6, rot_z=math.pi / 2 + pal.uniform(-0.3, 0.3), rnd=pal)
+            kk("pirate", ["chest.glb"], "chest", (2.0, 2.7, 0), 0.45, rot_z=-0.3)
+            kk("pirate", ["flag-pirate-high*"], "pflag", (-1.1, 4.3, 0), 2.2, rnd=pal)
+            for i, (bx, by) in enumerate(((-3.3, 3.3), (-2.9, 3.7))):
+                kk("pirate", ["barrel.glb"], f"barrel{i}", (bx, by, 0), 0.5, rot_z=i)
+            kk("pirate", ["boat-row-*"], "rowboat", (3.6, 4.8, 0), width=1.4, rot_z=0.4, rnd=pal)
+            kk("pirate", ["palm-detailed-*"], "kpalm", (0.6, 5.2, 0), 3.0, rnd=pal)
+            kk("pirate", ["cannon.glb"], "cannon", (-0.4, 3.6, 0), 0.5, rot_z=0.6)
         _clouds(6)
     elif kind == "kitchen":
         sky = "indoor"
@@ -705,6 +765,66 @@ def make_set(kind, rnd=None):
         cone("lamp_shade", 0.3, 0.08, 0.25, (0.3, 2.4, 3.5), mat("#FFD23F", 0.4))
         sphere("lamp_bulb", 0.08, (0.3, 2.4, 3.36), mat("#FFF2B3", 0.3, emit=3), sub=0)
         box("rug", (2.6, 1.6, 0.012), (0, 0.6, 0.006), checker(k[1], "#FFFFFF", 5.0, 0.8), bevel=0)
+        kk("furniture", ["toaster.glb"], "toaster", (0.85, 3.45, 0.98), 0.24)
+        kk("furniture", ["kitchenblender.glb", "kitchencoffeemachine.glb"], "blender", (3.5, 3.45, 0.98), 0.42, rnd=pal)
+    elif kind in ("bedroom", "livingroom"):
+        sky = "indoor"
+        _room(pal)
+        if kind == "bedroom":
+            bed = pal.choice(["bedsingle.glb", "bedbunk.glb", "beddouble.glb"])
+            kk("furniture", [bed], "bed", (-2.5, 3.1, 0), width=2.1)
+            kk("furniture", ["bookcaseopen.glb", "bookcaseopenlow.glb"], "bookcase", (2.6, 3.7, 0), width=1.1, rnd=pal)
+            kk("furniture", ["bear.glb"], "teddy", (1.5, 3.3, 0), 0.55, rot_z=-0.3)
+            kk("furniture", ["lampround*floor.glb", "lampsquarefloor.glb"], "flamp", (-0.9, 3.7, 0), 1.5, rnd=pal)
+            kk("furniture", ["ruground.glb", "rugrounded.glb"], "rug", (0, 0.9, 0), width=2.6, rnd=pal)
+            kk("furniture", ["cardboardboxopen.glb"], "toybox", (3.2, 2.5, 0), width=0.6, rot_z=0.3)
+        else:
+            kk("furniture", ["loungesofa.glb", "loungedesignsofa.glb", "loungesofalong.glb"], "sofa", (-0.2, 3.35, 0), width=2.3, rnd=pal)
+            tv = kk("furniture", ["cabinettelevision*"], "tvcab", (2.7, 3.6, 0), width=1.3, rnd=pal)
+            if tv:
+                kk("furniture", ["televisionmodern.glb", "televisionvintage.glb"], "tv", (2.7, 3.6, top(tv)), width=0.9, rnd=pal)
+            kk("furniture", ["tablecoffee.glb", "tablecoffeesquare.glb"], "ctable", (0.0, 2.35, 0), width=1.0, rnd=pal)
+            kk("furniture", ["pottedplant.glb"], "plant", (-2.9, 3.6, 0), 1.1)
+            kk("furniture", ["lampsquarefloor.glb", "lampround*floor.glb"], "flamp", (-1.9, 3.75, 0), 1.5, rnd=pal)
+            kk("furniture", ["rugrectangle.glb", "rugsquare.glb"], "rug", (0, 1.0, 0), width=3.0, rnd=pal)
+            kk("toycar", ["track-narrow-looping.glb", "track-striped-narrow-looping.glb"], "loop", (3.3, 2.4, 0), 0.7, rot_z=-0.5, rnd=pal)
+        for i, (cx, cy) in enumerate(((0.9, 2.3), (-0.7, 2.7), (2.3, 1.9))):  # toy cars on the floor
+            kk("toycar", ["vehicle-*"], f"toycar{i}", (cx, cy, 0), width=0.32, rot_z=pal.uniform(0, math.tau), rnd=pal)
+    elif kind == "space":
+        sky = "space"
+        box("ground", (40, 40, 0.2), (0, 6, -0.1), mat(pal.choice(["#C9C3DD", "#BDB9CC", "#D6CFE6"]), 0.9), bevel=0)
+        for i in range(9):  # craters
+            cx, cy, cr = rnd.uniform(-5, 5), rnd.uniform(1.6, 7), rnd.uniform(0.25, 0.7)
+            cyl(f"crater{i}", cr, 0.02, (cx, cy, 0.006), mat("#A39DB8", 0.95), scale=(1, 0.75, 1))
+            cyl(f"craterrim{i}", cr * 1.15, 0.05, (cx, cy, 0.0), mat("#D9D3EA", 0.9), scale=(1, 0.75, 1))
+        for i, (hx, hr) in enumerate(((-6, 4), (1, 5), (7.5, 4.5))):
+            sphere(f"hill{i}", hr, (hx, 15, -hr * 0.6), mat("#B3ADC8", 0.9), scale=(1.6, 1, 1), sub=1)
+        star = mat("#FFFFFF", 0.5, emit=6)
+        for i in range(90):
+            sphere(f"star{i}", rnd.uniform(0.025, 0.06), (rnd.uniform(-14, 14), rnd.uniform(19, 23), rnd.uniform(1.0, 13)), star, sub=0)
+        p1, p2 = pal.sample(["#FF9EC4", "#8FD3FF", "#FFD27A", "#9EF0C0", "#B7A6FF", "#FF8A5C"], 2)
+        sphere("planet", 1.7, (4.6, 21, 7.0), mat(p1, 0.6, emit=0.35), sub=2)
+        cyl("planet_ring", 2.8, 0.03, (4.6, 21, 7.0), mat("#FFF4D6", 0.5, emit=0.3), rot=(math.radians(70), math.radians(18), 0))
+        sphere("moonlet", 0.8, (-5.2, 22, 5.0), mat(p2, 0.6, emit=0.35), sub=2)
+        rk = empty("rocket", (-2.7, 3.7, 0))  # our own cute rocket
+        rc = pal.choice(["#FF4D5E", "#4DA6FF", "#FF8A3D", "#B57BFF"])
+        cyl("rk_body", 0.38, 1.6, (0, 0, 1.0), mat("#FFFFFF", 0.35, coat=0.4), rk, bevel=0.05)
+        cone("rk_nose", 0.38, 0.0, 0.7, (0, 0, 2.15), mat(rc, 0.35, coat=0.4), rk)
+        sphere("rk_win", 0.17, (0, -0.33, 1.35), mat("#8FD3FF", 0.1, coat=1, emit=0.4), rk, scale=(1, 0.5, 1))
+        cyl("rk_winrim", 0.2, 0.05, (0, -0.36, 1.35), mat(rc, 0.4), rk, rot=(math.radians(90), 0, 0))
+        for j in range(3):
+            a = j / 3 * math.tau + 0.5
+            box(f"rk_fin{j}", (0.06, 0.45, 0.6), (math.cos(a) * 0.42, math.sin(a) * 0.42, 0.42), mat(rc, 0.4), rk,
+                rot=(0, 0, a + math.pi / 2), bevel=0.02)
+        cyl("rk_base", 0.3, 0.2, (0, 0, 0.12), mat("#6B6F86", 0.4, metal=0.5), rk)
+        kk("space", ["rover.glb"], "rover", (2.4, 2.9, 0), width=0.9, rot_z=-0.4)
+        kk("space", ["satellitedish_large.glb", "satellitedish_detailed.glb"], "dish", (3.3, 4.3, 0), 1.3, rot_z=0.6, rnd=pal)
+        kk("space", ["rock_crystals*"], "crystals", (0.9, 4.1, 0), 0.7, rnd=pal)
+        al = kk("space", ["alien.glb", "astronauta.glb", "astronautb.glb"], "alien", (-0.9, 3.5, 0), 0.6, rot_z=0.2, rnd=pal)
+        if al:
+            hop(al, phase=7, height=0.12, every=40)
+        for i, (mx, my) in enumerate(((-4.2, 4.6), (4.6, 2.6), (-1.8, 5.6))):
+            kk("space", ["meteor*", "rock_large*"], f"mrock{i}", (mx, my, 0), 0.45, rot_z=i * 2.0, rnd=pal)
     elif kind == "playground":
         box("ground", (40, 40, 0.2), (0, 6, -0.1), mat(grass, 0.85), bevel=0)
         box("sandpit", (4.2, 2.4, 0.02), (0, 0.5, 0.006), mat("#F2D49A", 0.95), bevel=0)
@@ -740,7 +860,7 @@ def make_set(kind, rnd=None):
         _trees((-5.5, -0.6, 3.4, 6.4), 7.2)
         _flowers(14, 1.8, 3.0, rnd=rnd)
         _clouds()
-    elif kind == "snow":
+    elif kind in ("snow", "christmas"):
         sky = "snow"
         box("ground", (40, 40, 0.2), (0, 6, -0.1), mat("#EAF2FB", 0.7), bevel=0)
         for i, (hx, hr) in enumerate(((-5, 4), (1, 5), (7, 4.5))):
@@ -766,6 +886,17 @@ def make_set(kind, rnd=None):
         for i in range(10):
             sphere(f"snowlump{i}", rnd.uniform(0.08, 0.16), (rnd.uniform(-4, 4), rnd.uniform(1.6, 3.4), 0.0),
                    snow, scale=(1.4, 1, 0.5), sub=1)
+        if kind == "christmas":  # free Kenney Holiday Kit
+            kk("holiday", ["tree-decorated-snow.glb", "tree-decorated.glb"], "xtree", (0.4, 4.0, 0), 2.4, rnd=pal)
+            for i, (gx, gy) in enumerate(((-0.4, 3.3), (0.0, 3.0), (1.1, 3.25), (0.7, 3.0))):
+                kk("holiday", ["present-*"], f"present{i}", (gx, gy, 0), pal.uniform(0.22, 0.36), rot_z=pal.uniform(-0.6, 0.6), rnd=pal)
+            kk("holiday", ["candy-cane-*"], "cane", (-3.6, 2.4, 0), 0.75, rnd=pal)
+            kk("holiday", ["reindeer.glb"], "reindeer", (3.9, 3.2, 0), 1.1, rot_z=-0.4)
+            kk("holiday", ["sled.glb", "sled-long.glb"], "sled", (1.9, 2.5, 0), width=0.8, rot_z=0.4, rnd=pal)
+            kk("holiday", ["lantern.glb"], "lantern", (-1.5, 3.5, 0), 0.7)
+            gb = kk("holiday", ["gingerbread-*"], "ginger", (-0.9, 2.9, 0), 0.45, rnd=pal)
+            if gb:
+                hop(gb, phase=12, height=0.1, every=46)
         _clouds()
     try:
         _dress(kind, random.Random(THEME.get("pal", 1) + 11))
@@ -775,8 +906,9 @@ def make_set(kind, rnd=None):
 
 
 HDRI = {"day": "farm_field_puresky", "morning": "citrus_orchard_puresky", "golden": "autumn_field_puresky",
-        "sunset": "belfast_sunset_puresky", "snow": "farm_field_puresky", "indoor": "brown_photostudio_02"}
-HDRI_STRENGTH = {"indoor": 0.45, "snow": 0.5}
+        "sunset": "belfast_sunset_puresky", "snow": "farm_field_puresky", "indoor": "brown_photostudio_02",
+        "space": "brown_photostudio_02"}
+HDRI_STRENGTH = {"indoor": 0.45, "snow": 0.5, "space": 0.3}
 ASSETS = os.environ.get("ASSETS", "")
 
 
@@ -806,8 +938,37 @@ def kenney_find(kit, patterns):
     return [f for f in files if any(fnmatch.fnmatch(os.path.basename(f).lower(), p) for p in patterns)]
 
 
-def kenney(path, name, loc, height, parent=None, rot_z=0.0):
-    """Import a Kenney toy model, scale it to `height`, stand it on the ground at loc."""
+def kk(kit, pats, name, loc, h=None, rot_z=0.0, rnd=None, width=None, parent=None):
+    """Place one random matching model from a free Kenney kit (None when the kit isn't downloaded)."""
+    files = kenney_find(kit, pats)
+    if not files:
+        return None
+    f = (rnd or VAR).choice(files)
+    return kenney(f, name, loc, h or 1.0, parent, rot_z, width=width)
+
+
+def top(root):
+    """Height of the top of an imported model (to stack things on it)."""
+    bpy.context.view_layer.update()
+    zs = [(o.matrix_world @ v.co)[2] for o in root.children_recursive if o.type == "MESH" for v in o.data.vertices]
+    return max(zs) if zs else 0.0
+
+
+def hop(o, phase=0, height=0.1, every=44):
+    """A little idle hop, forever (background animals)."""
+    z0 = o.location.z
+    for f, dz in ((1, 0), (6, height), (11, 0), (every, 0)):
+        o.location.z = z0 + dz
+        o.keyframe_insert("location", index=2, frame=f + phase)
+    o.location.z = z0
+    try:
+        o.animation_data.action.fcurves.find("location", index=2).modifiers.new("CYCLES")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def kenney(path, name, loc, height, parent=None, rot_z=0.0, width=None):
+    """Import a Kenney toy model, scale it to `height` (or its footprint to `width`), stand it on the ground at loc."""
     before = set(bpy.data.objects)
     try:
         bpy.ops.import_scene.gltf(filepath=path)
@@ -834,6 +995,8 @@ def kenney(path, name, loc, height, parent=None, rot_z=0.0):
         zs = [p[2] for p in pts]
         h = max(zs) - min(zs) or 1.0
         s = height / h
+        if width:
+            s = width / (max(max(p[0] for p in pts) - min(p[0] for p in pts), max(p[1] for p in pts) - min(p[1] for p in pts)) or 1.0)
         cx = (max(p[0] for p in pts) + min(p[0] for p in pts)) / 2
         cy = (max(p[1] for p in pts) + min(p[1] for p in pts)) / 2
         for o in new:
@@ -865,7 +1028,7 @@ def make_world(sky="day"):
     ramp.color_ramp.elements[0].color = (*lin(lo), 1)
     ramp.color_ramp.elements[1].color = (*lin(hi), 1)
     nt.links.new(ramp.outputs["Color"], bg.inputs["Color"])
-    bg.inputs["Strength"].default_value = 0.35 if sky == "indoor" else (0.85 if sky == "snow" else 1.0)
+    bg.inputs["Strength"].default_value = 0.35 if sky == "indoor" else (0.85 if sky == "snow" else 0.7 if sky == "space" else 1.0)
     hdri = _hdri_path(sky)
     if hdri:  # real sky photo lights the scene (soft, rich light); the camera still sees our cartoon sky
         env = nt.nodes.new("ShaderNodeTexEnvironment")
