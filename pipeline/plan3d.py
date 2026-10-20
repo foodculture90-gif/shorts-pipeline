@@ -20,8 +20,10 @@ CAST = {
     "teo": "Teo, a cream puppy fluffball with floppy brown ears",
     "popo": "Popo, a little navy-blue penguin",
 }
-ALL_SETS = ["street", "park", "beach", "kitchen", "playground", "snow"]
-OUTDOOR = ["street", "park", "beach", "playground", "snow"]
+ALL_SETS = ["street", "park", "beach", "kitchen", "playground", "snow", "bedroom", "livingroom", "space", "pirate",
+            "christmas"]
+OUTDOOR = ["street", "park", "beach", "playground", "snow", "pirate", "christmas"]
+INDOOR = ["kitchen", "bedroom", "livingroom"]
 COLORS = ["red", "blue", "yellow", "green", "purple", "orange", "pink"]
 ACCESSORIES = ["party_hat", "bow", "cap", "flower", "bowtie", "crown"]
 ACC_COLORS = ["#FF4D6D", "#FFD23F", "#4DA6FF", "#5CCB6B", "#B57BFF", "#FF8A3D", "#FFFFFF", "#2EC4B6"]
@@ -31,28 +33,28 @@ NAMES = {k: v.split(",")[0] for k, v in CAST.items()}
 
 GAGS = {
     "steal_treat": dict(props=["cake", "icecream", "cookie", "apple", "donut", "cupcake", "watermelon", "pizza",
-                               "strawberry"], sets=["street", "park", "kitchen", "beach", "playground", "snow"],
+                               "strawberry", "gingerbread"], sets=ALL_SETS,
                         story="{hero} spots a yummy {prop} on a table and hops over to eat it - but sneaky {friend} "
                               "pops up and slides it away right before the bite! Then {friend} peeks back with a giggle."),
-    "ball_bonk": dict(props=["ball"], sets=["park", "street", "beach", "playground", "snow"],
+    "ball_bonk": dict(props=["ball"], sets=OUTDOOR + ["bedroom", "livingroom", "space"],
                       story="{hero} kicks a ball - it bonks {friend} right on the head! Dizzy stars spin around, "
                             "{hero} giggles, and then they both jump and laugh together."),
-    "balloon_float": dict(props=["balloon"], sets=["park", "beach", "street", "playground", "snow"],
+    "balloon_float": dict(props=["balloon"], sets=OUTDOOR,
                           story="{hero} holds a big {color} balloon and floats up, up into the sky while {friend} watches "
                                 "amazed... then POP! {hero} falls down with a bump, dizzy stars, and everyone laughs."),
-    "gift_surprise": dict(props=["gift"], sets=["kitchen", "park", "street", "playground", "snow", "beach"],
+    "gift_surprise": dict(props=["gift"], sets=ALL_SETS,
                           story="A gift box wiggles and jiggles... {hero} hops over to peek and - SURPRISE! - "
                                 "{friend} springs out with a big smile! {hero} jumps back, then they laugh together."),
-    "hide_seek": dict(props=["bush"], sets=["park", "street", "beach", "playground", "snow"],
+    "hide_seek": dict(props=["bush"], sets=["park", "street", "beach", "playground", "snow", "pirate", "christmas"],
                       story="{friend} covers their eyes and counts while {hero} tiptoes behind a bush. {friend} "
                             "looks everywhere... the bush wiggles... BOO! {hero} pops out and they both laugh."),
-    "slip_peel": dict(props=["peel"], sets=["street", "park", "kitchen", "playground", "snow", "beach"],
+    "slip_peel": dict(props=["peel"], sets=ALL_SETS,
                       story="{hero} hops along happily - and slips on a banana peel! A big flip in the air, a bump, "
                             "dizzy stars... {friend} can't stop laughing, and {hero} laughs too."),
 }
 PROP_NAMES = {"cake": "birthday cake", "icecream": "ice cream", "cookie": "cookie", "apple": "apple",
               "donut": "donut", "cupcake": "cupcake", "watermelon": "watermelon slice", "pizza": "pizza slice",
-              "strawberry": "big strawberry",
+              "strawberry": "big strawberry", "gingerbread": "gingerbread man",
               "ball": "ball", "balloon": "balloon", "gift": "gift box", "bush": "bush", "peel": "banana peel"}
 TABLE_COLORS = ["#FF7AA8", "#7FD1B9", "#FFD23F", "#8FD3FF", "#B7A6FF"]
 
@@ -68,10 +70,15 @@ def _segments(recent):
 
 # ---- turning a wish ("Lulu and Popo in the snow with a blue balloon", "different characters") into choices
 WORDS = {  # offline fallback when Gemini is busy
-    "sets": {"snow": ["snow", "winter", "christmas", "ice", "cold", "snowman"], "beach": ["beach", "sea", "sand", "ocean", "summer holiday"],
-             "kitchen": ["kitchen", "home", "house", "inside", "indoor"], "playground": ["playground", "swing", "slide", "seesaw", "school"],
+    "sets": {"christmas": ["christmas", "xmas", "santa", "reindeer", "sleigh", "sled", "presents"],
+             "space": ["space", "moon", "rocket", "alien", "planet", "astronaut", "spaceship"],
+             "pirate": ["pirate", "ship", "treasure", "island", "parrot"],
+             "bedroom": ["bedroom", "bed", "bedtime", "sleep", "toys", "teddy", "toy"],
+             "livingroom": ["living room", "sofa", "couch", "tv", "lounge", "movie", "home", "house"],
+             "snow": ["snow", "winter", "ice", "cold", "snowman"], "beach": ["beach", "sea", "sand", "ocean", "summer holiday"],
+             "kitchen": ["kitchen", "inside", "indoor", "cooking", "baking"], "playground": ["playground", "swing", "slide", "seesaw", "school"],
              "park": ["park", "pond", "garden", "grass", "picnic"], "street": ["street", "town", "road", "village"]},
-    "gags": {"steal_treat": ["steal", "stole", "took", "treat", "eat", "snack", "food", "hungry", "cake", "donut", "pizza", "cupcake",
+    "gags": {"steal_treat": ["steal", "stole", "took", "treat", "eat", "snack", "food", "hungry", "cake", "donut", "pizza", "cupcake", "gingerbread",
                              "ice cream", "cookie", "apple", "watermelon", "strawberry"],
              "ball_bonk": ["ball", "kick", "football", "soccer", "bonk"], "balloon_float": ["balloon", "fly", "float", "pop"],
              "gift_surprise": ["gift", "present", "box", "surprise", "birthday"], "hide_seek": ["hide", "seek", "boo", "hiding"],
@@ -200,9 +207,18 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
     wanted = list(w.get("gags") or [])
     if base and not wanted and not w.get("restyle"):  # a change request keeps the same funny moments
         wanted = [s["gag"] for s in (base.get("segments") or [base])]
-    if w.get("set"):  # a place was asked for: only gags that can happen there
-        order = [g for g in order if w["set"] in GAGS[g]["sets"]]
-        wanted = [g for g in wanted if w["set"] in GAGS[g]["sets"]]
+    place = w.get("set")
+    if not place and not wanted and not base:  # pick the place first, so every place gets its turn
+        import datetime
+        sets = [x for x in ALL_SETS if x != "christmas" or datetime.date.today().month in (11, 12, 1)]  # Christmas in season
+        used = [s.get("set") for s in recent[:len(sets) * 2]]
+        least = min(used.count(x) for x in sets)
+        place = rnd.choice([x for x in sets if used.count(x) == least and x not in used[:3]] or sets)
+        w = dict(w, set=place)
+    if place:  # only gags that can happen there
+        order = [g for g in order if place in GAGS[g]["sets"]]
+        wanted = [g for g in wanted if place in GAGS[g]["sets"]]
+        n = min(n, len(order))
     if wanted:
         n = max(min(len(wanted), hi), lo) if len(wanted) >= lo else n
         order = wanted + [g for g in order if g not in wanted]
@@ -288,7 +304,9 @@ def describe_one(seg):
 def describe(spec):
     s = " Then: ".join(describe_one(s) for s in (spec.get("segments") or [spec]))
     place = {"snow": "in the snow", "playground": "at the playground", "kitchen": "in the kitchen",
-             "beach": "at the beach", "park": "in the park", "street": "on their street"}.get(spec.get("set"))
+             "beach": "at the beach", "park": "in the park", "street": "on their street", "bedroom": "in the bedroom",
+             "livingroom": "in the living room", "space": "on the moon", "pirate": "on pirate island",
+             "christmas": "on a snowy Christmas day"}.get(spec.get("set"))
     wear = [f"{NAMES[c]} wears {ACC_WORDS[k]}" for c, (k, _) in (spec.get("looks") or {}).items() if k in ACC_WORDS]
     return s + (f" (It all happens {place}.)" if place else "") + (" " + ", ".join(wear) + "." if wear else "")
 
