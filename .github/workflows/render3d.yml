@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       episode_id: {description: "episode id", required: true}
+      gpu: {description: "yes = render on Kaggle's free GPU (full 1080p, falls back to the CPU machines)", default: "no"}
 
 concurrency:
   group: render3d-${{ github.event.inputs.episode_id }}
@@ -19,7 +20,39 @@ env:
   RES: "67"          # rendered at 720x1280, sharpened up to 1080x1920 at the end
 
 jobs:
+  gpu:
+    if: github.event.inputs.gpu == 'yes'
+    runs-on: ubuntu-latest
+    timeout-minutes: 230
+    outputs:
+      ok: ${{ steps.k.outputs.ok }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q kaggle requests
+      - name: Render on Kaggle GPU
+        id: k
+        env:
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+          KAGGLE_USERNAME: storytimeeditor
+        run: |
+          if python -m pipeline.kaggle_render "$EP" out; then echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "ok=false" >> "$GITHUB_OUTPUT"; fi
+          rm -rf out/_kernel; ls -la out
+      - uses: actions/upload-artifact@v4
+        if: steps.k.outputs.ok == 'true'
+        with:
+          name: gpu
+          path: |
+            out/gpu.mp4
+            out/events.json
+            out/thumb.png
+          retention-days: 1
+
   render:
+    needs: gpu
+    if: always() && needs.gpu.outputs.ok != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
@@ -41,7 +74,15 @@ jobs:
             -H "apikey: $SUPABASE_SERVICE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
             | python3 -c "import sys,json; json.dump(json.load(sys.stdin)[0]['story']['spec'], open('spec.json','w'))"
           cat spec.json
+      - uses: actions/cache@v4
+        with:
+          path: assets
+          key: free-assets-v1
+      - name: Free sky photos + toy models
+        run: bash pipeline/get_assets.sh assets
       - name: Render my frames
+        env:
+          ASSETS: ${{ github.workspace }}/assets
         run: ./bl/blender -b --python blender/scene.py -- spec.json out "part:${{ matrix.part }}/$PARTS" 2>&1 | grep -E "^frame|^done|Error|Traceback|rror" || true
       - uses: actions/upload-artifact@v4
         with:
@@ -50,7 +91,7 @@ jobs:
           retention-days: 1
 
   finish:
-    needs: render
+    needs: [gpu, render]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -63,9 +104,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: assets
+          key: free-assets-v1
       - name: Video + sound + upload for approval
         env:
           BLENDER: ${{ github.workspace }}/bl/blender   # used only to redraw frames a render machine dropped
+          ASSETS: ${{ github.workspace }}/assets
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq fluidsynth fluid-soundfont-gm ffmpeg libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6 > /dev/null
@@ -75,5 +121,6 @@ jobs:
             fi
           done
           pip install -q requests numpy
+          bash pipeline/get_assets.sh assets > /dev/null || true
           curl -fsSL "https://github.com/mrbumpy409/GeneralUser-GS/raw/main/GeneralUser-GS.sf2" -o GeneralUser-GS.sf2 || rm -f GeneralUser-GS.sf2
           python -m pipeline.finish3d "$EP" out

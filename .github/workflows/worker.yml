@@ -7,6 +7,8 @@ on:
     - cron: "7 6 * * *"       # daily shorts queued ~07:07 Irish time (06:07 UTC)
     - cron: "37 */2 * * *"    # safety net + resumes work waiting for tomorrow's free quota
   workflow_dispatch:
+    inputs:
+      mode: {description: "queue, or test3d = make 1 test short rendered on the free GPU", default: "queue"}
 
 concurrency:
   group: worker
@@ -43,6 +45,7 @@ jobs:
                 -H "apikey: $SUPABASE_SERVICE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
               | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)")
           n=$((n + r))   # 3D shorts whose render failed once get one more try
+          [ "${{ github.event.inputs.mode }}" = "test3d" ] && n=1
           echo "queued now: $n"
           echo "queued=$n" >> "$GITHUB_OUTPUT"
 
@@ -85,4 +88,7 @@ jobs:
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
       - run: pip install -r requirements.txt
       - name: Work through the queue
-        run: sleep $(( (${{ matrix.worker }} - 1) * 7 )) && python -m pipeline.worker queue
+        run: |
+          mode=queue
+          [ "${{ matrix.worker }}" = "1" ] && [ "${{ github.event.inputs.mode }}" = "test3d" ] && mode=test3d
+          sleep $(( (${{ matrix.worker }} - 1) * 7 )) && python -m pipeline.worker $mode
