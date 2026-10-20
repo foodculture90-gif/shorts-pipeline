@@ -25,22 +25,30 @@ def sh(cmd, env=None):
 result = {"done": False}
 try:
     os.makedirs(WORK, exist_ok=True)
-    sh("nvidia-smi --query-gpu=name,memory.total --format=csv")
-    # 1. Blender 4.2 LTS
+    log(sh("nvidia-smi --query-gpu=name,memory.total --format=csv").stdout.strip())
+    # 1. Blender 4.2 LTS (the download site refuses Python's default user agent, so ask like a browser)
+    UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"}
     for v in ("4.2.3", "4.2.2", "4.2.1", "4.2.0"):
-        try:
-            urllib.request.urlretrieve(f"https://download.blender.org/release/Blender4.2/blender-{v}-linux-x64.tar.xz",
-                                       f"{WORK}/b.tar.xz")
-            sh(f"cd {WORK} && tar -xJf b.tar.xz && mv blender-{v}-linux-x64 bl && rm b.tar.xz")
+        for host in ("https://download.blender.org/release", "https://mirrors.ocf.berkeley.edu/blender/release",
+                     "https://ftp.halifax.rwth-aachen.de/blender/release"):
+            try:
+                req = urllib.request.Request(f"{host}/Blender4.2/blender-{v}-linux-x64.tar.xz", headers=UA)
+                with urllib.request.urlopen(req, timeout=120) as r, open(f"{WORK}/b.tar.xz", "wb") as f:
+                    shutil.copyfileobj(r, f)
+                if sh(f"cd {WORK} && tar -xJf b.tar.xz && mv blender-{v}-linux-x64 bl && rm b.tar.xz").returncode == 0:
+                    break
+            except Exception as e:  # noqa: BLE001
+                log("blender", v, host, "unavailable", e)
+        if os.path.exists(f"{WORK}/bl/blender"):
             break
-        except Exception as e:  # noqa: BLE001
-            log("blender", v, "unavailable", e)
+    if not os.path.exists(f"{WORK}/bl/blender"):
+        raise RuntimeError("could not download Blender")
     log("blender ready")
     # 2. our code at the exact commit that asked for this render
     url = f"https://codeload.github.com/{JOB['repo']}/tar.gz/{JOB.get('sha') or 'main'}"
     urllib.request.urlretrieve(url, f"{WORK}/code.tgz")
     with tarfile.open(f"{WORK}/code.tgz") as t:
-        t.extractall(f"{WORK}/code_x")
+        t.extractall(f"{WORK}/code_x", filter="data")
     code = glob.glob(f"{WORK}/code_x/*")[0]
     # 3. free assets (sky photos + toy models)
     sh(f"bash {code}/pipeline/get_assets.sh {WORK}/assets")
