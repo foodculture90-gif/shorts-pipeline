@@ -3,165 +3,163 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mission Control</title>
-<meta name="theme-color" content="#fbf6f0">
+<title>Shorts Studio</title>
+<meta name="theme-color" content="#fff8f5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Mission">
+<meta name="apple-mobile-web-app-title" content="Shorts Studio">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="config.js"></script>
 <style>
 :root{
-  --bg:#fbf6f0; --bg2:#f6ede3; --card:#fffdfa; --ink:#1f1a17; --ink2:#6f6259; --ink3:#a3958a;
-  --line:#efe3d6; --accent:#f26b1d; --accent2:#ff9a52; --accentSoft:#fde6d5;
-  --green:#1f9d63; --greenSoft:#dcf3e7; --red:#d64545; --redSoft:#fbe1e1; --blue:#2f6fe0; --blueSoft:#e1ebfd;
-  --amber:#c98200; --amberSoft:#fbf0d3;
-  --shadow:0 1px 2px rgba(80,40,10,.05),0 6px 24px rgba(80,40,10,.07);
+  --bg:#fff8f5; --bg2:#fbeee8; --card:#ffffff; --ink:#1d1412; --ink2:#6e5d57; --ink3:#a8968f;
+  --line:#f2e2da; --accent:#ff2d46; --accent2:#ff7a3d; --accentSoft:#ffe3e6;
+  --green:#14935c; --greenSoft:#dbf3e6; --red:#d93636; --redSoft:#fde1e1; --blue:#2d6ce0; --blueSoft:#e2ebfd;
+  --amber:#b97800; --amberSoft:#fcf0d2;
+  --shadow:0 1px 2px rgba(90,30,20,.05),0 8px 28px rgba(90,30,20,.08);
   --r:20px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#17120f; --bg2:#1f1915; --card:#231c18; --ink:#f6eee7; --ink2:#c2b3a7; --ink3:#87786c;
-  --line:#352b25; --accentSoft:#3d2516; --greenSoft:#16352a; --redSoft:#3c1f1f; --blueSoft:#1b2840; --amberSoft:#3a2e12;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 24px rgba(0,0,0,.25);
+  --bg:#130e0d; --bg2:#1d1615; --card:#201918; --ink:#f8efec; --ink2:#c3b2ac; --ink3:#86766f;
+  --line:#332926; --accentSoft:#3f1a1f; --greenSoft:#14342a; --redSoft:#3c1e1e; --blueSoft:#1a2741; --amberSoft:#3a2d11;
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 8px 28px rgba(0,0,0,.3);
 }}
 :root[data-theme="dark"]{
-  --bg:#17120f; --bg2:#1f1915; --card:#231c18; --ink:#f6eee7; --ink2:#c2b3a7; --ink3:#87786c;
-  --line:#352b25; --accentSoft:#3d2516; --greenSoft:#16352a; --redSoft:#3c1f1f; --blueSoft:#1b2840; --amberSoft:#3a2e12;
+  --bg:#130e0d; --bg2:#1d1615; --card:#201918; --ink:#f8efec; --ink2:#c3b2ac; --ink3:#86766f;
+  --line:#332926; --accentSoft:#3f1a1f; --greenSoft:#14342a; --redSoft:#3c1e1e; --blueSoft:#1a2741; --amberSoft:#3a2d11;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:15px;line-height:1.45}
-body{background:radial-gradient(1200px 500px at 90% -10%,rgba(242,107,29,.13),transparent 60%),var(--bg);min-height:100vh}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.45}
+body{background:radial-gradient(1100px 480px at 100% -12%,rgba(255,45,70,.12),transparent 60%),var(--bg);min-height:100vh}
 button,input,select,textarea{font:inherit;color:inherit}
 a{color:var(--accent)}
-.app{max-width:760px;margin:0 auto;padding:16px 16px calc(96px + env(safe-area-inset-bottom))}
-header.top{display:flex;align-items:center;justify-content:space-between;padding:8px 2px 14px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.02em}
-.brand img{width:32px;height:32px}
+.app{max-width:820px;margin:0 auto;padding:12px 16px calc(100px + env(safe-area-inset-bottom))}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:8px 2px 12px;gap:10px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.02em}
+.brand img{width:32px;height:32px;border-radius:9px}
 .sub{color:var(--ink2);font-size:13px}
-h1{font-size:28px;letter-spacing:-.03em;margin:4px 0 2px;font-weight:800}
-h2{font-size:17px;margin:22px 2px 10px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;justify-content:space-between}
+h1{font-size:27px;letter-spacing:-.03em;margin:2px 0 2px;font-weight:800}
+h2{font-size:16px;margin:24px 2px 10px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;justify-content:space-between;gap:8px}
+h2 a,h2 button{font-size:13px;font-weight:700;text-decoration:none;color:var(--accent);background:none;border:none;cursor:pointer;padding:0}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
 .grid{display:grid;gap:12px}
-.stats{grid-template-columns:repeat(2,1fr)}
-@media(min-width:620px){.stats{grid-template-columns:repeat(4,1fr)}}
-.stat .n{font-size:26px;font-weight:800;letter-spacing:-.03em}
-.stat .l{color:var(--ink2);font-size:12.5px;font-weight:500}
-.stat.hot{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none}
-.stat.hot .l{color:#fff;opacity:.9}
-.proj{display:flex;gap:14px;align-items:center;cursor:pointer}
-.proj .ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:var(--accentSoft);color:var(--accent);flex:none}
-.proj .meta{flex:1;min-width:0}
-.proj .name{font-weight:700;font-size:16px}
-.bar{height:6px;border-radius:9px;background:var(--bg2);overflow:hidden;margin-top:8px}
-.bar>i{display:block;height:100%;background:var(--accent);border-radius:9px}
+.pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pipe .card{padding:12px 10px;text-align:center;cursor:pointer}
+.pipe .n{font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.pipe .l{color:var(--ink2);font-size:11.5px;font-weight:600}
+.pipe .card.hot{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none}
+.pipe .card.hot .l{color:#fff;opacity:.92}
+@media(max-width:380px){.pipe .n{font-size:20px}.pipe .l{font-size:10.5px}}
+.reel{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;margin:0 -2px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.reel::-webkit-scrollbar{display:none}
+.reel .tile{flex:none;width:132px;scroll-snap-align:start;cursor:pointer;border:none;background:none;padding:0;text-align:left}
+.reel .tile .th{width:132px}
+.reel .tile b{display:block;font-size:12.5px;line-height:1.25;margin-top:6px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.th{aspect-ratio:9/16;border-radius:16px;background:var(--bg2);position:relative;overflow:hidden;display:block}
+.th img{width:100%;height:100%;object-fit:cover;display:block}
+.th .play{position:absolute;right:8px;bottom:8px;width:32px;height:32px;border-radius:99px;background:rgba(0,0,0,.55);display:grid;place-items:center;color:#fff}
+.th .dur{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px}
+.th .spin{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink3)}
 .pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--bg2);color:var(--ink2);white-space:nowrap}
 .pill.green{background:var(--greenSoft);color:var(--green)} .pill.red{background:var(--redSoft);color:var(--red)}
 .pill.blue{background:var(--blueSoft);color:var(--blue)} .pill.orange{background:var(--accentSoft);color:var(--accent)}
 .pill.amber{background:var(--amberSoft);color:var(--amber)}
-.feed .item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.feed .item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px}
 .feed .item:last-child{border:none}
 .dot{width:8px;height:8px;border-radius:9px;margin-top:6px;flex:none;background:var(--ink3)}
 .dot.success{background:var(--green)}.dot.warning{background:var(--amber)}.dot.error{background:var(--red)}
 .time{color:var(--ink3);font-size:12px;white-space:nowrap;margin-left:auto}
 .tabs{display:flex;gap:6px;overflow-x:auto;padding:2px;margin:0 -2px 12px;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
-.tab{border:1px solid var(--line);background:var(--card);padding:8px 14px;border-radius:99px;font-weight:600;font-size:13.5px;cursor:pointer;white-space:nowrap}
+.tab{border:1px solid var(--line);background:var(--card);padding:8px 14px;border-radius:99px;font-weight:700;font-size:13.5px;cursor:pointer;white-space:nowrap}
 .tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.ep{display:grid;grid-template-columns:116px 1fr;gap:14px;padding:12px}
-.thumb{width:116px;aspect-ratio:9/16;border-radius:14px;background:var(--bg2) center/cover;position:relative;overflow:hidden;cursor:pointer;border:none;padding:0}
-.thumb .play{position:absolute;inset:auto 8px 8px auto;width:34px;height:34px;border-radius:99px;background:rgba(0,0,0,.55);display:grid;place-items:center;color:#fff}
-.thumb video{width:100%;height:100%;object-fit:cover;display:block}
-.thumb .spin{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink3)}
+.ep{display:grid;grid-template-columns:112px 1fr;gap:14px;padding:12px}
+.ep .th{width:112px;cursor:pointer;border:none;padding:0}
 .ep h3{margin:2px 0 4px;font-size:16px;line-height:1.25;letter-spacing:-.01em}
 .ep .info{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
 .ep .lesson{color:var(--ink2);font-size:13.5px}
+.cast{display:inline-flex;gap:2px;font-size:15px;margin-right:2px}
 .actions{display:flex;flex-wrap:wrap;gap:8px}
-.btn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:9px 13px;font-weight:700;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:9px 13px;font-weight:700;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink)}
 .btn:active{transform:scale(.97)}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.dark{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .btn.ghost{background:transparent}
 .btn.danger{color:var(--red)}
 .btn.block{width:100%;justify-content:center;padding:13px}
-.btn[disabled]{opacity:.5;pointer-events:none}
-details.script{margin-top:10px;font-size:13.5px}
-details.script summary{cursor:pointer;color:var(--ink2);font-weight:600}
-details.script ol{padding-left:18px;margin:8px 0 0;color:var(--ink2)}
-details.script li{margin-bottom:6px}
+.btn[disabled]{opacity:.55;pointer-events:none}
 .err{color:var(--red);font-size:13px;margin:4px 0 8px}
-.empty{text-align:center;color:var(--ink2);padding:34px 16px}
+.empty{text-align:center;color:var(--ink2);padding:30px 16px}
 .empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
 nav.bottom{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--card) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:20}
-nav.bottom a{flex:1;max-width:110px;min-width:0;text-decoration:none;color:var(--ink3);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:700;padding:4px 0;position:relative}
+nav.bottom a{flex:1;max-width:120px;min-width:0;text-decoration:none;color:var(--ink3);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:700;padding:4px 0;position:relative}
 nav.bottom a.on{color:var(--accent)}
 nav.bottom .badge{position:absolute;top:-2px;left:calc(50% + 6px);background:var(--accent);color:#fff;font-size:10px;min-width:17px;height:17px;border-radius:9px;display:grid;place-items:center;padding:0 4px}
-.fab{position:fixed;right:max(16px,calc(50% - 364px));bottom:calc(84px + env(safe-area-inset-bottom));z-index:21;background:var(--accent);color:#fff;border:none;border-radius:18px;padding:14px 18px;font-weight:800;display:flex;gap:8px;align-items:center;box-shadow:0 10px 30px rgba(242,107,29,.4);cursor:pointer}
-.sheet-bg{position:fixed;inset:0;background:rgba(20,10,5,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
-.sheet{background:var(--card);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto;animation:up .2s ease-out}
+.fab{position:fixed;right:max(16px,calc(50% - 394px));bottom:calc(84px + env(safe-area-inset-bottom));z-index:21;background:var(--accent);color:#fff;border:none;border-radius:18px;padding:14px 18px;font-weight:800;display:flex;gap:8px;align-items:center;box-shadow:0 10px 30px rgba(255,45,70,.38);cursor:pointer}
+.sheet-bg{position:fixed;inset:0;background:rgba(20,8,6,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto;animation:up .2s ease-out}
 @media(min-width:620px){.sheet-bg{align-items:center}.sheet{border-radius:24px}}
 .sheet h3{margin:0 0 4px;font-size:19px}
 @keyframes up{from{transform:translateY(30px);opacity:.4}}@keyframes fade{from{opacity:0}}
-label.f{display:block;font-weight:700;font-size:13px;margin:14px 0 6px}
+label.f{display:block;font-weight:700;font-size:13px;margin:16px 0 7px}
 .input,select.input,textarea.input{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:11px 12px;outline:none}
 .input:focus{border-color:var(--accent)}
-textarea.input{min-height:90px;resize:vertical}
-.hint{color:var(--ink3);font-size:12.5px;margin-top:5px}
-.choice{display:grid;gap:8px}
-.choice label{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:11px 12px;cursor:pointer}
-.choice input{accent-color:var(--accent);margin-top:3px}
-.choice label:has(input:checked){border-color:var(--accent);background:var(--accentSoft)}
-.choice small{display:block;color:var(--ink2)}
+textarea.input{min-height:80px;resize:vertical}
+.hint{color:var(--ink3);font-size:12.5px;margin-top:6px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:7px 12px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip.on{background:var(--accentSoft);border-color:var(--accent);color:var(--accent)}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border:none}
-.row .t{font-weight:600}.row .d{color:var(--ink2);font-size:12.5px}
+.row .t{font-weight:700}.row .d{color:var(--ink2);font-size:12.5px}
 .switch{position:relative;width:48px;height:28px;flex:none}
 .switch input{opacity:0;width:0;height:0}
 .switch span{position:absolute;inset:0;background:var(--line);border-radius:99px;transition:.2s;cursor:pointer}
 .switch span:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:99px;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .switch input:checked+span{background:var(--accent)}.switch input:checked+span:before{transform:translateX(20px)}
-.kan{display:grid;gap:12px}
-@media(min-width:620px){.kan{grid-template-columns:repeat(3,1fr)}}
-.col h4{margin:0 0 8px;font-size:13px;color:var(--ink2);display:flex;justify-content:space-between;text-transform:uppercase;letter-spacing:.06em}
-.task{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;box-shadow:var(--shadow)}
-.task .chk{width:22px;height:22px;border-radius:7px;border:2px solid var(--line);flex:none;cursor:pointer;display:grid;place-items:center;background:none;padding:0;color:#fff}
-.task.doing .chk{border-color:var(--blue);background:var(--blueSoft)}
-.task.done .chk{border-color:var(--green);background:var(--green)}
-.task.done .tt{text-decoration:line-through;color:var(--ink3)}
-.task .tt{flex:1;font-size:14px;font-weight:600}
-.task .x{border:none;background:none;color:var(--ink3);cursor:pointer;padding:0 2px}
-.add{display:flex;gap:8px;margin-top:10px}
-.seg{display:flex;background:var(--bg2);border-radius:12px;padding:3px;gap:3px;margin-bottom:14px}
+.seg{display:flex;background:var(--bg2);border-radius:12px;padding:3px;gap:3px}
 .seg button{flex:1;border:none;background:none;padding:9px;border-radius:10px;font-weight:700;font-size:13.5px;cursor:pointer;color:var(--ink2)}
 .seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
-.char{display:flex;gap:14px;align-items:center}
-.char img{width:84px;height:84px;border-radius:16px;object-fit:cover;background:var(--bg2);border:1px solid var(--line)}
 .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:14px;font-weight:600;font-size:14px;z-index:60;box-shadow:var(--shadow);animation:fade .2s;max-width:92vw}
 .login{max-width:380px;margin:12vh auto 0;padding:0 18px}
 .login .card{padding:24px}
-.banner{background:var(--amberSoft);color:var(--amber);border-radius:14px;padding:10px 12px;font-size:13px;font-weight:600;margin-bottom:12px}
-.chart{display:flex;align-items:flex-end;gap:6px;height:110px;padding-top:6px}
-.chart div{flex:1;background:var(--accentSoft);border-radius:6px 6px 3px 3px;position:relative;min-height:3px}
+.chart{display:flex;align-items:flex-end;gap:6px;height:96px;padding-top:6px}
+.chart div{flex:1;background:var(--accentSoft);border-radius:6px 6px 3px 3px;min-height:3px}
 .chart div.v{background:var(--accent)}
 .chart-l{display:flex;gap:6px;font-size:10.5px;color:var(--ink3);margin-top:5px}.chart-l span{flex:1;text-align:center}
 .sk{background:linear-gradient(90deg,var(--bg2),var(--line),var(--bg2));background-size:200% 100%;animation:sk 1.2s infinite;border-radius:12px}
 @keyframes sk{to{background-position:-200% 0}}
-svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.muted{color:var(--ink2)}
+svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.chan{display:flex;gap:12px;align-items:center}
+.chan .av{width:44px;height:44px;border-radius:14px;background:var(--accentSoft);color:var(--accent);display:grid;place-items:center;font-weight:800;font-size:18px;flex:none}
+.split{display:grid;gap:12px}
+@media(min-width:700px){.split{grid-template-columns:1fr 1fr}}
+.wishnote{background:var(--bg2);border-radius:12px;padding:8px 10px;font-size:12.5px;color:var(--ink2);margin-top:8px}
 </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="root"><div class="app"><header class="top"><div class="brand"><img src="icon.svg" alt="">Shorts Studio</div></header>
+  <div class="sk" style="height:34px;width:60%;margin:6px 0 14px"></div><div class="sk" style="height:84px;margin-bottom:12px"></div><div class="sk" style="height:240px"></div></div></div>
 <script type="module">
 const CFG = window.MC_CONFIG || {};
 const DEMO = new URLSearchParams(location.search).has("demo") || !CFG.SUPABASE_URL || CFG.SUPABASE_URL.includes("YOUR-PROJECT");
-const sb = DEMO ? null : (await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm")).createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
-const PICS_PER_DAY = 87, PICS_PER_SHORT = 4;
+const sb = DEMO ? null : (await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm")).createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
 if ("serviceWorker" in navigator && !DEMO) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+// ---------------------------------------------------------------- the 3D world (same names as the render engine)
+const CAST = { pip: ["Pip", "🔴"], bubu: ["Bubu", "🐰"], mimi: ["Mimi", "🐱"], gogo: ["Gogo", "🐸"], chiko: ["Chiko", "🐤"],
+  lulu: ["Lulu", "🐻"], tobi: ["Tobi", "🦊"], teo: ["Teo", "🐶"], popo: ["Popo", "🐧"] };
+const PLACES = { street: ["Street", "🏡"], park: ["Park", "🌳"], beach: ["Beach", "🏖️"], kitchen: ["Kitchen", "🍳"], playground: ["Playground", "🛝"], snow: ["Snow", "⛄"] };
+const IDEAS = ["Who stole the donut?", "Balloon floats away… POP!", "Hide and seek – BOO!", "Banana peel slip", "Surprise gift box", "Ball bonk in the park", "Snow day fun", "Birthday cake mix-up"];
+const CHANGES = ["Different characters", "Different place", "Funnier moments", "Snow day", "Beach day", "Sunset colours", "Party hats on", "Start with the banana slip"];
 
 // ---------------------------------------------------------------- icons + helpers
 const I = {
@@ -169,74 +167,56 @@ const I = {
   play:'<path d="M7 4l13 8-13 8z" fill="currentColor" stroke="none"/>',
   yt:'<rect x="2.5" y="5" width="19" height="14" rx="4"/><path d="M10 9l5 3-5 3z" fill="currentColor"/>',
   tv:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M8 3l4 3 4-3"/>',
-  list:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/>',
   cog:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
   plus:'<path d="M12 5v14M5 12h14"/>', check:'<path d="M5 12l5 5L20 7"/>',
   edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
   trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>', clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-  dumb:'<path d="M6 6v12M18 6v12M3 9v6M21 9v6M6 12h12"/>', ext:'<path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',
+  ext:'<path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',
   x:'<path d="M6 6l12 12M18 6L6 18"/>', refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
   link:'<path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
   dl:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>', spark:'<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>',
+  eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
 };
 const ic = (n, s = 20) => `<svg class="i" style="width:${s}px;height:${s}px" viewBox="0 0 24 24">${I[n]}</svg>`;
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ago = t => { const s = (Date.now() - new Date(t)) / 1000; if (s < 60) return "now"; if (s < 3600) return Math.floor(s/60)+"m"; if (s < 86400) return Math.floor(s/3600)+"h"; return Math.floor(s/86400)+"d"; };
 const fmtNum = n => n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? (n/1e3).toFixed(1)+"K" : String(n || 0);
 const STATUS = {
-  queued:{t:"In line",c:""}, generating:{t:"Making…",c:"blue"}, awaiting_approval:{t:"Needs your OK",c:"orange"},
-  publishing:{t:"Uploading…",c:"blue"}, scheduled:{t:"Scheduled",c:"amber"}, published:{t:"Published",c:"green"},
+  queued:{t:"In line",c:""}, generating:{t:"Rendering…",c:"blue"}, awaiting_approval:{t:"Ready",c:"orange"},
+  publishing:{t:"Uploading…",c:"blue"}, scheduled:{t:"Scheduled",c:"amber"}, published:{t:"Live",c:"green"},
   failed:{t:"Failed",c:"red"},
 };
-const styleName = s => { s = (s || "").toLowerCase(); return s.includes("watercolour") ? "Watercolour" : s.includes("claymation") ? "Claymation" : s.includes("papercraft") ? "Papercraft" : s.includes("felt") ? "Felt puppets" : s.includes("gouache") ? "Vintage book" : s.includes("japanese") ? "Painted anime" : s.includes("chalk") ? "Chalk pastel" : s.includes("toy-like") ? "Toy 3D" : s.includes("digital painting") ? "Fantasy paint" : s ? "3D film" : ""; };
+const castLine = e => [e.hero, e.friend].filter(Boolean).map(k => CAST[k]?.[1] || "").join("");
+const castNames = e => [e.hero, e.friend].filter(Boolean).map(k => CAST[k]?.[0] || k).join(" & ");
 
 // ---------------------------------------------------------------- demo data
 const demo = (() => {
   const now = Date.now(), h = 3600e3;
-  const pic = (a, b, c) => "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 160'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='${a}'/><stop offset='1' stop-color='${b}'/></linearGradient></defs><rect width='90' height='160' fill='url(#g)'/><circle cx='66' cy='30' r='12' fill='#fff6d5'/><ellipse cx='45' cy='158' rx='80' ry='46' fill='${c}'/><circle cx='42' cy='100' r='15' fill='#f7b267'/><circle cx='37' cy='98' r='2.5' fill='#222'/><circle cx='47' cy='98' r='2.5' fill='#222'/></svg>`).replace(/'/g, "%27");
-  const scenes = ["Every night, Tilly the firefly hid under a leaf. She was afraid of the dark!", "Oma the owl landed beside her. Why do you hide, little one?", "Look behind you! Tilly's tail glowed like a tiny golden star.", "That night Tilly lit the way home for all her friends. Goodnight!"].map(n => ({ narration: n }));
-  const ep = (id, ch, status, title, style, colors, hrs, extra = {}) => ({ id, channel_id: ch, status, title, style, takeaway: extra.takeaway || "", story: title ? { scenes } : null, duration: title ? 33 + (hrs % 5) : null, thumb: pic(...colors), created_at: new Date(now - hrs * h).toISOString(), ...extra });
+  const ep = (id, status, title, hero, friend, place, hrs, extra = {}) => ({ id, channel_id: "c1", status, title, hero, friend, place, duration: title ? 28 : null, created_at: new Date(now - hrs * h).toISOString(), summary: title ? `${CAST[hero][0]} and ${CAST[friend][0]} have a silly day ${PLACES[place][0].toLowerCase()}.` : "", ...extra });
   return {
-    projects: [
-      { id: "shorts", name: "YouTube Shorts", status: "active", description: "Free AI story Shorts, new characters every time", sort: 1 },
-      { id: "fitness", name: "AI Fitness App", status: "planning", description: "iOS + Apple Watch app: AI calories, physique, workouts", sort: 2 }],
-    channels: [
-      { id: "c1", name: "Story Time", niche: "magical illustrated stories for kids aged 3-7", per_day: 10, auto_daily: true, connected: true, youtube_title: "Story Time Kids", made_for_kids: true, voice: "en-US-AnaNeural" },
-      { id: "c2", name: "Wonder Facts", niche: "fun true facts for curious kids aged 5-9", per_day: 10, auto_daily: true, connected: false, made_for_kids: true, voice: "en-GB-MaisieNeural" }],
+    channels: [{ id: "c1", name: "Story Time", niche: "funny 3D cartoon shorts for kids", per_day: 10, auto_daily: true, connected: true, youtube_title: "Story Time Kids", made_for_kids: true }],
     episodes: [
-      ep("e1", "c1", "awaiting_approval", "The Firefly Who Was Afraid of the Dark", "3D film", ["#2b3a78","#f0b46b","#3c6e4f"], 1, { takeaway: "The light you need is already inside you." }),
-      ep("e2", "c2", "awaiting_approval", "Why Octopuses Have Three Hearts", "watercolour", ["#bfe6ff","#e8f7ff","#5aa9c9"], 1.5, { takeaway: "Octopuses are full of surprises!" }),
-      ep("e7", "c1", "awaiting_approval", "The Snail Who Won the Race", "claymation", ["#ffe2b8","#fff4e0","#86c56a"], 2, { takeaway: "Slow and steady is still amazing." }),
-      ep("e2b", "c2", "generating", null, null, ["#eee","#ddd","#ccc"], 0.1),
-      ep("e2c", "c1", "queued", null, null, ["#eee","#ddd","#ccc"], 0.1),
-      ep("e3", "c1", "scheduled", "Bobo the Bus Drives to the Stars", "chalk pastel", ["#1c1b3a","#4b3c8f","#2a2a55"], 20, { publish_at: new Date(now + 5 * h).toISOString(), youtube_url: "#" }),
-      ep("e4", "c2", "published", "How Penguins Stay Warm", "papercraft", ["#cfe8ff","#ffffff","#a9d1f5"], 30, { views: 24800, likes: 902, youtube_url: "#" }),
-      ep("e5", "c1", "published", "The Kite With a Mind of Its Own", "japanese", ["#a8d8ff","#fff2cc","#7cc47f"], 50, { views: 11200, likes: 431, youtube_url: "#" })],
-    tasks: [
-      { id: 1, project_id: "shorts", title: "Accounts: Google, GitHub, Supabase, Cloudflare, Gemini key", status: "done", sort: 1 },
-      { id: 2, project_id: "shorts", title: "Connect YouTube channels in the app", status: "doing", sort: 2 },
-      { id: 3, project_id: "shorts", title: "Phone-verify each YouTube channel", status: "todo", sort: 3 },
-      { id: 4, project_id: "shorts", title: "Submit YouTube API audit", status: "todo", sort: 4 },
-      { id: 7, project_id: "fitness", title: "Get a Mac + Apple Developer account", status: "todo", sort: 1 },
-      { id: 8, project_id: "fitness", title: "Design screens: food scan, progress, physique, Watch", status: "todo", sort: 2 }],
-    settings: { music_volume: 0.12 },
-    usage: { images: 72 },
-    activity: [
-      { id: 1, kind: "success", message: "🎬 Ready: The Firefly Who Was Afraid of the Dark (Story Time)", created_at: new Date(now - 1 * h).toISOString() },
-      { id: 2, kind: "success", message: "✅ Scheduled: Bobo the Bus Drives to the Stars (Story Time)", created_at: new Date(now - 19 * h).toISOString() },
-      { id: 3, kind: "success", message: "🔗 Connected YouTube channel “Story Time Kids”", created_at: new Date(now - 40 * h).toISOString() }],
+      ep("e1", "awaiting_approval", "Watch Popo Steal Lulu's Snow Donut! 🍩", "lulu", "popo", "snow", 1, { wish: "Popo sneaks away Lulu's donut in the snow while Lulu wears her royal crown!" }),
+      ep("e2", "awaiting_approval", "Don't Pop Tobi's Blue Balloon! 🎈", "tobi", "teo", "park", 2),
+      ep("e3", "generating", null, "pip", "chiko", "beach", 0.2),
+      ep("e4", "scheduled", "Oops! The Ball Went BONK! ⚽", "gogo", "mimi", "playground", 20, { publish_at: new Date(now + 5 * h).toISOString() }),
+      ep("e5", "published", "Bubu's Big Banana Slip! 🍌", "bubu", "pip", "street", 30, { views: 24800, likes: 902, youtube_url: "#", publish_at: new Date(now - 26 * h).toISOString() })],
+    settings: { gpu_render: false },
+    activity: [{ id: 1, kind: "success", message: "🎬 Ready: Watch Popo Steal Lulu's Snow Donut! 🍩", created_at: new Date(now - 1 * h).toISOString() }],
   };
 })();
 
-// ---------------------------------------------------------------- data layer
+// ---------------------------------------------------------------- data layer (light queries + local cache = fast)
 async function q(p) { const { data, error } = await p; if (error) throw error; return data; }
-const today = () => new Date().toISOString().slice(0, 10);
+const EP_COLS = "id,channel_id,status,title,takeaway,duration,thumb_path,preview_path,youtube_url,views,likes,publish_at,error,created_at,idea,feedback,assets_path," +
+  "summary:story->>summary,hero:story->spec->>hero,friend:story->spec->>friend,place:story->spec->>set,wish:story->spec->wish->>note";
+const store = { get(k) { try { return JSON.parse(localStorage.getItem("ss_" + k) || "null"); } catch { return null; } },
+                set(k, v) { try { localStorage.setItem("ss_" + k, JSON.stringify(v)); } catch {} } };
 const api = {
-  async user() { if (DEMO) return { email: "demo@mission.control" }; const { data } = await sb.auth.getUser(); return data.user; },
+  async user() { if (DEMO) return { email: "demo@shorts.studio" }; const { data } = await sb.auth.getSession(); return data.session?.user || null; },
   async login(email, password) { const { error } = await sb.auth.signInWithPassword({ email, password }); if (error) throw error; },
-  async logout() { if (!DEMO) await sb.auth.signOut(); location.reload(); },
-  async projects() { return DEMO ? demo.projects : q(sb.from("projects").select("*").order("sort")); },
-  async channels() { return DEMO ? demo.channels : q(sb.from("channels").select("*").order("created_at")); },
+  async logout() { if (!DEMO) await sb.auth.signOut(); try { Object.keys(localStorage).filter(k => k.startsWith("ss_")).forEach(k => localStorage.removeItem(k)); } catch {} location.reload(); },
+  async channels() { const r = DEMO ? demo.channels : await q(sb.from("channels").select("id,name,niche,per_day,auto_daily,made_for_kids,connected,youtube_title,created_at").order("created_at")); store.set("ch", r); return r; },
   async saveChannel(id, values) {
     if (DEMO) { if (id) Object.assign(demo.channels.find(c => c.id === id), values); else demo.channels.push({ id: "c" + Date.now(), connected: false, ...values }); return; }
     if (id) await q(sb.from("channels").update(values).eq("id", id)); else await q(sb.from("channels").insert(values));
@@ -245,35 +225,33 @@ const api = {
   async episodes() {
     if (DEMO) return demo.episodes;
     const [eps, cmds] = await Promise.all([
-      q(sb.from("episodes").select("*").not("status", "in", "(replaced,deleted)").order("created_at", { ascending: false }).limit(300)),
-      q(sb.from("commands").select("id,payload,created_at,status").eq("type", "generate").in("status", ["queued", "running"]).order("created_at", { ascending: false }).limit(50)),
+      q(sb.from("episodes").select(EP_COLS).not("status", "in", "(replaced,deleted)").order("created_at", { ascending: false }).limit(150)),
+      q(sb.from("commands").select("id,payload,created_at").eq("type", "generate").in("status", ["queued", "running"]).order("created_at", { ascending: false }).limit(40)),
     ]);
-    // Shorts you just asked for show up immediately, before a worker picks them up.
-    const pending = cmds.filter(c => !c.payload?.episode_id).map(c => ({
-      id: "cmd-" + c.id, channel_id: c.payload?.channel_id, status: "queued", idea: c.payload?.idea,
-      feedback: c.payload?.feedback, created_at: c.created_at, pending: true }));
-    return [...pending, ...eps];
+    // shorts you just asked for show up straight away, before a worker picks them up
+    const pending = cmds.filter(c => !c.payload?.episode_id).map(c => ({ id: "cmd-" + c.id, channel_id: c.payload?.channel_id, status: "queued",
+      idea: c.payload?.idea, feedback: c.payload?.feedback, created_at: c.created_at, pending: true }));
+    const all = [...pending, ...eps];
+    store.set("eps", all.slice(0, 80));
+    return all;
   },
-  async waitingNote() {
-    if (DEMO) return null;
-    const rows = await q(sb.from("commands").select("note,run_after").eq("status", "queued").gt("run_after", new Date().toISOString()).limit(1));
-    return rows[0]?.note || null;
-  },
-  async usage() { if (DEMO) return demo.usage; const r = await q(sb.from("usage").select("*").eq("day", today())); return r[0] || { images: 0 }; },
-  async commands(rows) {
-    if (DEMO) { rows.forEach(r => demoCommand(r.type, r.payload)); return; }
-    await q(sb.from("commands").insert(rows));
-  },
+  async commands(rows) { if (DEMO) { rows.forEach(r => demoCommand(r.type, r.payload)); return; } await q(sb.from("commands").insert(rows)); },
   async command(type, payload) { return api.commands([{ type, payload }]); },
-  async tasks(project) { if (DEMO) return demo.tasks.filter(t => !project || t.project_id === project); let x = sb.from("tasks").select("*").order("sort").order("id"); if (project) x = x.eq("project_id", project); return q(x); },
-  async addTask(project_id, title) { if (DEMO) { demo.tasks.push({ id: Date.now(), project_id, title, status: "todo", sort: 99 }); return; } await q(sb.from("tasks").insert({ project_id, title, sort: 99 })); },
-  async setTask(id, v) { if (DEMO) { Object.assign(demo.tasks.find(t => t.id == id), v); return; } await q(sb.from("tasks").update(v).eq("id", id)); },
-  async delTask(id) { if (DEMO) { demo.tasks = demo.tasks.filter(t => t.id != id); return; } await q(sb.from("tasks").delete().eq("id", id)); },
   async settings() { if (DEMO) return demo.settings; const r = await q(sb.from("settings").select("*")); return Object.fromEntries(r.map(x => [x.key, x.value])); },
   async setSetting(key, value) { if (DEMO) { demo.settings[key] = value; return; } await q(sb.from("settings").upsert({ key, value })); },
-  async activity() { return DEMO ? demo.activity : q(sb.from("activity").select("*").order("created_at", { ascending: false }).limit(25)); },
-  async url(path) { if (!path || DEMO) return null; const { data } = await sb.storage.from("media").createSignedUrl(path, 3600); return data?.signedUrl; },
+  async activity() { return DEMO ? demo.activity : q(sb.from("activity").select("id,kind,message,created_at").order("created_at", { ascending: false }).limit(12)); },
 };
+// signed links for thumbnails/previews: one request for many, remembered for 50 minutes
+const urlCache = new Map();
+async function urls(paths) {
+  if (DEMO) return {};
+  const need = [...new Set(paths.filter(p => p && !(urlCache.get(p)?.exp > Date.now())))];
+  if (need.length) {
+    const { data } = await sb.storage.from("media").createSignedUrls(need, 3600);
+    (data || []).forEach(d => d.signedUrl && urlCache.set(d.path, { url: d.signedUrl, exp: Date.now() + 50 * 6e4 }));
+  }
+  return Object.fromEntries(paths.filter(Boolean).map(p => [p, urlCache.get(p)?.url]));
+}
 function demoCommand(type, p) {
   const e = demo.episodes.find(x => x.id === p.episode_id);
   if (type === "generate") demo.episodes.unshift({ id: "n" + Math.random(), channel_id: p.channel_id, status: "queued", idea: p.idea, created_at: new Date().toISOString() });
@@ -285,7 +263,7 @@ function demoCommand(type, p) {
 
 // ---------------------------------------------------------------- ui helpers
 const root = document.getElementById("root");
-function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+function toast(msg) { document.querySelectorAll(".toast").forEach(t => t.remove()); const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
 function sheet(html, onMount) {
   const bg = document.createElement("div"); bg.className = "sheet-bg";
   bg.innerHTML = `<div class="sheet" role="dialog">${html}</div>`;
@@ -293,155 +271,142 @@ function sheet(html, onMount) {
   document.body.appendChild(bg); onMount?.(bg.firstElementChild, () => bg.remove()); return bg;
 }
 async function guard(btn, fn) { const old = btn?.innerHTML; if (btn) { btn.disabled = true; btn.innerHTML = "Working…"; } try { await fn(); } catch (e) { console.error(e); toast("⚠️ " + (e.message || e)); } finally { if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = old; } } }
+const chips = (list, name, sel = []) => `<div class="chips" data-chips="${name}">${list.map(([v, l]) => `<button type="button" class="chip ${sel.includes(v) ? "on" : ""}" data-v="${esc(v)}">${l}</button>`).join("")}</div>`;
 
-let state = { tab: "approve", project: "shorts", channel: "all", episodes: [], channels: [] };
+let state = { tab: "approve", channel: "all", episodes: store.get("eps") || [], channels: store.get("ch") || [], settings: {} };
 let installEvt = null;
 window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); if (window.missionDesktop) return; installEvt = e; document.getElementById("install")?.removeAttribute("hidden"); });
 const standalone = () => !!window.missionDesktop || matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+const readyCount = () => state.episodes.filter(e => e.status === "awaiting_approval").length;
 
-function shell(active, inner, { fab = false, badge = 0 } = {}) {
-  const tab = (id, href, icon, label, b) => `<a href="${href}" class="${active === id ? "on" : ""}">${ic(icon, 22)}${label}${b ? `<span class="badge">${b > 99 ? "99+" : b}</span>` : ""}</a>`;
+function shell(active, inner, { fab = true } = {}) {
+  const b = readyCount();
+  const tab = (id, href, icon, label, n) => `<a href="${href}" class="${active === id ? "on" : ""}">${ic(icon, 22)}${label}${n ? `<span class="badge">${n > 99 ? "99+" : n}</span>` : ""}</a>`;
   return `<div class="app">
-    <header class="top"><div class="brand"><img src="icon.svg" alt="">Mission Control</div>
+    <header class="top"><div class="brand"><img src="icon.svg" alt="">Shorts Studio</div>
       <span class="sub" style="display:flex;gap:8px;align-items:center">${DEMO ? '<span class="pill amber">Demo</span>' : ""}
-      <button class="btn" id="install" ${installEvt && !standalone() ? "" : "hidden"} ${window.missionDesktop ? "hidden" : ""}>${ic("dl", 16)} Install app</button></span></header>
+      <button class="btn" id="install" ${installEvt && !standalone() ? "" : "hidden"}>${ic("dl", 16)} Install</button></span></header>
     ${inner}</div>
-    ${fab ? `<button class="fab" id="fab">${ic("plus")} New shorts</button>` : ""}
-    <nav class="bottom">${tab("home", "#/", "home", "Home")}${tab("shorts", "#/shorts", "yt", "Shorts", badge)}${tab("channels", "#/channels", "tv", "Channels")}${tab("tasks", "#/tasks", "list", "Tasks")}${tab("settings", "#/settings", "cog", "Settings")}</nav>`;
+    ${fab ? `<button class="fab" id="fab">${ic("plus")} New short</button>` : ""}
+    <nav class="bottom">${tab("home", "#/", "home", "Studio")}${tab("shorts", "#/shorts", "yt", "Shorts", b)}${tab("channels", "#/channels", "tv", "Channels")}${tab("settings", "#/settings", "cog", "Settings")}</nav>`;
 }
 function bindCommon() {
-  document.getElementById("fab")?.addEventListener("click", newShortsSheet);
+  document.getElementById("fab")?.addEventListener("click", () => newShortSheet());
   document.getElementById("install")?.addEventListener("click", async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; document.getElementById("install")?.setAttribute("hidden", ""); });
-  root.querySelectorAll("[data-go]").forEach(el => el.onclick = () => { location.hash = el.dataset.go; });
+  root.querySelectorAll("[data-go]").forEach(el => el.onclick = () => { if (el.dataset.tab) state.tab = el.dataset.tab; location.hash = el.dataset.go; });
+  root.querySelectorAll("[data-video]").forEach(b => b.onclick = () => playVideo(b.dataset.video));
+  root.querySelectorAll("[data-idea]").forEach(b => b.onclick = () => newShortSheet({ idea: b.dataset.idea }));
 }
 const chName = id => state.channels.find(c => c.id === id)?.name || "";
+async function fillThumbs(list) {
+  const map = await urls(list.map(e => e.thumb_path));
+  list.forEach(e => { const u = map[e.thumb_path]; if (!u) return;
+    document.querySelectorAll(`[data-thumb="${e.id}"]`).forEach(el => { if (!el.querySelector("img")) el.insertAdjacentHTML("afterbegin", `<img src="${u}" alt="" loading="lazy" decoding="async">`); }); });
+}
+const thumbInner = e => ["generating", "publishing", "queued"].includes(e.status)
+  ? `<span class="spin sk" style="position:absolute;inset:0;border-radius:0"></span><span class="spin">${ic(e.status === "queued" ? "clock" : "spark", 26)}</span>`
+  : `${e.duration ? `<span class="dur">${Math.round(e.duration)}s</span>` : ""}${e.preview_path || e.youtube_url ? `<span class="play">${ic("play", 14)}</span>` : ""}`;
+const thumb = e => `<span class="th" data-thumb="${e.id}">${thumbInner(e)}</span>`;
 
-// ---------------------------------------------------------------- Home
-async function viewHome() {
-  const [projects, eps, tasks, act, usage, channels] = await Promise.all([api.projects(), api.episodes(), api.tasks(), api.activity(), api.usage(), api.channels()]);
-  state.episodes = eps; state.channels = channels;
-  const waiting = eps.filter(e => e.status === "awaiting_approval").length;
-  const making = eps.filter(e => ["queued", "generating"].includes(e.status)).length;
-  const published = eps.filter(e => e.status === "published" || e.status === "scheduled");
-  const views = published.reduce((s, e) => s + (e.views || 0), 0);
-  const left = Math.max(0, Math.floor((PICS_PER_DAY - (usage.images || 0)) / PICS_PER_SHORT));
-  const pct = Math.min(100, Math.round(100 * (usage.images || 0) / PICS_PER_DAY));
+// ---------------------------------------------------------------- Studio (home)
+function viewHome() {
+  const eps = state.episodes;
+  const by = s => eps.filter(e => s.includes(e.status));
+  const ready = by(["awaiting_approval"]), making = by(["queued", "generating"]), sched = by(["scheduled"]), live = by(["published"]);
+  const failed = by(["failed"]);
+  const views = live.reduce((s, e) => s + (e.views || 0), 0);
   const hr = new Date().getHours(), hi = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
-  const projCard = p => {
-    const t = tasks.filter(x => x.project_id === p.id), done = t.filter(x => x.status === "done").length;
-    const pc = t.length ? Math.round(100 * done / t.length) : 0;
-    const extra = p.id === "shorts" ? `${channels.length} channels · ${published.length} published · ${waiting} waiting` : `${done}/${t.length} milestones`;
-    return `<div class="card proj" data-go="${p.id === "shorts" ? "#/shorts" : "#/tasks/" + p.id}">
-      <div class="ic">${ic(p.id === "shorts" ? "yt" : "dumb", 24)}</div>
-      <div class="meta"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span class="name">${esc(p.name)}</span>${p.status === "active" ? '<span class="pill green">Active</span>' : '<span class="pill amber">In development</span>'}</div>
-      <div class="sub">${esc(extra)}</div><div class="bar"><i style="width:${pc}%"></i></div></div></div>`;
-  };
+  const perDay = state.channels.filter(c => c.auto_daily).reduce((s, c) => s + (+c.per_day || 0), 0);
   const days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); return d; });
-  const perDay = days.map(d => eps.filter(e => e.publish_at && new Date(e.publish_at).toDateString() === d.toDateString()).length);
-  const mx = Math.max(1, ...perDay);
+  const goingLive = days.map(d => eps.filter(e => e.publish_at && ["published", "scheduled"].includes(e.status) && new Date(e.publish_at).toDateString() === d.toDateString()).length);
+  const mx = Math.max(1, ...goingLive);
+  const stat = (n, l, tab, hot) => `<div class="card ${hot ? "hot" : ""}" data-go="#/shorts" data-tab="${tab}"><div class="n">${n}</div><div class="l">${l}</div></div>`;
   root.innerHTML = shell("home", `
     <h1>${hi}</h1>
-    <div class="sub" style="margin-bottom:16px">${waiting ? `<b>${waiting}</b> short${waiting > 1 ? "s" : ""} waiting for your OK${making ? ` · ${making} being made` : ""}.` : making ? `${making} shorts being made.` : "Everything is up to date."}</div>
-    <div class="grid stats">
-      <div class="card stat ${waiting ? "hot" : ""}" data-go="#/shorts"><div class="n">${waiting}</div><div class="l">Need approval</div></div>
-      <div class="card stat"><div class="n">${making}</div><div class="l">Being made</div></div>
-      <div class="card stat"><div class="n">${published.length}</div><div class="l">Published</div></div>
-      <div class="card stat"><div class="n">${fmtNum(views)}</div><div class="l">Total views</div></div>
-    </div>
-    <h2>Free capacity today</h2>
-    <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b>${left} more shorts possible today</b><span class="sub">${usage.images || 0}/${PICS_PER_DAY} free pictures</span></div>
-      <div class="bar" style="height:10px"><i style="width:${pct}%"></i></div>
-      <div class="hint">Resets at midnight UTC. Anything over the limit waits and continues automatically.</div></div>
-    <h2>Projects</h2><div class="grid">${projects.map(projCard).join("")}</div>
-    <h2>Shorts going live · last 7 days</h2>
-    <div class="card"><div class="chart">${perDay.map((n, i) => `<div class="${i === 6 ? "v" : ""}" style="height:${(n / mx) * 100}%"></div>`).join("")}</div>
-      <div class="chart-l">${days.map(d => `<span>${d.toLocaleDateString(undefined, { weekday: "narrow" })}</span>`).join("")}</div></div>
-    <h2>Activity</h2>
-    <div class="card feed">${act.length ? act.slice(0, 10).map(a => `<div class="item"><span class="dot ${a.kind}"></span><span>${esc(a.message)}</span><span class="time">${ago(a.created_at)}</span></div>`).join("") : '<div class="empty">No activity yet.</div>'}</div>
-  `, { badge: waiting, fab: true });
+    <div class="sub" style="margin-bottom:14px">${ready.length ? `<b>${ready.length}</b> short${ready.length > 1 ? "s are" : " is"} ready for your OK.` : making.length ? `${making.length} short${making.length > 1 ? "s" : ""} rendering now.` : "All caught up."}${perDay ? ` · ${perDay} new shorts arrive every morning.` : ""}</div>
+    <div class="pipe">${stat(ready.length, "Ready", "approve", ready.length)}${stat(making.length, "Rendering", "progress")}${stat(sched.length, "Scheduled", "scheduled")}${stat(live.length, "Live", "published")}</div>
+    ${views ? `<div class="sub" style="margin-top:8px">${ic("eye", 14)} <b>${fmtNum(views)}</b> views on your live shorts</div>` : ""}
+    ${failed.length ? `<div class="card" style="margin-top:12px;display:flex;align-items:center;gap:10px;padding:12px" data-go="#/shorts" data-tab="progress"><span class="pill red">${failed.length} failed</span><span class="sub" style="flex:1">They retry once by themselves. Tap to see them.</span></div>` : ""}
+    <h2>Ready for you ${ready.length ? `<a href="#/shorts">See all</a>` : ""}</h2>
+    ${ready.length ? `<div class="reel">${ready.slice(0, 12).map(e => `<button class="tile" data-video="${e.id}">${thumb(e)}<b>${esc(e.title || "New short")}</b><span class="sub">${castLine(e)} ${esc(PLACES[e.place]?.[0] || "")}</span></button>`).join("")}</div>`
+      : `<div class="card empty"><b>Nothing waiting</b>${making.length ? "Your shorts are rendering – they appear here when done." : "Tap “New short”, or wait for tomorrow's batch."}</div>`}
+    <h2>Quick ideas</h2>
+    <div class="reel" style="gap:7px">${IDEAS.map(t => `<button class="chip" style="flex:none" data-idea="${esc(t)}">${ic("spark", 14)} ${esc(t)}</button>`).join("")}</div>
+    <div class="split" style="margin-top:4px">
+      <div><h2>Going live · 7 days</h2>
+        <div class="card"><div class="chart">${goingLive.map((n, i) => `<div class="${i === 6 ? "v" : ""}" style="height:${(n / mx) * 100}%" title="${n}"></div>`).join("")}</div>
+        <div class="chart-l">${days.map(d => `<span>${d.toLocaleDateString(undefined, { weekday: "narrow" })}</span>`).join("")}</div></div></div>
+      <div><h2>Activity</h2><div class="card feed" id="feed"><div class="sk" style="height:120px"></div></div></div>
+    </div>`);
   bindCommon();
+  fillThumbs(ready.slice(0, 12));
+  api.activity().then(act => { const f = document.getElementById("feed"); if (f) f.innerHTML = act.length ? act.slice(0, 8).map(a => `<div class="item"><span class="dot ${a.kind}"></span><span>${esc(a.message)}</span><span class="time">${ago(a.created_at)}</span></div>`).join("") : '<div class="empty">No activity yet.</div>'; }).catch(() => {});
 }
 
 // ---------------------------------------------------------------- Shorts
-function epCard(e, waitNote) {
+function epCard(e) {
   const st = STATUS[e.status] || { t: e.status, c: "" };
-  const busy = ["generating", "publishing", "queued"].includes(e.status);
-  const title = e.title || (e.idea ? `“${e.idea}”` : e.status === "queued" ? "New short (in line)" : "New short");
+  const title = e.title || (e.idea ? `“${e.idea}”` : e.feedback ? `Change: “${e.feedback}”` : e.status === "queued" ? "New short (in line)" : "New short");
   const info = [
     `<span class="pill ${st.c}">${st.t}</span>`,
-    chName(e.channel_id) ? `<span class="pill">${esc(chName(e.channel_id))}</span>` : "",
-    styleName(e.style) ? `<span class="pill">${styleName(e.style)}</span>` : "",
-    e.duration ? `<span class="pill">${Math.round(e.duration)}s</span>` : "",
+    e.hero ? `<span class="pill"><span class="cast">${castLine(e)}</span>${esc(castNames(e))}</span>` : "",
+    e.place ? `<span class="pill">${PLACES[e.place]?.[1] || ""} ${esc(PLACES[e.place]?.[0] || e.place)}</span>` : "",
+    state.channels.length > 1 && chName(e.channel_id) ? `<span class="pill">${esc(chName(e.channel_id))}</span>` : "",
     e.status === "scheduled" && e.publish_at ? `<span class="pill amber">${ic("clock", 12)} ${new Date(e.publish_at).toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" })}</span>` : "",
-    e.views != null ? `<span class="pill green">${fmtNum(e.views)} views</span>` : "",
+    e.views != null && e.status === "published" ? `<span class="pill green">${ic("eye", 12)} ${fmtNum(e.views)}</span>` : "",
   ].join("");
   let actions = "";
   if (e.status === "awaiting_approval") actions = `
     <button class="btn primary" data-act="publish" data-id="${e.id}">${ic("check", 16)} Publish</button>
-    <button class="btn" data-act="schedule" data-id="${e.id}">${ic("clock", 16)}</button>
+    <button class="btn" data-act="schedule" data-id="${e.id}" aria-label="Schedule">${ic("clock", 16)}</button>
     <button class="btn" data-act="revise" data-id="${e.id}">${ic("edit", 16)} Change</button>
     <button class="btn ghost danger" data-act="delete" data-id="${e.id}" aria-label="Delete">${ic("trash", 16)}</button>`;
-  else if (e.pending) actions = "";
   else if (e.status === "failed") actions = `
-    <button class="btn dark" data-act="${e.assets_path ? "publish" : "retry"}" data-id="${e.id}">${ic("refresh", 16)} Retry</button>
+    <button class="btn dark" data-act="${e.preview_path ? "publish" : "retry"}" data-id="${e.id}">${ic("refresh", 16)} Retry</button>
     <button class="btn ghost danger" data-act="delete" data-id="${e.id}">${ic("trash", 16)} Remove</button>`;
-  else if (e.youtube_url) actions = `<a class="btn" href="${esc(e.youtube_url)}" target="_blank" rel="noopener">${ic("ext", 16)} YouTube</a>`;
-  const script = e.story?.scenes?.length ? `<details class="script"><summary>Script</summary><ol>${e.story.scenes.map(s => `<li>${esc(s.narration)}</li>`).join("")}</ol></details>` : "";
-  const sub = e.takeaway ? esc(e.takeaway) : e.status === "queued" ? (waitNote || "Starts as soon as a worker is free.") : busy ? "About 3–6 minutes. You can close the app." : "";
+  else if (e.youtube_url) actions = `<a class="btn" href="${esc(e.youtube_url)}" target="_blank" rel="noopener">${ic("ext", 16)} Open on YouTube</a>`;
+  const sub = e.summary ? esc(e.summary.length > 170 ? e.summary.slice(0, 167) + "…" : e.summary)
+    : e.status === "queued" ? "Starts as soon as a machine is free." : e.status === "generating" ? "Rendering in 3D – about 20–40 minutes. You can close the app." : "";
   return `<div class="card ep">
-    <button class="thumb" data-video="${e.id}" style="${e.thumb ? `background-image:url('${e.thumb}')` : ""}" aria-label="Play">
-      ${busy ? `<div class="spin sk" style="position:absolute;inset:0"></div><div class="spin">${ic(e.status === "queued" ? "clock" : "spark", 26)}</div>` : (e.preview_path || e.thumb) ? `<span class="play">${ic("play", 16)}</span>` : ""}
-    </button>
+    <button class="th" data-video="${e.id}" data-thumb="${e.id}" aria-label="Play">${thumbInner(e)}</button>
     <div><h3>${esc(title)}</h3>${sub ? `<div class="lesson">${sub}</div>` : ""}
-      <div class="info">${info}</div>${e.error ? `<div class="err">${esc(e.error)}</div>` : ""}
-      <div class="actions">${actions}</div>${script}</div></div>`;
+      <div class="info">${info}</div>${e.wish ? `<div class="wishnote">💡 ${esc(e.wish)}</div>` : ""}${e.error ? `<div class="err">${esc(e.error)}</div>` : ""}
+      <div class="actions" style="margin-top:8px">${actions}</div></div></div>`;
 }
 
-async function viewShorts() {
-  const [eps, channels, waitNote] = await Promise.all([api.episodes(), api.channels(), api.waitingNote()]);
-  state.episodes = eps; state.channels = channels;
+function viewShorts() {
+  const eps = state.episodes, channels = state.channels;
   const mine = eps.filter(e => state.channel === "all" || e.channel_id === state.channel);
   const groups = {
     approve: mine.filter(e => e.status === "awaiting_approval"),
     progress: mine.filter(e => ["queued", "generating", "publishing", "failed"].includes(e.status)),
-    scheduled: mine.filter(e => e.status === "scheduled"),
+    scheduled: mine.filter(e => e.status === "scheduled").sort((a, b) => new Date(a.publish_at) - new Date(b.publish_at)),
     published: mine.filter(e => e.status === "published"),
   };
-  const labels = { approve: "To approve", progress: "In progress", scheduled: "Scheduled", published: "Published" };
+  const labels = { approve: "Ready", progress: "Rendering", scheduled: "Scheduled", published: "Live" };
   const list = groups[state.tab] || [];
-  const empty = { approve: ["Nothing to approve", "Tap “New shorts”, or wait for the daily batch."], progress: ["Nothing in progress", "Shorts being made show up here."], scheduled: ["Nothing scheduled", "Use “Schedule all” to spread shorts through the day."], published: ["Nothing published yet", "Published shorts appear here with their views."] }[state.tab];
+  const empty = { approve: ["Nothing to approve", "Tap “New short”, or wait for the morning batch."], progress: ["Nothing rendering", "New shorts show up here while they're made."], scheduled: ["Nothing scheduled", "Use “Schedule all” to spread shorts through the day."], published: ["Nothing live yet", "Published shorts appear here with their views."] }[state.tab];
   const bulk = state.tab === "approve" && list.length > 1 ? `<div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:12px">
-      <span class="sub" style="flex:1;min-width:140px"><b>${list.length}</b> waiting</span>
+      <span class="sub" style="flex:1;min-width:140px"><b>${list.length}</b> ready</span>
       <button class="btn" id="schedAll">${ic("clock", 16)} Schedule all</button>
       <button class="btn primary" id="pubAll">${ic("check", 16)} Publish all</button></div>` : "";
   root.innerHTML = shell("shorts", `
-    <h1>Shorts</h1><div class="sub" style="margin-bottom:12px">Nothing goes live without your OK.</div>
+    <h1>Shorts</h1><div class="sub" style="margin-bottom:12px">Nothing goes on YouTube without your OK.</div>
     ${channels.length > 1 ? `<div class="tabs" style="margin-bottom:6px">${[["all", "All channels"], ...channels.map(c => [c.id, c.name])].map(([id, n]) => `<button class="tab ${state.channel === id ? "on" : ""}" data-ch="${id}" style="padding:6px 12px;font-size:12.5px">${esc(n)}</button>`).join("")}</div>` : ""}
-    <div class="tabs">${Object.keys(labels).map(k => `<button class="tab ${state.tab === k ? "on" : ""}" data-tab="${k}">${labels[k]}${groups[k].length ? ` · ${groups[k].length}` : ""}</button>`).join("")}</div>
+    <div class="tabs">${Object.keys(labels).map(k => `<button class="tab ${state.tab === k ? "on" : ""}" data-tab2="${k}">${labels[k]}${groups[k].length ? ` · ${groups[k].length}` : ""}</button>`).join("")}</div>
     ${bulk}
-    <div class="grid">${list.length ? list.map(e => epCard(e, waitNote)).join("") : `<div class="card empty"><b>${empty[0]}</b>${empty[1]}</div>`}</div>
-  `, { fab: true, badge: eps.filter(e => e.status === "awaiting_approval").length });
-  root.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { state.tab = b.dataset.tab; viewShorts(); });
+    <div class="grid">${list.length ? list.slice(0, 60).map(epCard).join("") : `<div class="card empty"><b>${empty[0]}</b>${empty[1]}</div>`}</div>`);
+  root.querySelectorAll("[data-tab2]").forEach(b => b.onclick = () => { state.tab = b.dataset.tab2; viewShorts(); });
   root.querySelectorAll("[data-ch]").forEach(b => b.onclick = () => { state.channel = b.dataset.ch; viewShorts(); });
   root.querySelectorAll("[data-act]").forEach(b => b.onclick = () => episodeAction(b.dataset.act, b.dataset.id, b));
-  root.querySelectorAll("[data-video]").forEach(b => b.onclick = () => playVideo(b.dataset.video));
   root.querySelector("#pubAll")?.addEventListener("click", ev => {
     const unconnected = list.filter(e => !state.channels.find(c => c.id === e.channel_id)?.connected).length;
     if (!confirm(`Publish all ${list.length} shorts now?` + (unconnected ? `\n\n${unconnected} belong to a channel that isn't connected yet and will fail.` : ""))) return;
     guard(ev.currentTarget, async () => { await api.commands(list.map(e => ({ type: "publish", payload: { episode_id: e.id } }))); toast(`Publishing ${list.length} shorts`); refresh(); });
   });
   root.querySelector("#schedAll")?.addEventListener("click", () => scheduleAllSheet(list));
-  hydrateThumbs(list);
   bindCommon();
-}
-
-async function hydrateThumbs(list) {
-  if (DEMO) return;
-  await Promise.all(list.filter(e => e.thumb_path).map(async e => {
-    const url = await api.url(e.thumb_path);
-    const el = document.querySelector(`[data-video="${e.id}"]`);
-    if (el && url) el.style.backgroundImage = `url('${url}')`;
-  }));
+  fillThumbs(list.slice(0, 60));
 }
 
 async function playVideo(id) {
@@ -449,25 +414,27 @@ async function playVideo(id) {
   if (!e) return;
   if (DEMO) { if (e.title) toast("Demo mode: no real video to play"); return; }
   if (!e.preview_path) { if (e.youtube_url) window.open(e.youtube_url, "_blank"); return; }
-  const url = await api.url(e.preview_path);
+  const url = (await urls([e.preview_path]))[e.preview_path];
   if (!url) return toast("Preview not available");
-  sheet(`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px"><h3>${esc(e.title)}</h3><button class="btn ghost" data-close>${ic("x")}</button></div>
-    <video src="${url}" controls autoplay playsinline style="width:100%;max-height:70vh;border-radius:16px;background:#000;aspect-ratio:9/16"></video>
-    <div class="hint">Preview quality. YouTube gets the full 1080×1920 version.</div>
+  sheet(`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px"><h3>${esc(e.title)}</h3><button class="btn ghost" data-close aria-label="Close">${ic("x")}</button></div>
+    <video src="${url}" controls autoplay playsinline preload="auto" style="width:100%;max-height:68vh;border-radius:16px;background:#000;aspect-ratio:9/16"></video>
+    ${e.wish ? `<div class="wishnote">💡 ${esc(e.wish)}</div>` : ""}
+    <div class="hint">Preview quality – YouTube gets the full 1080×1920 version.</div>
     ${e.status === "awaiting_approval" ? `<div class="actions" style="margin-top:12px"><button class="btn primary" data-a="publish">${ic("check", 16)} Publish</button><button class="btn" data-a="schedule">${ic("clock", 16)} Schedule</button><button class="btn" data-a="revise">${ic("edit", 16)} Change</button><button class="btn ghost danger" data-a="delete">${ic("trash", 16)}</button></div>` : ""}`,
     (el, close) => { el.querySelector("[data-close]").onclick = close; el.querySelectorAll("[data-a]").forEach(b => b.onclick = () => { close(); episodeAction(b.dataset.a, e.id); }); });
 }
 
 function localInput(d) { return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); }
+function optimistic(id, values) { const e = state.episodes.find(x => x.id === id); if (e) Object.assign(e, values); route(true); }
 
 async function episodeAction(act, id, btn) {
   const e = state.episodes.find(x => x.id === id);
   if (act === "publish") {
-    if (!state.channels.find(c => c.id === e?.channel_id)?.connected) return toast("Connect this channel to YouTube first (Channels tab)");
-    return guard(btn, async () => { await api.command("publish", { episode_id: id }); toast("Publishing — live in a few minutes"); refresh(); });
+    if (!state.channels.find(c => c.id === e?.channel_id)?.connected) return toast("Connect this channel to YouTube first (Channels)");
+    return guard(btn, async () => { await api.command("publish", { episode_id: id }); optimistic(id, { status: "publishing" }); toast("Uploading – live in a few minutes"); refresh(); });
   }
-  if (act === "retry") return guard(btn, async () => { await api.commands([{ type: "generate", payload: { channel_id: e.channel_id, idea: e.idea, silent: !!e.story?.silent } }, { type: "delete", payload: { episode_id: id } }]); toast("Trying again"); refresh(); });
-  if (act === "delete") { if (!confirm("Delete this short?")) return; return guard(btn, async () => { await api.command("delete", { episode_id: id }); toast("Deleted"); refresh(); }); }
+  if (act === "retry") return guard(btn, async () => { await api.commands([{ type: "generate", payload: { channel_id: e.channel_id, idea: e.idea || e.feedback, silent: true } }, { type: "delete", payload: { episode_id: id } }]); toast("Making it again"); refresh(); });
+  if (act === "delete") { if (!confirm("Delete this short?")) return; return guard(btn, async () => { await api.command("delete", { episode_id: id }); state.episodes = state.episodes.filter(x => x.id !== id); route(true); toast("Deleted"); refresh(); }); }
   if (act === "schedule") {
     const d = new Date(Date.now() + 864e5); d.setHours(17, 0, 0, 0);
     return sheet(`<h3>Schedule</h3><div class="sub">YouTube makes it public at this time.</div>
@@ -480,12 +447,12 @@ async function episodeAction(act, id, btn) {
       }));
   }
   if (act === "revise") {
-    return sheet(`<h3>Change this short</h3><div class="sub">A new version comes back for approval (uses 8 of today's free pictures).</div>
-      <label class="f">What should change?</label><textarea class="input" id="fb" placeholder="e.g. Make the hero a turtle and give it a funnier ending"></textarea>
-      <div class="actions" style="margin-top:8px">${["Funnier ending", "Simpler words", "More exciting start", "Different art style", "Different characters"].map(s => `<button class="btn" data-s="${s}">${s}</button>`).join("")}</div>
+    return sheet(`<h3>Change this short</h3><div class="sub">Say what to change – everything else stays the same. The new version comes back for your OK.</div>
+      <label class="f">What should change?</label><textarea class="input" id="fb" placeholder="e.g. Make it Tobi and Teo at the beach, and start with the balloon"></textarea>
+      <div class="chips" style="margin-top:8px">${CHANGES.map(s => `<button class="chip" data-s="${esc(s)}">${esc(s)}</button>`).join("")}</div>
       <div style="margin-top:16px"><button class="btn primary block" id="go">${ic("refresh", 16)} Remake</button></div>`,
       (el, close) => {
-        el.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { const t = el.querySelector("#fb"); t.value = (t.value ? t.value + ". " : "") + b.dataset.s; });
+        el.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { const t = el.querySelector("#fb"); t.value = (t.value ? t.value.replace(/\.?\s*$/, ". ") : "") + b.dataset.s; });
         el.querySelector("#go").onclick = ev => guard(ev.currentTarget, async () => {
           const fb = el.querySelector("#fb").value.trim(); if (!fb) throw new Error("Write what to change");
           await api.command("revise", { episode_id: id, feedback: fb }); close(); toast("Remaking it"); state.tab = "progress"; refresh();
@@ -496,9 +463,9 @@ async function episodeAction(act, id, btn) {
 
 function scheduleAllSheet(list) {
   const start = new Date(); start.setDate(start.getDate() + (start.getHours() >= 16 ? 1 : 0)); start.setHours(start.getHours() >= 16 ? 8 : Math.max(start.getHours() + 1, 8), 0, 0, 0);
-  sheet(`<h3>Schedule all ${list.length}</h3><div class="sub">Spreads them evenly so each gets its own moment in the feed.</div>
+  sheet(`<h3>Schedule all ${list.length}</h3><div class="sub">Spreads them out so each one gets its own moment in the Shorts feed.</div>
     <label class="f">First one at</label><input type="datetime-local" class="input" id="st" value="${localInput(start)}">
-    <label class="f">Then one every</label><select class="input" id="gap">${[[30, "30 minutes"], [45, "45 minutes"], [60, "1 hour"], [90, "1.5 hours"], [120, "2 hours"]].map(([v, l]) => `<option value="${v}" ${v === 45 ? "selected" : ""}>${l}</option>`).join("")}</select>
+    <label class="f">Then one every</label><select class="input" id="gap">${[[30, "30 minutes"], [45, "45 minutes"], [60, "1 hour"], [90, "1.5 hours"], [120, "2 hours"]].map(([v, l]) => `<option value="${v}" ${v === 60 ? "selected" : ""}>${l}</option>`).join("")}</select>
     <div class="hint" id="last"></div>
     <div style="margin-top:16px"><button class="btn primary block" id="go">${ic("clock", 16)} Schedule ${list.length} shorts</button></div>`,
     (el, close) => {
@@ -513,51 +480,62 @@ function scheduleAllSheet(list) {
     });
 }
 
-async function newShortsSheet() {
-  const channels = state.channels.length ? state.channels : await api.channels();
-  const usage = await api.usage();
-  const left = Math.max(0, Math.floor((PICS_PER_DAY - (usage.images || 0)) / PICS_PER_SHORT));
-  sheet(`<h3>New shorts</h3><div class="sub">New characters, world and art style every time. ${left} more possible free today.</div>
-    <label class="f">Channel</label><select class="input" id="ch">${channels.map(c => `<option value="${c.id}" ${c.id === state.channel ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select>
-    <label class="f">How many?</label><div class="seg" id="cnt">${[1, 3, 5, 10].map(n => `<button data-n="${n}" class="${n === 1 ? "on" : ""}">${n}</button>`).join("")}</div>
-    <label class="f">Sound</label><div class="seg" id="snd"><button data-s="1" class="${silentPref() ? "on" : ""}">Music + sound effects</button><button data-s="0" class="${silentPref() ? "" : "on"}">Narration + captions</button></div>
-    <label class="f">Idea (optional)</label><input class="input" id="idea" placeholder="e.g. a whale who sings off-key · how bees make honey">
-    <div class="hint">Leave empty and the AI invents something new each time.</div>
-    <div style="margin-top:16px"><button class="btn primary block" id="go">${ic("spark", 16)} Make it</button></div>`,
+function newShortSheet(pre = {}) {
+  const channels = state.channels;
+  if (!channels.length) return toast("Add a channel first (Channels)");
+  sheet(`<h3>New short</h3><div class="sub">A 30-second 3D cartoon with music and sound effects. Leave everything on “Surprise me” and the AI picks.</div>
+    ${channels.length > 1 ? `<label class="f">Channel</label><select class="input" id="ch">${channels.map(c => `<option value="${c.id}" ${c.id === state.channel ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select>` : ""}
+    <label class="f">Who stars? <span class="sub" style="font-weight:500">(up to 2)</span></label>
+    ${chips(Object.entries(CAST).map(([k, [n, e]]) => [k, `${e} ${n}`]), "cast")}
+    <label class="f">Where?</label>
+    ${chips([["", "🎲 Surprise me"], ...Object.entries(PLACES).map(([k, [n, e]]) => [k, `${e} ${n}`])], "place", [""])}
+    <label class="f">Your idea <span class="sub" style="font-weight:500">(optional)</span></label>
+    <textarea class="input" id="idea" placeholder="e.g. Popo sneaks off with Lulu's donut, and Lulu wears a crown">${esc(pre.idea || "")}</textarea>
+    <div class="reel" style="gap:7px;margin-top:8px">${IDEAS.map(t => `<button type="button" class="chip" style="flex:none" data-ex="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+    <label class="f">How many?</label><div class="seg" id="cnt">${[1, 3, 5, 10].map(n => `<button type="button" data-n="${n}" class="${n === 1 ? "on" : ""}">${n}</button>`).join("")}</div>
+    <div style="margin-top:18px"><button class="btn primary block" id="go">${ic("spark", 16)} Make it</button></div>
+    <div class="hint" style="text-align:center">Ready to approve in about 20–40 minutes.</div>`,
     (el, close) => {
-      let n = 1, silent = silentPref();
-      el.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { silent = b.dataset.s === "1"; try { localStorage.setItem("mc_silent", silent ? "1" : "0"); } catch {} el.querySelectorAll("[data-s]").forEach(x => x.classList.toggle("on", x === b)); });
+      let n = 1;
+      el.querySelectorAll("[data-chips=cast] .chip").forEach(b => b.onclick = () => {
+        const on = el.querySelectorAll("[data-chips=cast] .chip.on");
+        if (!b.classList.contains("on") && on.length >= 2) on[0].classList.remove("on");
+        b.classList.toggle("on");
+      });
+      el.querySelectorAll("[data-chips=place] .chip").forEach(b => b.onclick = () => { el.querySelectorAll("[data-chips=place] .chip").forEach(x => x.classList.toggle("on", x === b)); });
+      el.querySelectorAll("[data-ex]").forEach(b => b.onclick = () => { el.querySelector("#idea").value = b.dataset.ex; });
       el.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { n = +b.dataset.n; el.querySelectorAll("[data-n]").forEach(x => x.classList.toggle("on", x === b)); });
       el.querySelector("#go").onclick = ev => guard(ev.currentTarget, async () => {
-        const idea = el.querySelector("#idea").value.trim() || undefined, channel_id = el.querySelector("#ch").value;
-        await api.commands([...Array(n)].map(() => ({ type: "generate", payload: { channel_id, idea, silent } })));
-        close(); toast(n > left ? `${left} start now, the rest continue after the free limit resets` : `Making ${n} short${n > 1 ? "s" : ""}`);
+        const cast = [...el.querySelectorAll("[data-chips=cast] .chip.on")].map(b => CAST[b.dataset.v][0]);
+        const place = el.querySelector("[data-chips=place] .chip.on")?.dataset.v;
+        const text = el.querySelector("#idea").value.trim();
+        const parts = [cast.length ? `Starring ${cast.join(" and ")}.` : "", place ? `It happens at the ${PLACES[place][0].toLowerCase()}.` : "", text];
+        const idea = parts.filter(Boolean).join(" ") || undefined;
+        const channel_id = el.querySelector("#ch")?.value || channels[0].id;
+        await api.commands([...Array(n)].map(() => ({ type: "generate", payload: { channel_id, idea, silent: true } })));
+        close(); toast(`Making ${n} short${n > 1 ? "s" : ""} – they'll be ready to approve soon`);
         state.tab = "progress"; if (location.hash !== "#/shorts") location.hash = "#/shorts"; else refresh();
       });
     });
 }
 
 // ---------------------------------------------------------------- Channels
-const VOICES = [["en-US-AnaNeural", "Ana — child-like (US)"], ["en-US-JennyNeural", "Jenny — warm storyteller (US)"], ["en-US-AriaNeural", "Aria — bright (US)"], ["en-GB-MaisieNeural", "Maisie — child-like (UK)"], ["en-GB-SoniaNeural", "Sonia — gentle (UK)"], ["en-US-GuyNeural", "Guy — friendly male (US)"], ["en-GB-RyanNeural", "Ryan — narrator (UK)"]];
-
-async function viewChannels() {
-  const channels = await api.channels(); state.channels = channels;
+function viewChannels() {
+  const channels = state.channels;
   const total = channels.filter(c => c.auto_daily).reduce((s, c) => s + (+c.per_day || 0), 0);
   root.innerHTML = shell("channels", `
-    <h1>Channels</h1><div class="sub" style="margin-bottom:12px">Each channel has its own niche and voice. Daily total: <b>${total}</b> shorts${total > 21 ? ' <span class="pill red">over the free ~20/day</span>' : ""}</div>
+    <h1>Channels</h1><div class="sub" style="margin-bottom:12px">Every morning: <b>${total}</b> new short${total === 1 ? "" : "s"} across your channels.${total > 20 ? ' <span class="pill amber">more than ~20/day takes longer to render</span>' : ""}</div>
     <div class="grid">${channels.map(c => `<div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-        <div><div style="font-weight:800;font-size:17px">${esc(c.name)}</div><div class="sub">${esc(c.niche)}</div></div>
-        ${c.connected ? `<span class="pill green">${ic("check", 12)} ${esc(c.youtube_title || "Connected")}</span>` : '<span class="pill red">Not connected</span>'}</div>
-      <div class="info" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0">
-        <span class="pill">${c.auto_daily ? `${c.per_day} / day` : "Manual only"}</span><span class="pill">${esc((VOICES.find(v => v[0] === c.voice) || [0, c.voice])[1].split(" —")[0])}</span>
-        ${c.made_for_kids ? '<span class="pill">Made for kids</span>' : ""}</div>
+      <div class="chan"><div class="av">${esc((c.name || "?")[0].toUpperCase())}</div>
+        <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:17px">${esc(c.name)}</div><div class="sub">${c.connected ? `${ic("yt", 14)} ${esc(c.youtube_title || "Connected")}` : "Not connected to YouTube yet"}</div></div>
+        ${c.connected ? `<span class="pill green">${ic("check", 12)} Connected</span>` : '<span class="pill red">Not connected</span>'}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0">
+        <span class="pill">${c.auto_daily ? `${c.per_day} new / day` : "Only when you ask"}</span>${c.made_for_kids ? '<span class="pill">Made for kids</span>' : ""}</div>
       <div class="actions">${c.connected ? "" : `<button class="btn primary" data-connect="${c.id}">${ic("link", 16)} Connect YouTube</button>`}
         <button class="btn" data-edit="${c.id}">${ic("edit", 16)} Edit</button>
-        ${c.connected ? `<button class="btn ghost" data-connect="${c.id}">${ic("refresh", 16)} Reconnect</button>` : ""}</div></div>`).join("")}</div>
+        ${c.connected ? `<button class="btn ghost" data-connect="${c.id}">${ic("refresh", 16)} Reconnect</button>` : ""}</div></div>`).join("") || '<div class="card empty"><b>No channels yet</b>Add your YouTube channel to start.</div>'}</div>
     <div style="margin-top:12px"><button class="btn block" id="add">${ic("plus", 16)} Add a channel</button></div>
-    <div class="hint" style="margin-top:10px">Tip: spreading 20/day over 2–3 channels with different niches looks far less “mass-produced” to YouTube than 20 on one.</div>
-  `);
+    <div class="hint" style="margin-top:10px">Tip: 2–3 channels with a few shorts each per day look less “mass-produced” to YouTube than 20 on one.</div>`, { fab: false });
   root.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => channelSheet(channels.find(c => c.id === b.dataset.edit)));
   root.querySelectorAll("[data-connect]").forEach(b => b.onclick = () => connectYouTube(b.dataset.connect));
   root.querySelector("#add").onclick = () => channelSheet(null);
@@ -565,35 +543,34 @@ async function viewChannels() {
 }
 
 function channelSheet(c) {
-  c = c || { name: "", niche: "", per_day: 5, auto_daily: true, voice: "en-US-AnaNeural", made_for_kids: true };
+  c = c || { name: "", niche: "", per_day: 5, auto_daily: true, made_for_kids: true };
   sheet(`<h3>${c.id ? "Edit channel" : "New channel"}</h3>
-    <label class="f">Name (for you)</label><input class="input" id="nm" value="${esc(c.name)}" placeholder="e.g. Bedtime Stories">
-    <label class="f">Niche — what this channel is about</label><textarea class="input" id="ni" placeholder="e.g. calm bedtime stories for kids 3-6 with soothing endings">${esc(c.niche)}</textarea>
-    <div class="hint">The writer invents new characters and worlds each time inside this niche.</div>
-    <label class="f">Narrator voice</label><select class="input" id="vo">${VOICES.map(([v, l]) => `<option value="${v}" ${v === c.voice ? "selected" : ""}>${l}</option>`).join("")}</select>
-    <div class="row"><div><div class="t">Make shorts every day</div><div class="d">They wait for your approval</div></div><label class="switch"><input type="checkbox" id="ad" ${c.auto_daily ? "checked" : ""}><span></span></label></div>
-    <label class="f" style="margin-top:4px">Shorts per day</label><input class="input" id="pd" type="number" min="1" max="20" value="${c.per_day}">
-    <div class="row"><div><div class="t">Made for kids</div><div class="d">Required by law if the audience is children</div></div><label class="switch"><input type="checkbox" id="mk" ${c.made_for_kids ? "checked" : ""}><span></span></label></div>
-    <div style="margin-top:16px;display:flex;gap:8px">${c.id ? `<button class="btn ghost danger" id="del">${ic("trash", 16)}</button>` : ""}<button class="btn primary block" id="go">Save</button></div>`,
+    <label class="f">Name (for you)</label><input class="input" id="nm" value="${esc(c.name)}" placeholder="e.g. Pip & Friends">
+    <label class="f">About this channel <span class="sub" style="font-weight:500">(optional)</span></label><input class="input" id="ni" value="${esc(c.niche || "")}" placeholder="e.g. funny 3D cartoon shorts for kids 2-6">
+    <div class="row"><div><div class="t">New shorts every morning</div><div class="d">They wait for your OK</div></div><label class="switch"><input type="checkbox" id="ad" ${c.auto_daily ? "checked" : ""}><span></span></label></div>
+    <label class="f" style="margin-top:4px">Shorts per day</label><div class="seg" id="pd">${[1, 3, 5, 10, 20].map(n => `<button type="button" data-n="${n}" class="${+c.per_day === n ? "on" : ""}">${n}</button>`).join("")}</div>
+    <div class="row"><div><div class="t">Made for kids</div><div class="d">Required by law when the audience is children</div></div><label class="switch"><input type="checkbox" id="mk" ${c.made_for_kids ? "checked" : ""}><span></span></label></div>
+    <div style="margin-top:16px;display:flex;gap:8px">${c.id ? `<button class="btn ghost danger" id="del" aria-label="Delete channel">${ic("trash", 16)}</button>` : ""}<button class="btn primary block" id="go">Save</button></div>`,
     (el, close) => {
+      let per = +c.per_day || 5;
+      el.querySelectorAll("#pd [data-n]").forEach(b => b.onclick = () => { per = +b.dataset.n; el.querySelectorAll("#pd [data-n]").forEach(x => x.classList.toggle("on", x === b)); });
       el.querySelector("#go").onclick = ev => guard(ev.currentTarget, async () => {
-        const v = { name: el.querySelector("#nm").value.trim(), niche: el.querySelector("#ni").value.trim(), voice: el.querySelector("#vo").value,
-          auto_daily: el.querySelector("#ad").checked, per_day: Math.max(1, Math.min(20, +el.querySelector("#pd").value || 1)), made_for_kids: el.querySelector("#mk").checked };
-        if (!v.name || !v.niche) throw new Error("Give it a name and a niche");
-        await api.saveChannel(c.id, v); close(); toast("Saved"); viewChannels();
+        const v = { name: el.querySelector("#nm").value.trim(), niche: el.querySelector("#ni").value.trim() || "funny 3D cartoon shorts for kids",
+          auto_daily: el.querySelector("#ad").checked, per_day: per, made_for_kids: el.querySelector("#mk").checked };
+        if (!v.name) throw new Error("Give it a name");
+        await api.saveChannel(c.id, v); close(); toast("Saved"); state.channels = await api.channels(); viewChannels();
       });
-      el.querySelector("#del")?.addEventListener("click", ev => { if (confirm(`Delete channel “${c.name}”? Its shorts stay on YouTube.`)) guard(ev.currentTarget, async () => { await api.deleteChannel(c.id); close(); viewChannels(); }); });
+      el.querySelector("#del")?.addEventListener("click", ev => { if (confirm(`Delete channel “${c.name}”? Its videos stay on YouTube.`)) guard(ev.currentTarget, async () => { await api.deleteChannel(c.id); close(); state.channels = await api.channels(); viewChannels(); }); });
     });
 }
 
-function silentPref() { try { return localStorage.getItem("mc_silent") !== "0"; } catch { return true; } }
 function redirectUri() { return location.origin + location.pathname; }
 function connectYouTube(channelId) {
   if (DEMO) { api.command("connect_channel", { channel_id: channelId }); toast("Demo: connected"); return viewChannels(); }
-  if (!CFG.GOOGLE_CLIENT_ID || CFG.GOOGLE_CLIENT_ID.includes("YOUR_")) return toast("Add GOOGLE_CLIENT_ID to config.js first (see setup guide)");
+  if (!CFG.GOOGLE_CLIENT_ID || CFG.GOOGLE_CLIENT_ID.includes("YOUR_")) return toast("Add GOOGLE_CLIENT_ID to config.js first");
   const p = new URLSearchParams({ client_id: CFG.GOOGLE_CLIENT_ID, redirect_uri: redirectUri(), response_type: "code", access_type: "offline", prompt: "consent select_account",
     scope: "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly", state: channelId });
-  if (window.missionDesktop) toast("Finishing in your web browser — sign in there if asked");
+  if (window.missionDesktop) toast("Finishing in your web browser – sign in there if asked");
   location.href = "https://accounts.google.com/o/oauth2/v2/auth?" + p;
 }
 function stashConnect() {
@@ -611,59 +588,42 @@ async function finishConnect() {
   toast("Connecting your channel… it turns green in about a minute");
 }
 
-// ---------------------------------------------------------------- Tasks
-async function viewTasks(project) {
-  const projects = await api.projects();
-  state.project = project || state.project || "shorts";
-  const tasks = await api.tasks(state.project);
-  const cols = { todo: "To do", doing: "Doing", done: "Done" }, next = { todo: "doing", doing: "done", done: "todo" };
-  const p = projects.find(x => x.id === state.project);
-  root.innerHTML = shell("tasks", `
-    <h1>Tasks</h1><div class="sub" style="margin-bottom:14px">${esc(p?.description || "")}</div>
-    <div class="seg">${projects.map(x => `<button class="${x.id === state.project ? "on" : ""}" data-p="${x.id}">${esc(x.name)}</button>`).join("")}</div>
-    <div class="kan">${Object.entries(cols).map(([k, label]) => { const list = tasks.filter(t => t.status === k);
-      return `<div class="col"><h4>${label}<span>${list.length}</span></h4>${list.map(t => `<div class="task ${t.status}"><button class="chk" data-cycle="${t.id}" data-next="${next[t.status]}">${t.status === "done" ? ic("check", 14) : ""}</button><span class="tt">${esc(t.title)}</span><button class="x" data-del="${t.id}" aria-label="Delete">${ic("x", 16)}</button></div>`).join("") || `<div class="sub" style="padding:4px 2px 10px">—</div>`}</div>`; }).join("")}</div>
-    <form class="add" id="add"><input class="input" id="nt" placeholder="Add a task…" autocomplete="off"><button class="btn dark">${ic("plus", 16)}</button></form>
-    <div class="hint" style="margin-top:8px">Tap the box to move a task: To do → Doing → Done.</div>`);
-  root.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { location.hash = "#/tasks/" + b.dataset.p; });
-  root.querySelectorAll("[data-cycle]").forEach(b => b.onclick = () => guard(null, async () => { await api.setTask(b.dataset.cycle, { status: b.dataset.next }); viewTasks(state.project); }));
-  root.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { if (confirm("Delete this task?")) guard(null, async () => { await api.delTask(b.dataset.del); viewTasks(state.project); }); });
-  root.querySelector("#add").onsubmit = ev => { ev.preventDefault(); const v = root.querySelector("#nt").value.trim(); if (v) guard(null, async () => { await api.addTask(state.project, v); viewTasks(state.project); }); };
-  bindCommon();
-}
-
 // ---------------------------------------------------------------- Settings
 async function viewSettings() {
-  const s = await api.settings();
+  const s = state.settings = await api.settings().catch(() => state.settings || {});
+  const gpu = ["true", "1", "yes", true].includes(s.gpu_render);
   const ios = /iphone|ipad/i.test(navigator.userAgent);
   root.innerHTML = shell("settings", `
     <h1>Settings</h1>
+    <h2>Making shorts</h2>
+    <div class="card">
+      <div class="row"><div><div class="t">Render on the free GPU first</div><div class="d">Full 1080p, sharper light, faster when Kaggle has a free graphics card. Falls back to the normal machines automatically.</div></div>
+        <label class="switch"><input type="checkbox" id="gpu" ${gpu ? "checked" : ""}><span></span></label></div>
+      <div class="row"><div><div class="t">Every short</div><div class="d">3D cartoon · 20–40 s · music + sound effects only · no text on screen · nothing posts without your OK</div></div></div>
+    </div>
     <h2>App</h2>
     <div class="card">
-      <div class="row"><div><div class="t">Install Mission Control</div><div class="d">${standalone() ? "Installed ✓" : ios ? "On iPhone: Share → Add to Home Screen" : "On computer or Android: Install button, or browser menu → Install app"}</div></div>
+      <div class="row"><div><div class="t">Install Shorts Studio</div><div class="d">${standalone() ? "Installed ✓" : ios ? "On iPhone: Share → Add to Home Screen" : "On computer or Android: Install button, or browser menu → Install app"}</div></div>
         ${installEvt && !standalone() ? `<button class="btn primary" id="install2">${ic("dl", 16)} Install</button>` : ""}</div>
-      <div class="row"><div><div class="t">Notifications</div><div class="d">${canNotify() ? "On — you'll be told when shorts are ready" : "Get told when shorts are ready to approve"}</div></div>
+      <div class="row"><div><div class="t">Notifications</div><div class="d">${canNotify() ? "On – you'll hear when shorts are ready" : "Get told when shorts are ready to approve"}</div></div>
         ${canNotify() ? "" : `<button class="btn" id="notif">Turn on</button>`}</div>
       ${window.missionDesktop ? "" : `<div class="row"><div><div class="t">Windows app</div><div class="d">Tray icon, starts with Windows, desktop notifications</div></div>
         ${CFG.GITHUB_REPO && !CFG.GITHUB_REPO.includes("YOUR_") ? `<a class="btn" href="https://github.com/${esc(CFG.GITHUB_REPO)}/releases/latest" target="_blank" rel="noopener">${ic("dl", 16)} Download</a>` : ""}</div>`}
-      <div class="row"><div><div class="t">Background music volume</div><div class="d">Add royalty-free .mp3 files to the <b>music</b> folder in GitHub</div></div></div>
-      <input type="range" id="mvol" min="0" max="0.3" step="0.02" value="${Number(s.music_volume ?? 0.12)}" style="width:100%;accent-color:var(--accent)">
     </div>
-    <h2>Free limits</h2>
-    <div class="card"><div class="row"><div><div class="t">~20 shorts per day</div><div class="d">Cloudflare's free pictures (≈170/day, 8 per short). Extra requests wait for the next day automatically.</div></div></div>
-      <div class="row"><div><div class="t">Writer, voice, storage, hosting</div><div class="d">Gemini free tier · Microsoft Edge voices · Supabase free · GitHub Actions · Vercel — all €0</div></div></div></div>
+    <h2>Free services</h2>
+    <div class="card"><div class="row"><div><div class="t">All €0</div><div class="d">Blender 3D on GitHub Actions · Kaggle free GPU · Gemini for ideas &amp; titles · Supabase · Vercel · YouTube API</div></div></div></div>
     <h2>Account</h2>
     <div class="card"><div class="row"><div><div class="t">${esc(state.user?.email || "")}</div><div class="d">Only this login can open the app</div></div><button class="btn" id="logout">Sign out</button></div>
-      ${CFG.GITHUB_REPO && !CFG.GITHUB_REPO.includes("YOUR_") ? `<div class="row"><div><div class="t">Worker logs</div><div class="d">See exactly what ran in the cloud</div></div><a class="btn" target="_blank" rel="noopener" href="https://github.com/${esc(CFG.GITHUB_REPO)}/actions">${ic("ext", 16)} Open</a></div>` : ""}</div>`);
-  root.querySelector("#notif")?.addEventListener("click", async () => { if (!("Notification" in window)) return toast("This browser doesn't support notifications"); const r = await Notification.requestPermission(); toast(r === "granted" ? "Notifications on" : "Notifications blocked — allow them in browser settings"); viewSettings(); });
-  root.querySelector("#mvol").onchange = e => guard(null, async () => { await api.setSetting("music_volume", Number(e.target.value)); toast("Saved"); });
+      ${CFG.GITHUB_REPO && !CFG.GITHUB_REPO.includes("YOUR_") ? `<div class="row"><div><div class="t">Worker logs</div><div class="d">See exactly what ran in the cloud</div></div><a class="btn" target="_blank" rel="noopener" href="https://github.com/${esc(CFG.GITHUB_REPO)}/actions">${ic("ext", 16)} Open</a></div>` : ""}</div>`, { fab: false });
+  root.querySelector("#gpu").onchange = e => guard(null, async () => { await api.setSetting("gpu_render", e.target.checked); toast(e.target.checked ? "GPU rendering on" : "GPU rendering off"); });
+  root.querySelector("#notif")?.addEventListener("click", async () => { if (!("Notification" in window)) return toast("This browser doesn't support notifications"); const r = await Notification.requestPermission(); toast(r === "granted" ? "Notifications on" : "Notifications blocked – allow them in browser settings"); viewSettings(); });
   root.querySelector("#logout").onclick = () => api.logout();
   root.querySelector("#install2")?.addEventListener("click", () => document.getElementById("install")?.click());
   bindCommon();
 }
 
 function viewLogin(msg) {
-  root.innerHTML = `<div class="login"><div style="text-align:center;margin-bottom:22px"><img src="icon.svg" style="width:56px"><h1>Mission Control</h1><div class="sub">Build · Automate · Earn</div></div>
+  root.innerHTML = `<div class="login"><div style="text-align:center;margin-bottom:22px"><img src="icon.svg" style="width:60px;border-radius:16px"><h1>Shorts Studio</h1><div class="sub">Your 3D YouTube Shorts, made for you every day</div></div>
     <form class="card" id="lf">${msg ? `<div class="err">${esc(msg)}</div>` : ""}
       <label class="f" style="margin-top:0">Email</label><input class="input" type="email" id="em" autocomplete="username" required>
       <label class="f">Password</label><input class="input" type="password" id="pw" autocomplete="current-password" required>
@@ -671,13 +631,28 @@ function viewLogin(msg) {
   root.querySelector("#lf").onsubmit = ev => { ev.preventDefault(); guard(ev.submitter, async () => { try { await api.login(root.querySelector("#em").value, root.querySelector("#pw").value); boot(); } catch { viewLogin("Wrong email or password."); } }); };
 }
 
-// ---------------------------------------------------------------- router + live updates
-function route() {
-  document.querySelectorAll(".sheet-bg").forEach(x => x.remove());
-  const [page, arg] = location.hash.replace(/^#\/?/, "").split("/");
-  const go = { "": viewHome, shorts: viewShorts, channels: viewChannels, tasks: () => viewTasks(arg), settings: viewSettings }[page] || viewHome;
-  return go().then(updateBadge).catch(e => { console.error(e); root.innerHTML = shell("home", `<div class="card empty"><b>Couldn't load</b>${esc(e.message)}<br><br><button class="btn" onclick="location.reload()">Try again</button></div>`); });
+// ---------------------------------------------------------------- router: draw instantly from what we have, then refresh
+const VIEWS = { "": viewHome, shorts: viewShorts, channels: viewChannels, settings: viewSettings };
+function page() { return location.hash.replace(/^#\/?/, "").split("/")[0]; }
+let lastSig = "";
+function route(local = false) {
+  if (!local) document.querySelectorAll(".sheet-bg").forEach(x => x.remove());
+  const go = VIEWS[page()] || viewHome;
+  const y = scrollY;
+  try { const r = go(); if (r?.catch) r.catch(fail); } catch (e) { fail(e); }
+  if (local) scrollTo(0, y);
+  updateBadge();
 }
+function fail(e) { console.error(e); root.innerHTML = shell("home", `<div class="card empty"><b>Couldn't load</b>${esc(e.message)}<br><br><button class="btn" onclick="location.reload()">Try again</button></div>`); }
+async function load() {
+  const [eps, ch] = await Promise.all([api.episodes(), api.channels()]);
+  state.episodes = eps; state.channels = ch;
+  const sig = JSON.stringify([eps.map(e => [e.id, e.status, e.title, e.thumb_path, e.views, e.error]), ch.map(c => [c.id, c.connected, c.per_day, c.name, c.auto_daily])]);
+  if (sig !== lastSig) { lastSig = sig; if (!document.querySelector(".sheet-bg") && page() !== "settings") route(true); }
+}
+let rt;
+function refresh() { clearTimeout(rt); rt = setTimeout(() => load().catch(e => console.warn(e)), 350); }
+
 // ---------------------------------------------------------------- notifications
 const notified = new Set(); let pendingReady = [], notifyTimer;
 function canNotify() { return "Notification" in window && Notification.permission === "granted"; }
@@ -686,38 +661,33 @@ function onEpisodeChange(payload) {
   if (payload.eventType !== "UPDATE" || e.status !== "awaiting_approval" || notified.has(e.id)) return;
   notified.add(e.id); pendingReady.push(e.title || "New short");
   clearTimeout(notifyTimer);
-  notifyTimer = setTimeout(() => {   // bundle several finishing together into one notification
+  notifyTimer = setTimeout(() => {
     const list = pendingReady; pendingReady = [];
     if (!canNotify() || (document.hasFocus() && location.hash.startsWith("#/shorts"))) return;
     const n = new Notification(list.length > 1 ? `${list.length} shorts ready to approve` : "Short ready to approve",
-      { body: list.slice(0, 3).join(" · "), icon: "icon-192.png", tag: "mc-ready" });
+      { body: list.slice(0, 3).join(" · "), icon: "icon-192.png", tag: "ss-ready" });
     n.onclick = () => { window.missionDesktop ? window.missionDesktop.focus("#/shorts") : window.focus(); location.hash = "#/shorts"; n.close(); };
   }, 4000);
 }
-async function updateBadge() {
-  if (!window.missionDesktop) return;
-  const n = state.episodes.filter(e => e.status === "awaiting_approval").length;
-  window.missionDesktop.setBadge(n);
-}
+function updateBadge() { if (window.missionDesktop) window.missionDesktop.setBadge(readyCount()); }
 
-let rt;
-function refresh() { clearTimeout(rt); rt = setTimeout(() => { if (!document.querySelector(".sheet-bg")) route(); }, 300); }
 async function boot() {
   stashConnect();
   state.user = await api.user();
   if (!state.user) return viewLogin();
-  await finishConnect().catch(e => toast("⚠️ " + e.message));
-  state.channels = await api.channels().catch(() => []);
-  window.onhashchange = route;
-  route();
+  window.onhashchange = () => route();
+  if (state.episodes.length || state.channels.length) route();   // last known data shows instantly
+  finishConnect().catch(e => toast("⚠️ " + e.message));
+  await load().catch(e => { if (!state.episodes.length) fail(e); });
+  if (!lastSig) route();
   if (!DEMO) {
     if (window.missionDesktop && "Notification" in window && Notification.permission === "default") Notification.requestPermission();
     sb.channel("live").on("postgres_changes", { event: "*", schema: "public", table: "episodes" }, p => { onEpisodeChange(p); refresh(); })
       .on("postgres_changes", { event: "*", schema: "public", table: "channels" }, refresh)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "activity" }, () => { if (!location.hash || location.hash === "#/") refresh(); })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "activity" }, () => { if (page() === "") { const f = document.getElementById("feed"); if (f) viewHome(); } })
       .subscribe();
     document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
-    setInterval(() => { if (!document.hidden && state.episodes.some(e => ["queued", "generating", "publishing"].includes(e.status))) refresh(); }, 20000);
+    setInterval(() => { if (!document.hidden && state.episodes.some(e => ["queued", "generating", "publishing"].includes(e.status))) refresh(); }, 30000);
   }
 }
 boot();
