@@ -57,6 +57,7 @@ jobs:
     timeout-minutes: 90
     strategy:
       fail-fast: false
+      max-parallel: 18     # leaves 2 of GitHub's 20 free machines for the app's worker + finishing
       matrix:
         part: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     steps:
@@ -95,6 +96,9 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: write        # starts the next short in line
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -104,6 +108,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Start the next short in line
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: pip install -q requests && python -m pipeline.slots "$EP"
       - uses: actions/cache@v4
         with:
           path: assets
