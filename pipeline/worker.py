@@ -137,8 +137,15 @@ def _generate_3d(payload, ch, ep_id, slot=None):
     _set(ep_id, title=st["title"], takeaway=st.get("takeaway"), story=st, style=f"3D {spec['set']}",
          assets_path=f"{base}/assets")
     gpu = payload.get("gpu")
-    if gpu is None:  # setting gpu_render = true sends every 3D short to Kaggle's free GPU first
-        gpu = str(db.settings().get("gpu_render", "false")).lower() in ("1", "true", "yes")
+    if gpu is None:  # setting gpu_render = true: Kaggle's free GPU takes up to 2 shorts at a time, the rest go to
+        gpu = str(db.settings().get("gpu_render", "false")).lower() in ("1", "true", "yes")  # the normal machines
+        if gpu:
+            since = (now() - timedelta(hours=3)).isoformat()
+            busy = db.select("episodes", f"select=id&status=eq.generating&story->>render=eq.gpu&updated_at=gt.{since}")
+            gpu = len(busy) < 2
+    if gpu:
+        st["render"] = "gpu"
+        _set(ep_id, story=st)
     _dispatch_render(ep_id, gpu)
     db.log(f"🎬 Rendering in 3D{' on the GPU' if gpu else ''}: {st['title']} ({ch['name']})")
     return ep_id
