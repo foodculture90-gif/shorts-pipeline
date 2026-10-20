@@ -399,10 +399,23 @@ def accessory(ch, kind, color):
 
 
 # ------------------------------------------------------------------ props
+KENNEY_FOOD = {"donut": ["donut*"], "cupcake": ["cupcake*"], "watermelon": ["watermelon*"], "pizza": ["pizza*"],
+               "strawberry": ["strawberry*"], "pie": ["pie*"], "burger": ["burger*"]}
+FOOD_H = {"donut": 0.12, "cupcake": 0.22, "watermelon": 0.16, "pizza": 0.08, "strawberry": 0.14, "pie": 0.12,
+          "burger": 0.2}
+
+
 def make_prop(kind, loc, parent=None, name=None):
     name = name or kind
     root = empty(name, loc, parent)
     v = VAR
+    if kind in KENNEY_FOOD:  # toy-style food from the free Kenney Food Kit, on a little plate
+        files = kenney_find("food", KENNEY_FOOD[kind])
+        if files:
+            cyl(name + "_plate", 0.2, 0.02, (0, 0, 0.01), WHITE, root, bevel=0.008)
+            if kenney(v.choice(files[:3]), name + "_k", (0, 0, 0.02), FOOD_H[kind], root, rot_z=v.uniform(-0.6, 0.6)):
+                return root
+        kind = "cake"  # kit missing -> our own cake
     if kind == "cake":
         body, icing = v.choice([("#FFB3CF", "#FFFFFF"), ("#8A5A3C", "#FFB3CF"), ("#FFE27A", "#FFFFFF"),
                                 ("#B7A6FF", "#FFF4D6"), ("#9EF0C0", "#FFFFFF"), ("#FFFFFF", "#6B3E1F")])
@@ -536,6 +549,33 @@ def _flowers(n, y0, y1, xs=(-4, 4), rnd=None):
         x, y = rnd.uniform(*xs), rnd.uniform(y0, y1)
         cyl(f"stem{i}", 0.008, 0.14, (x, y, 0.07), mat("#3FA64E", 0.6))
         sphere(f"flower{i}", 0.045, (x, y, 0.15), mat(cols[i % len(cols)], 0.5), sub=0, scale=(1, 1, 0.6))
+
+
+DRESS = {  # free Kenney Nature Kit pieces placed behind the action (they never block the characters)
+    "park": ([(-3.8, 1.9), (-1.0, 2.9), (-0.4, 3.5), (-4.6, 3.0), (5.2, 2.0), (-3.0, 3.7), (0.6, 3.9)],
+             ["flower_*", "mushroom_*", "plant_bush*", "rock_small*", "stump_*", "grass*"]),
+    "playground": ([(-4.3, 2.2), (-0.8, 3.0), (0.3, 2.6), (3.2, 2.2), (5.6, 3.4), (-1.6, 4.6)],
+                   ["flower_*", "plant_bush*", "grass*", "mushroom_*"]),
+    "street": ([(-4.4, 2.25), (-1.8, 2.25), (0.7, 2.25), (3.0, 2.25), (5.2, 2.25), (-5.6, 2.25)],
+               ["flower_*", "plant_bush*", "grass*"]),
+    "beach": ([(-4.2, 3.2), (4.3, 3.6), (0.4, 4.2), (-0.9, 3.8)], ["rock_small*", "rock_tall*", "plant_bush*"]),
+    "snow": ([(-4.3, 2.6), (0.2, 3.0), (4.5, 2.5), (-1.0, 4.0)], ["rock_small*", "stump_*", "log*"]),
+}
+
+
+def _dress(kind, rnd):
+    spots, pats = DRESS.get(kind, ([], []))
+    if THEME.get("season") == "autumn" and kind in ("park", "playground", "street"):
+        pats = pats + ["crop_pumpkin*", "mushroom_*"]
+    files = kenney_find("nature", pats)
+    if not files:
+        return
+    for i, (x, y) in enumerate(spots):
+        f = rnd.choice(files)
+        b = os.path.basename(f).lower()
+        h = 0.5 if "bush" in b else 0.35 if ("stump" in b or "log" in b or "rock" in b or "pumpkin" in b) else 0.28
+        kenney(f, f"dress{i}", (x + rnd.uniform(-0.2, 0.2), y + rnd.uniform(-0.15, 0.15), 0), h * rnd.uniform(0.85, 1.2),
+               rot_z=rnd.uniform(0, math.tau))
 
 
 def make_set(kind, rnd=None):
@@ -727,7 +767,84 @@ def make_set(kind, rnd=None):
             sphere(f"snowlump{i}", rnd.uniform(0.08, 0.16), (rnd.uniform(-4, 4), rnd.uniform(1.6, 3.4), 0.0),
                    snow, scale=(1.4, 1, 0.5), sub=1)
         _clouds()
+    try:
+        _dress(kind, random.Random(THEME.get("pal", 1) + 11))
+    except Exception as e:  # noqa: BLE001  (decoration only)
+        print("dressing skipped:", e)
     return sky
+
+
+HDRI = {"day": "farm_field_puresky", "morning": "citrus_orchard_puresky", "golden": "autumn_field_puresky",
+        "sunset": "belfast_sunset_puresky", "snow": "farm_field_puresky", "indoor": "brown_photostudio_02"}
+HDRI_STRENGTH = {"indoor": 0.45, "snow": 0.5}
+ASSETS = os.environ.get("ASSETS", "")
+
+
+def _hdri_path(sky):
+    name = HDRI.get(sky)
+    p = os.path.join(ASSETS, "hdri", f"{name}.hdr") if ASSETS and name else ""
+    return p if p and os.path.exists(p) else None
+
+
+_KENNEY = {}
+
+
+def kenney_files(kit):
+    """All .glb models of a downloaded Kenney kit (empty list when the kit isn't there)."""
+    if kit not in _KENNEY:
+        root = os.path.join(ASSETS, "kenney", kit)
+        found = []
+        for dp, _, fs in os.walk(root) if ASSETS else []:
+            found += [os.path.join(dp, f) for f in fs if f.lower().endswith(".glb")]
+        _KENNEY[kit] = sorted(found)
+    return _KENNEY[kit]
+
+
+def kenney_find(kit, patterns):
+    import fnmatch
+    files = kenney_files(kit)
+    return [f for f in files if any(fnmatch.fnmatch(os.path.basename(f).lower(), p) for p in patterns)]
+
+
+def kenney(path, name, loc, height, parent=None, rot_z=0.0):
+    """Import a Kenney toy model, scale it to `height`, stand it on the ground at loc."""
+    before = set(bpy.data.objects)
+    try:
+        bpy.ops.import_scene.gltf(filepath=path)
+    except Exception as e:  # noqa: BLE001
+        print("kenney import failed", path, e)
+        return None
+    new = [o for o in bpy.data.objects if o not in before]
+    if not new:
+        return None
+    root = empty(name, (0, 0, 0))
+    for o in new:
+        if o.parent is None:
+            o.parent = root
+        if o.type == "MESH":
+            try:
+                for poly in o.data.polygons:
+                    poly.use_smooth = True
+                o.data.set_sharp_from_angle(angle=math.radians(40))
+            except Exception:  # noqa: BLE001
+                pass
+    bpy.context.view_layer.update()
+    pts = [o.matrix_world @ v.co for o in new if o.type == "MESH" for v in o.data.vertices]
+    if pts:
+        zs = [p[2] for p in pts]
+        h = max(zs) - min(zs) or 1.0
+        s = height / h
+        cx = (max(p[0] for p in pts) + min(p[0] for p in pts)) / 2
+        cy = (max(p[1] for p in pts) + min(p[1] for p in pts)) / 2
+        for o in new:
+            if o.parent is root:
+                o.location = ((o.location[0] - cx), (o.location[1] - cy), o.location[2] - min(zs))
+        root.scale = (s, s, s)
+    root.rotation_euler = (0, 0, rot_z)
+    root.location = loc
+    if parent is not None:
+        root.parent = parent
+    return root
 
 
 def make_world(sky="day"):
@@ -749,6 +866,21 @@ def make_world(sky="day"):
     ramp.color_ramp.elements[1].color = (*lin(hi), 1)
     nt.links.new(ramp.outputs["Color"], bg.inputs["Color"])
     bg.inputs["Strength"].default_value = 0.35 if sky == "indoor" else (0.85 if sky == "snow" else 1.0)
+    hdri = _hdri_path(sky)
+    if hdri:  # real sky photo lights the scene (soft, rich light); the camera still sees our cartoon sky
+        env = nt.nodes.new("ShaderNodeTexEnvironment")
+        env.image = bpy.data.images.load(hdri)  # (no vector input = looks along the view direction)
+        hbg = nt.nodes.new("ShaderNodeBackground")
+        nt.links.new(env.outputs["Color"], hbg.inputs["Color"])
+        hbg.inputs["Strength"].default_value = HDRI_STRENGTH.get(sky, 0.6)
+        lp = nt.nodes.new("ShaderNodeLightPath")
+        mix = nt.nodes.new("ShaderNodeMixShader")
+        out = nt.nodes["World Output"]
+        nt.links.new(lp.outputs["Is Camera Ray"], mix.inputs["Fac"])
+        nt.links.new(hbg.outputs["Background"], mix.inputs[1])
+        nt.links.new(bg.outputs["Background"], mix.inputs[2])
+        nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
+    soft = 0.7 if hdri else 1.0  # the sky photo already adds light
 
     def light(name, kind, energy, loc=None, rot=None, size=None, color=(1, 1, 1), angle=None, target=None):
         d = bpy.data.lights.new(name, kind)
@@ -768,10 +900,10 @@ def make_world(sky="day"):
             tr.target, tr.track_axis, tr.up_axis = target, "TRACK_NEGATIVE_Z", "UP_Y"
         return o
 
-    sun_e = 1.3 if sky == "indoor" else (2.4 if sky == "snow" else 3.2)
+    sun_e = (1.3 if sky == "indoor" else (2.4 if sky == "snow" else 3.2)) * soft
     light("sun", "SUN", sun_e, rot=(math.radians(50), math.radians(10), math.radians(-35)), color=SUN.get(sky, (1, 0.93, 0.82)),
           angle=math.radians(4))
-    light("fill", "AREA", 300 if sky != "indoor" else 220, (-2, -5, 3), (math.radians(60), 0, math.radians(-25)), 6,
+    light("fill", "AREA", (300 if sky != "indoor" else 220) * soft, (-2, -5, 3), (math.radians(60), 0, math.radians(-25)), 6,
           (0.9, 0.95, 1))
     light("rim", "AREA", 500, (2.5, 3.0, 2.6), size=2.5, color=(0.85, 0.92, 1), target=empty("rim_t", (0, 0.2, 0.6)))
     if sky == "indoor":
@@ -1018,10 +1150,39 @@ def dizzy_stars(ch, f0, f1, n=3):
 
 
 # ------------------------------------------------------------------ render
+def use_gpu():
+    """Render on the graphics card(s) when there is one (Kaggle's free GPU). Returns the device names."""
+    if not os.environ.get("GPU"):
+        return []
+    try:
+        prefs = bpy.context.preferences.addons["cycles"].preferences
+    except Exception:  # noqa: BLE001
+        return []
+    for kind in ("OPTIX", "CUDA"):
+        try:
+            prefs.compute_device_type = kind
+            prefs.get_devices()
+            devs = [d for d in prefs.devices if d.type == kind]
+            if devs:
+                for d in prefs.devices:
+                    d.use = d.type == kind
+                return [f"{kind}:{d.name}" for d in devs]
+        except Exception:  # noqa: BLE001
+            continue
+    return []
+
+
+GPU_DEVICES = None
+
+
 def setup_render(samples=20, res=100):
+    global GPU_DEVICES
     R = sc.render
     R.engine = "CYCLES"
-    sc.cycles.device = "CPU"
+    if GPU_DEVICES is None:
+        GPU_DEVICES = use_gpu()
+        print("render devices:", GPU_DEVICES or "CPU", flush=True)
+    sc.cycles.device = "GPU" if GPU_DEVICES else "CPU"
     sc.cycles.use_adaptive_sampling = True
     sc.cycles.adaptive_threshold = 0.04
     sc.cycles.use_denoising = True
@@ -1039,6 +1200,16 @@ def setup_render(samples=20, res=100):
     R.resolution_percentage = res
     R.use_persistent_data = True
     sc.cycles.samples = samples
+    if GPU_DEVICES:  # the GPU has time for more: more light bounces + a touch of motion blur on fast moves
+        sc.cycles.max_bounces = 6
+        sc.cycles.diffuse_bounces = 3
+        sc.cycles.glossy_bounces = 3
+        try:
+            sc.cycles.denoising_use_gpu = True
+        except Exception:  # noqa: BLE001
+            pass
+        R.use_motion_blur = True
+        R.motion_blur_shutter = 0.3
     R.image_settings.file_format = "PNG"
     R.image_settings.color_mode = "RGB"
 
