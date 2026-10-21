@@ -612,7 +612,7 @@ def _pets(kind, rnd):
         o = kenney(rnd.choice(files), f"pet{i}", (x + rnd.uniform(-0.3, 0.3), y, 0), 0.42 if kind in ("bedroom", "livingroom") else 0.5,
                    rot_z=rnd.uniform(-0.5, 0.5))
         if o:
-            hop(o, phase=rnd.randint(0, 30), height=0.08, every=rnd.randint(36, 60))
+            bob(o, phase=rnd.randint(0, 30), height=0.08, every=rnd.randint(36, 60))
 
 
 def _dress(kind, rnd):
@@ -1059,7 +1059,7 @@ def make_set(kind, rnd=None):
         kk("space", ["rock_crystals*"], "crystals", (0.9, 4.1, 0), 0.7, rnd=pal)
         al = kk("space", ["alien.glb", "astronauta.glb", "astronautb.glb"], "alien", (-0.9, 3.5, 0), 0.6, rot_z=0.2, rnd=pal)
         if al:
-            hop(al, phase=7, height=0.12, every=40)
+            bob(al, phase=7, height=0.12, every=40)
         for i, (mx, my) in enumerate(((-4.2, 4.6), (4.6, 2.6), (-1.8, 5.6))):
             kk("space", ["meteor*", "rock_large*"], f"mrock{i}", (mx, my, 0), 0.45, rot_z=i * 2.0, rnd=pal)
     elif kind == "playground":
@@ -1133,7 +1133,7 @@ def make_set(kind, rnd=None):
             kk("holiday", ["lantern.glb"], "lantern", (-1.5, 3.5, 0), 0.7)
             gb = kk("holiday", ["gingerbread-*"], "ginger", (-0.9, 2.9, 0), 0.45, rnd=pal)
             if gb:
-                hop(gb, phase=12, height=0.1, every=46)
+                bob(gb, phase=12, height=0.1, every=46)
         _clouds()
     try:
         _dress(kind, random.Random(THEME.get("pal", 1) + 11))
@@ -1191,7 +1191,7 @@ def top(root):
     return max(zs) if zs else 0.0
 
 
-def hop(o, phase=0, height=0.1, every=44):
+def bob(o, phase=0, height=0.1, every=44):
     """A little idle hop, forever (background animals)."""
     z0 = o.location.z
     for f, dz in ((1, 0), (6, height), (11, 0), (every, 0)):
