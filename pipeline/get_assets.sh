@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Free CC0 assets (no credit needed, OK for monetised videos):
 #   Poly Haven sky photos (HDRIs) for soft realistic lighting  - polyhaven.com
-#   Kenney toy-style 3D kits (food, nature, furniture, holiday, toy cars, space, pirate, pets) - kenney.nl
+#   Kenney toy-style 3D kits (food, nature, furniture, holiday, toy cars, space, pirate, pets, castle, fantasy town) - kenney.nl
 # Usage: bash pipeline/get_assets.sh [folder]   (the workflows cache the folder between runs)
 set -u
 A=${1:-assets}
@@ -27,4 +27,6 @@ get toycar "https://kenney.nl/media/pages/assets/toy-car-kit/42e19cc426-17363460
 get space "https://kenney.nl/media/pages/assets/space-kit/20874c75ac-1677698978/kenney_space-kit.zip"
 get pirate "https://kenney.nl/media/pages/assets/pirate-kit/e6d4bb1525-1771333093/kenney_pirate-kit.zip"
 get pets "https://kenney.nl/media/pages/assets/cube-pets/44e58e945f-1774520254/kenney_cube-pets_1.0.zip"
+get castle "https://kenney.nl/media/pages/assets/castle-kit/a395102d20-1711543616/kenney_castle-kit.zip"
+get fantasy "https://kenney.nl/media/pages/assets/fantasy-town-kit/efe948d309-1754222374/kenney_fantasy-town-kit_2.0.zip"
 echo "assets: $(ls "$A/hdri" | wc -l) skies, $(find "$A/kenney" -name '*.glb' | wc -l) models"

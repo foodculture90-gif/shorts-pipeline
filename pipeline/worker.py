@@ -115,7 +115,7 @@ def _generate_3d(payload, ch, ep_id, slot=None):
         except Exception:  # noqa: BLE001
             base = None
     idea = payload.get("idea") or payload.get("feedback")
-    spec = plan3d.plan(recent, idea=idea, slot=slot, base=base)
+    spec = plan3d.plan(recent, idea=idea, slot=slot, base=base, choose=payload.get("choose"))
     if idea:
         note = (spec.get("wish") or {}).get("note") or plan3d.describe(spec)[:160]
         db.log(f"💡 Your idea “{idea[:80]}”: {note}"[:400])
@@ -380,13 +380,22 @@ def cmd_connect(payload, cmd):
 
 
 def cmd_stats(payload=None, cmd=None):
+    """Views, likes and comments of every short on YouTube (+ a daily history for the app's chart)."""
     from . import youtube
 
-    eps = db.select("episodes", "select=id,channel_id,youtube_id,status,thumb_path,title"
+    eps = db.select("episodes", "select=id,channel_id,youtube_id,status,thumb_path,title,story"
                                 "&youtube_id=not.is.null&status=in.(published,scheduled)")
     by_ch = {}
     for e in eps:
         by_ch.setdefault(e["channel_id"], []).append(e)
+    today = now().date().isoformat()
+    for ch_id in {c["id"] for c in db.select("channels", "select=id&connected=is.true")} | set(by_ch):
+        try:
+            cs = youtube.channel_stats(_token(ch_id))
+            if cs:
+                db.upsert("settings", {"key": f"yt_{ch_id}", "value": dict(cs, at=now().isoformat())}, "key")
+        except Exception as ex:  # noqa: BLE001
+            print("channel stats skipped:", ex)
     for ch_id, items in by_ch.items():
         try:
             data = youtube.stats(_token(ch_id), [e["youtube_id"] for e in items])
@@ -401,11 +410,26 @@ def cmd_stats(payload=None, cmd=None):
                 _set(e["id"], status="deleted", thumb_path=None)
                 db.log(f"🗑️ “{e.get('title')}” was deleted on YouTube — removed from the app")
                 continue
-            if s:
-                v = {"views": s["views"], "likes": s["likes"], "stats_at": now().isoformat()}
-                if e["status"] == "scheduled" and s["privacy"] == "public":
-                    v["status"] = "published"
-                db.update("episodes", f"id=eq.{e['id']}", v)
+            st = e.get("story") or {}
+            yt = st.get("yt") or {}
+            hist = [h for h in (yt.get("hist") or []) if h[0] != today][-29:] + [[today, s["views"]]]
+            st["yt"] = {"privacy": s.get("privacy"), "comments": s.get("comments", 0), "hist": hist}
+            v = {"views": s["views"], "likes": s["likes"], "stats_at": now().isoformat(), "story": st}
+            if e["status"] == "scheduled" and s["privacy"] == "public":
+                v["status"] = "published"
+            db.update("episodes", f"id=eq.{e['id']}", v)
+    db.upsert("settings", {"key": "stats_at", "value": now().isoformat()}, "key")
+
+
+def maybe_stats():
+    """Keep the views fresh: every ~2 hours, whenever a worker runs."""
+    try:
+        last = db.settings().get("stats_at")
+        if last and now() - datetime.fromisoformat(str(last).replace("Z", "+00:00")) < timedelta(hours=2):
+            return
+        cmd_stats()
+    except Exception:  # noqa: BLE001
+        traceback.print_exc()
 
 
 HANDLERS = {"generate": cmd_generate, "animate": cmd_animate, "revise": cmd_revise, "publish": cmd_publish, "delete": cmd_delete,
@@ -443,6 +467,7 @@ def process_queue():
             retry_failed_renders()
         except Exception:  # noqa: BLE001
             traceback.print_exc()
+        maybe_stats()
     stale = (now() - timedelta(minutes=50)).isoformat()
     db.update("commands", f"status=eq.running&created_at=lt.{stale}&finished_at=is.null",
               {"status": "queued", "note": "retrying after a stopped run"})

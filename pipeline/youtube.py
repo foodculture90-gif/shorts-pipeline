@@ -77,5 +77,17 @@ def stats(refresh_token, video_ids):
         for it in res.get("items", []):
             s = it.get("statistics", {})
             out[it["id"]] = {"views": int(s.get("viewCount", 0)), "likes": int(s.get("likeCount", 0)),
+                             "comments": int(s.get("commentCount", 0)),
                              "privacy": it.get("status", {}).get("privacyStatus")}
     return out
+
+
+def channel_stats(refresh_token):
+    """Subscribers + total views of the connected channel."""
+    items = _client(refresh_token).channels().list(part="statistics,snippet", mine=True).execute().get("items", [])
+    if not items:
+        return None
+    s = items[0].get("statistics", {})
+    return {"subs": int(s.get("subscriberCount", 0)), "views": int(s.get("viewCount", 0)),
+            "videos": int(s.get("videoCount", 0)), "hidden_subs": bool(s.get("hiddenSubscriberCount")),
+            "title": items[0].get("snippet", {}).get("title")}
