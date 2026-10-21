@@ -634,7 +634,7 @@ function renderAuth(v) {
   let mode = "in";
   const draw = () => { v.innerHTML = `<form class="auth card" id="authForm">
     <div><div class="eyebrow">Welcome to FORMA</div><h1>${mode === "in" ? "Sign in" : "Create your account"}</h1>
-    <div class="sub">Calories from a photo, physique check-ins and your Apple Watch, in one place.</div></div>
+    <div class="sub">Calories from a photo, physique check-ins and Apple Health, in one place.</div></div>
     <label class="f">Email<input class="in" id="em" type="email" autocomplete="email" required></label>
     <label class="f">Password<input class="in" id="pw" type="password" minlength="8" autocomplete="${mode === "in" ? "current-password" : "new-password"}" required></label>
     <button class="btn block" id="authGo">${mode === "in" ? "Sign in" : "Create account"}</button>
@@ -690,21 +690,13 @@ function renderToday(v) {
 
     ${stk && !of("meal", t).length ? `<div class="demo" style="margin-top:12px;background:var(--accentSoft);color:var(--accent)">${ICON.flame}<span class="grow">Your ${stk}-day streak is waiting. Log a meal today to keep it going.</span></div>` : ""}
     <div style="margin-top:12px">${quickAddBox("qa")}</div>
-    <div class="quick" style="margin-top:12px">
-      <button id="qMeal">${ICON.camera}Snap meal</button><button id="qScan">${ICON.barcode}Barcode</button><button id="qWeight">${ICON.scale}Weight</button><button id="qBody">${ICON.body}Body check</button></div>
+    <div class="quick" style="margin-top:12px;grid-template-columns:repeat(5,1fr);gap:6px">
+      <button id="qMeal">${ICON.camera}Snap meal</button><button id="qScan">${ICON.barcode}Barcode</button><button id="qWork">${ICON.train}Workout</button><button id="qWeight">${ICON.scale}Weight</button><button id="qBody">${ICON.body}Body check</button></div>
     <h2>Training</h2>${trainingSummary(false)}
-    <h2>From your Apple Watch <span class="pill ${h ? "green" : "amber"}">${ICON.watch}${h ? "Synced" : "Not synced today"}</span></h2>
-    ${h ? `<div class="tiles">${tile("Steps", r0(h.steps).toLocaleString())}${tile("Active energy", r0(h.active_kcal), "kcal")}${tile("Exercise", r0(h.exercise_min), "min")}${tile("Resting heart rate", r0(h.resting_hr) || "–", "bpm")}</div>`
-        : `<div class="card"><div class="sub">Your Watch data arrives once a day through a free Apple Shortcut.</div><button class="btn ghost small" style="margin-top:10px" id="toSync">Set up Apple Watch sync</button></div>`}
-    <h2>Coach</h2>
-    <div class="card coach"><div class="stack" style="gap:10px"><div id="tipText" style="font-weight:600">Get one clear thing to do today, based on what you've eaten and how much you've moved.</div>
-      <div><button class="btn small" id="tipGo">Get today's tip</button></div></div></div>`;
+    ${h ? "" : `<button class="card" id="toSync" style="margin-top:14px;width:100%;text-align:left;border:none;color:inherit;display:flex;gap:12px;align-items:center"><span style="color:var(--accent)">${ICON.watch}</span><span class="grow"><b>Connect Apple Health</b><div class="sub">Bring in your steps, calories burned and workouts from your iPhone.</div></span></button>`}`;
   bindPts("#toHouse");
-  bindQuickAdd("qa"); $("#qMeal").onclick = snapMeal; $("#qScan").onclick = scanBarcode; $("#qWeight").onclick = weightSheet; $("#qBody").onclick = physiqueCheck;
-  if ($("#toSync")) $("#toSync").onclick = () => go("activity");
-  $("#tipGo").onclick = async () => { const b = $("#tipGo"); b.disabled = true; b.innerHTML = '<span class="spinner"></span>';
-    try { const r = await ai("coach", {context: coachContext()}); $("#tipText").textContent = r.tip; }
-    catch (e) { toast(e.message); } b.disabled = false; b.textContent = "New tip"; };
+  bindQuickAdd("qa"); $("#qMeal").onclick = snapMeal; $("#qScan").onclick = scanBarcode; $("#qWork").onclick = workoutSheet; $("#qWeight").onclick = weightSheet; $("#qBody").onclick = physiqueCheck;
+  if ($("#toSync")) $("#toSync").onclick = () => { go("profile"); setTimeout(() => $("#health")?.scrollIntoView({behavior: "smooth"}), 50); };
 }
 function coachContext() {
   const t = dayStr(), tg = targets(S.profile), tot = dayTotals(t);
@@ -786,10 +778,14 @@ function renderBody(v) {
   const t = dayStr(), since = ws.filter(w => w.day >= addDays(t, -30)), ch = since.length > 1 ? r1(since.at(-1).data.kg - since[0].data.kg) : null;
   const pts = ws.filter(w => w.day >= addDays(t, -90)).map(w => ({x: new Date(w.day).getTime() / 864e5, y: +w.data.kg, label: niceDay(w.day)}));
   const scans = of("scan").sort((a, b) => a.day < b.day ? 1 : -1);
-  v.innerHTML = `${demoBanner()}<h1>Body</h1>${avatarSection()}<h2>Progress</h2>
-    <div class="card" style="margin-top:10px"><div class="row between"><div><div class="eyebrow">Weight</div><div class="bf num">${r1(now)} <span class="sub">kg</span></div></div>
-      ${ch !== null ? `<span class="pill ${(S.profile.goal === "gain" ? ch >= 0 : ch <= 0) ? "green" : "amber"} num">${ch > 0 ? "+" : ""}${ch} kg in 30 days</span>` : ""}</div>
-      <div style="margin-top:8px">${lineChart(pts)}</div><button class="btn ghost small" id="logW" style="margin-top:8px">${ICON.scale}Log today's weight</button></div>
+  const spark = (() => { if (pts.length < 2) return ""; const xs = pts.map(p => p.x), ys = pts.map(p => p.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const P = pts.map(p => `${((p.x - x0) / (x1 - x0 || 1) * 116 + 2).toFixed(1)},${(34 - (p.y - y0) / (y1 - y0 || 1) * 30).toFixed(1)}`);
+    return `<svg width="120" height="38" viewBox="0 0 120 38" aria-hidden="true"><polyline points="${P.join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${P.at(-1).split(",")[0]}" cy="${P.at(-1).split(",")[1]}" r="3" fill="var(--accent)"/></svg>`; })();
+  const wCard = `<div class="card" style="margin-top:10px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+      <div class="grow"><div class="eyebrow">Weight</div><div class="num" style="font-family:var(--disp);font-weight:800;font-size:28px;line-height:1.1">${r1(now)} <span class="sub" style="font-size:13px">kg</span></div>
+        ${ch !== null ? `<div class="num" style="font-size:12px;color:${(S.profile.goal === "gain" ? ch >= 0 : ch <= 0) ? "var(--green)" : "var(--amber)"}">${ch > 0 ? "+" : ""}${ch} kg in 30 days</div>` : `<div class="sub" style="font-size:12px">Log a few weigh-ins to see your trend</div>`}</div>
+      ${spark}<button class="btn small" id="logW" aria-label="Log today's weight">${ICON.scale}</button></div>`;
+  v.innerHTML = `${demoBanner()}<h1>Body</h1>${avatarSection(wCard)}
     <h2>Physique check-ins <button class="btn small" id="newScan">${ICON.camera}New check-in</button></h2>
     <div class="sub" style="margin:-4px 2px 10px">Take a front photo in good light, same spot each time. Every 2-4 weeks is ideal. Photos stay private to your account.</div>
     ${scans.length ? `<div class="stack">${scans.map(scanCard).join("")}</div>` : `<div class="card empty">No check-ins yet. Your first one becomes the baseline for tracking progress.</div>`}`;
@@ -844,10 +840,10 @@ function renderActivity(v) {
     <h2>Workouts this week <button class="btn ghost small" id="addW">+ Add</button></h2>
     <div class="card list">${wk.length ? wk.map(w => `<div class="li"><div class="ph">${ICON.activity}</div><div class="grow"><div class="t">${esc(w.type)}</div>
       <div class="d">${niceDay(w.day)} · ${r0(w.minutes)} min${w.kcal ? " · " + r0(w.kcal) + " kcal" : ""}${w.sets ? " · " + w.sets + " sets" : ""}</div></div>
-      ${w.src === "watch" ? `<span class="pill blue">${ICON.watch}Watch</span>` : `<button class="x" data-del="${w.id}" aria-label="Delete workout">×</button>`}</div>`).join("")
-      : `<div class="empty">No workouts yet this week. Workouts you record on your Apple Watch appear here after the daily sync.</div>`}</div>
-    ${watchSection(tok, url)}`;
-  $("#addW").onclick = workoutSheet; bindWatch(); bindCalories();
+      ${w.src === "watch" ? `<span class="pill blue">${ICON.watch}Health</span>` : `<button class="x" data-del="${w.id}" aria-label="Delete workout">×</button>`}</div>`).join("")
+      : `<div class="empty">No workouts yet this week. Tap + Add, or connect Apple Health in Me to bring them in automatically.</div>`}</div>
+`;
+  $("#addW").onclick = workoutSheet; bindCalories();
   v.querySelectorAll("[data-mach]").forEach(el => el.onclick = () => prSheet(el.dataset.mach));
   scrollYear();
   v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => confirmSheet("Delete this workout?", async () => { await DB.remove(b.dataset.del); render(); }));
@@ -878,6 +874,7 @@ function renderProfile(v) {
   const tg = targets(S.profile);
   v.innerHTML = `${demoBanner()}<h1>${esc(S.profile.name)}</h1><div class="sub">${LIVE ? esc(S.user.email) : "Demo account on this device"}</div>
     ${badgesSection()}
+    <div id="health">${watchSection(S.profile.sync_token || "", LIVE ? CFG.SUPABASE_URL + "/functions/v1/health-sync" : "https://your-project.supabase.co/functions/v1/health-sync")}</div>
     ${remindersCard()}
     <h2>Details</h2><form class="card stack" id="pf">${profileForm(S.profile)}
       <button class="btn">Save changes</button></form>
@@ -886,6 +883,9 @@ function renderProfile(v) {
       <button class="btn danger" id="wipe">Delete all my data</button></div>
     <div class="sub" style="margin:14px 2px">FORMA gives general fitness guidance, not medical advice. Talk to a doctor before big changes to diet or training.</div>`;
   $("#pf").onsubmit = async e => { e.preventDefault(); try { await DB.saveProfile(readProfileForm()); toast("Saved"); render(); } catch (err) { toast(err.message); } };
+  bindWatch();
+  v.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => { const el = $("#" + b.dataset.copy);
+    navigator.clipboard?.writeText(el.textContent).then(() => toast("Copied"), () => { getSelection().selectAllChildren(el); toast("Selected, copy it from the menu"); }); });
   if ($("#out")) $("#out").onclick = async () => { await sb.auth.signOut(); S.user = null; S.profile = null; S.entries = []; render(); };
   if ($("#reset")) $("#reset").onclick = () => { const st = demoSeed(); ls.set("forma.demo", st); S.profile = st.profile; S.entries = st.entries; toast("Demo data reset"); render(); };
   bindReminders();
@@ -938,7 +938,7 @@ function trainingSummary(full) {
   const T = trainingTotals();
   const stat = (n, of_, label) => `<div class="stat"><div class="sn num">${n}${of_ ? `<span>/${of_}</span>` : ""}</div><div class="sl">${label}</div></div>`;
   return `<div class="card train-card">
-    ${full ? `<div class="ct">Training days</div><div class="sub">A day counts when your Watch logs a workout or 30+ exercise minutes, or you add one.</div>` : ""}
+    ${full ? `<div class="ct">Training days</div><div class="sub">A day counts when Apple Health has a workout or 30+ exercise minutes, or you add one.</div>` : ""}
     <div class="stats" style="${full ? "" : "margin-top:0"}">${stat(T.week, 7, "This week")}${stat(T.month, 0, `days in ${new Date().toLocaleDateString(undefined, {month: "long"})}`)}${stat(T.year, 0, `days in ${new Date().getFullYear()}`)}</div>
     ${weekDots(T.m, T.mon)}
     ${full ? `<div class="ct" style="margin-top:18px">${new Date().getFullYear()} so far</div>${yearGrid(T.m)}
@@ -1139,7 +1139,7 @@ function bindReminders() {
   if (ts) ts.onclick = async () => { ts.disabled = true; try { const r = await pushCall({action: "test"}); toast(r.sent ? "Sent. It arrives in a few seconds." : "No device found, turn reminders off and on again"); } catch (e) { toast(e.message); } ts.disabled = false; };
 }
 
-/* ---------------- Apple Watch sync helpers ---------------- */
+/* ---------------- Apple Health sync helpers ---------------- */
 function watchSection(tok, url) {
   const base = `${url}?token=${tok || "SIGN-IN-FIRST"}`, sc = `${base}&steps=&kcal=&min=&w=`;
   const last = of("health").map(h => h.data.synced_at).filter(Boolean).sort().at(-1);
@@ -1165,8 +1165,8 @@ function watchSection(tok, url) {
         <li><span>Add a second REST API automation with the same link and data type <b>Workouts</b>.</span></li>
       </ol>
       <div style="margin-top:12px">${copyRow("syncBase", "Your link", base)}</div>`;
-  return `<h2>Apple Watch sync <span class="pill ${last ? "green" : "amber"}">${ICON.watch}${last ? "Last sync " + niceDay(dayStr(new Date(last))).toLowerCase() + " " + new Date(last).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "Not set up"}</span></h2>
-    <div class="card"><div class="sub">Your Watch saves to Apple Health. A web app can't read Apple Health by itself, so a small helper on your iPhone sends the numbers once a day.</div>
+  return `<h2>Apple Health <span class="pill ${last ? "green" : "amber"}">${ICON.watch}${last ? "Synced " + niceDay(dayStr(new Date(last))).toLowerCase() + " " + new Date(last).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"}) : "Not connected"}</span></h2>
+    <div class="card"><div class="sub">FORMA reads your steps, calories burned, exercise minutes and workouts from the Health app on your iPhone. Apple doesn't let web apps open Health directly, so a small Shortcut on your iPhone sends the numbers to FORMA once a day.</div>
       <div class="seg" style="margin-top:12px" role="tablist"><button class="${mode === "free" ? "on" : ""}" data-sync="free">Free shortcut</button><button class="${mode === "auto" ? "on" : ""}" data-sync="auto">Automatic app</button></div>
       ${mode === "auto" ? auto : free}
       <div class="sub" style="margin-top:10px">Keep your link private: it lets anyone send numbers to your account.</div></div>`;
@@ -1463,7 +1463,7 @@ async function makeAvatarPhoto(ctx) {
   avBusy = false;
   if (S.tab === "body") render();
 }
-function avatarSection() {
+function avatarSection(after = "") {
   const a = av(), P = avatarPoints(), lv = levelOf(P.xp), tier = tierOf(lv.L), today = dayPoints(dayStr()), stk = trainStreak();
   if (!a.lastL || lv.L < a.lastL) { a.lastL = lv.L; P.changed = true; } else if (lv.L > a.lastL) { avLevelUp = {from: a.lastL, to: lv.L, tierUp: tierOf(a.lastL) < tier}; a.lastL = lv.L; P.changed = true; }
   if (P.changed) { S.profile.avatar = {...a, days: P.days}; DB.saveProfile({avatar: S.profile.avatar}).catch(() => {}); }
@@ -1492,6 +1492,7 @@ function avatarSection() {
     <h2>Last 14 days</h2>
     <div class="card"><div class="pchart">${hist.map(([d, p], i) => `<div class="pc ${i === 13 ? "now" : ""}" title="${d}: ${p}"><i style="height:${Math.max(3, p / hmax * 100)}%"></i><span>${i % 2 === 1 ? new Date(d + "T12:00").getDate() : ""}</span></div>`).join("")}</div>
       <div class="row between sub" style="margin-top:8px;font-size:12px"><span>Best day: <b class="num">${Math.max(...hist.map(x => x[1]))}</b></span><span>14-day total: <b class="num">${hist.reduce((s, x) => s + x[1], 0).toLocaleString()}</b></span></div></div>
+    ${after}
     <h2>This week's challenges <span class="sub">${wkLeft ? `${wkLeft} day${wkLeft > 1 ? "s" : ""} left` : "last day"}</span></h2>
     <div class="card"><div class="earn">${wk.map(([l, have, need, pts, unit]) => `<div class="erow2 ${have >= need ? "done" : ""}">
       <div class="row between"><span class="el">${have >= need ? "&#10003; " : ""}${l}</span><span class="num ep">${have >= need ? "+" : ""}${pts}</span></div>
