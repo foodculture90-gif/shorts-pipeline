@@ -46,6 +46,10 @@ jobs:
                 -H "apikey: $SUPABASE_SERVICE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
               | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)")
           n=$((n + r))   # 3D shorts whose render failed once get one more try
+          s=$(curl -s "$SUPABASE_URL/rest/v1/settings?key=eq.stats_at&select=value" \
+                -H "apikey: $SUPABASE_SERVICE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+              | python3 -c "import sys,json,datetime as d; r=json.load(sys.stdin); v=r[0]['value'] if isinstance(r,list) and r else None; print(0 if v and d.datetime.now(d.timezone.utc)-d.datetime.fromisoformat(str(v).replace('Z','+00:00'))<d.timedelta(hours=2) else 1)" 2>/dev/null || echo 0)
+          n=$((n + s))   # refresh the YouTube views every ~2 hours
           [ "${{ github.event.inputs.mode }}" = "test3d" ] && n=1
           echo "queued now: $n"
           echo "queued=$n" >> "$GITHUB_OUTPUT"

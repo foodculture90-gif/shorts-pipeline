@@ -13,12 +13,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {gag: steal_treat, set: bedroom, hero: tobi, friend: lulu, prop: gingerbread, sky: day, season: summer, acc: party_hat, acc2: bow}
-          - {gag: ball_bonk, set: space, hero: teo, friend: popo, prop: ball, sky: day, season: summer, acc: cap, acc2: bowtie}
-          - {gag: balloon_float, set: pirate, hero: lulu, friend: teo, prop: balloon, sky: golden, season: summer, acc: flower, acc2: none}
-          - {gag: gift_surprise, set: christmas, hero: popo, friend: tobi, prop: gift, sky: day, season: summer, acc: crown, acc2: party_hat}
-          - {gag: hide_seek, set: park, hero: teo, friend: mimi, prop: bush, sky: morning, season: spring, acc: bowtie, acc2: crown}
-          - {gag: slip_peel, set: livingroom, hero: popo, friend: lulu, prop: peel, sky: day, season: summer, acc: party_hat, acc2: flower}
+          - {gag: sneeze, set: farm, hero: bobo, friend: tobi, prop: flower, sky: day, season: summer, acc: party_hat, acc2: bow}
+          - {gag: dance_party, set: castle, hero: zuzu, friend: popo, prop: confetti, sky: morning, season: summer, acc: crown, acc2: bowtie}
+          - {gag: bubbles, set: underwater, hero: leo, friend: lulu, prop: bubbles, sky: day, season: summer, acc: none, acc2: flower}
+          - {gag: wake_up, set: camping, hero: dodo, friend: teo, prop: horn, sky: day, season: autumn, acc: cap, acc2: none}
+          - {gag: race, set: desert, hero: mimi, friend: bobo, prop: flag, sky: day, season: summer, acc: bow, acc2: cap}
+          - {gag: steal_treat, set: candy, hero: zuzu, friend: leo, prop: gingerbread, sky: day, season: summer, acc: flower, acc2: party_hat}
+          - {gag: gift_surprise, set: market, hero: dodo, friend: pip, prop: gift, sky: golden, season: summer, acc: bowtie, acc2: crown}
+          - {gag: ball_bonk, set: space, hero: teo, friend: zuzu, prop: ball, sky: day, season: summer, acc: cap, acc2: bowtie}
+          - {gag: hide_seek, set: pirate, hero: leo, friend: mimi, prop: bush, sky: golden, season: summer, acc: none, acc2: bow}
+          - {gag: slip_peel, set: bedroom, hero: popo, friend: bobo, prop: peel, sky: day, season: summer, acc: party_hat, acc2: flower}
     steps:
       - uses: actions/checkout@v4
       - name: Get Blender
@@ -33,7 +37,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: assets
-          key: free-assets-v2
+          key: free-assets-v3
       - name: Free sky photos + toy models
         run: bash pipeline/get_assets.sh assets
       - name: Render preview frames
