@@ -372,14 +372,60 @@ def sfx_rattle():
     return fade(norm(_seq(parts, [0.045] * 4), 0.6))
 
 
-SFX = dict(boing=sfx_boing, land=sfx_land, pop=sfx_pop, whoosh=sfx_whoosh, swish=sfx_swish, chomp=sfx_chomp,
+def sfx_achoo():
+    """Cartoon sneeze: a breathy 'ah' rising, then a big noisy 'CHOO'."""
+    tt = t(0.32)
+    ah = bandpass(noise(len(tt)), 700, 2200) * np.clip(tt / 0.3, 0, 1) ** 2 * 0.35
+    ah += osc(260 + 260 * tt / 0.32, "tri") * np.clip(tt / 0.3, 0, 1) * 0.25
+    n = int(SR * 0.42)
+    tc = t(0.42)
+    choo = bandpass(noise(n), 1500, 7000) * env(n, 0.002, 0.3, 5) + osc(520 * np.exp(-tc * 3), "soft_square") * env(n, 0.002, 0.2, 6) * 0.4
+    return fade(norm(_seq([ah, choo], [0.34]), 0.85))
+
+
+def sfx_sniff():
+    parts = [bandpass(noise(int(SR * 0.08)), 1500, 5000) * np.sin(np.linspace(0, np.pi, int(SR * 0.08))) for _ in range(2)]
+    return fade(norm(_seq(parts, [0.12]), 0.5))
+
+
+def sfx_snore():
+    tt = t(0.9)
+    f = 70 + 25 * np.sin(np.pi * tt / 0.9)
+    s = osc(f, "soft_square") * 0.6 + lowpass(noise(len(tt)), 500) * 0.5
+    return fade(norm(s * np.sin(np.pi * tt / 0.9) ** 1.5, 0.6), 0.05, 0.1)
+
+
+def sfx_partyhorn():
+    """Party blower: buzzy kazoo sweep up."""
+    tt = t(0.55)
+    f = 330 * (1 + 0.6 * np.clip(tt / 0.25, 0, 1)) * (1 + 0.03 * np.sin(2 * np.pi * 24 * tt))
+    s = bandpass(osc(f, "soft_square") + 0.6 * osc(f * 2, "soft_square"), 250, 3500)
+    return fade(norm(s * np.clip(tt / 0.02, 0, 1), 0.75))
+
+
+def sfx_clap():
+    parts = []
+    for _ in range(2):
+        m = int(SR * 0.07)
+        parts.append(bandpass(noise(m), 900, 5000) * env(m, 0.0005, 0.05, 7))
+    return fade(norm(_seq(parts, [0.22]), 0.7))
+
+
+def sfx_whistle():
+    tt = t(0.6)
+    f = 1400 + 900 * np.sin(np.pi * tt / 0.6)
+    return fade(norm(osc(f) * np.sin(np.pi * tt / 0.6) * 0.6 + 0.04 * bandpass(noise(len(tt)), 2000, 6000), 0.6))
+
+
+SFX = dict(achoo=sfx_achoo, sniff=sfx_sniff, snore=sfx_snore, partyhorn=sfx_partyhorn, clap=sfx_clap,
+           whistle=sfx_whistle, boing=sfx_boing, land=sfx_land, pop=sfx_pop, whoosh=sfx_whoosh, swish=sfx_swish, chomp=sfx_chomp,
            sparkle=sfx_sparkle, slide_up=lambda: sfx_slide(True), slide_down=lambda: sfx_slide(False),
            doink=sfx_doink, zip=sfx_zip, thud=sfx_thud, tick=sfx_tick, ding=sfx_ding,
            squeak=sfx_squeak, giggle=sfx_giggle, tiptoe=sfx_tiptoe, tada=sfx_tada, drumroll=sfx_drumroll,
            crash=sfx_crash, honk=sfx_honk, wahwah=sfx_wahwah, xylo_up=lambda: sfx_xylo(True),
            xylo_down=lambda: sfx_xylo(False), splat=sfx_splat, bubble=sfx_bubble, tweet=sfx_tweet,
            twinkle=sfx_twinkle, rattle=sfx_rattle)
-GAIN = dict(boing=0.55, land=0.6, pop=0.55, whoosh=0.45, swish=0.4, chomp=0.65, sparkle=0.4, slide_up=0.45,
+GAIN = dict(achoo=0.6, sniff=0.35, snore=0.4, partyhorn=0.5, clap=0.45, whistle=0.4, boing=0.55, land=0.6, pop=0.55, whoosh=0.45, swish=0.4, chomp=0.65, sparkle=0.4, slide_up=0.45,
             slide_down=0.45, doink=0.55, zip=0.5, thud=0.7, tick=0.35, ding=0.4, squeak=0.4, giggle=0.4,
             tiptoe=0.45, tada=0.5, drumroll=0.45, crash=0.3, honk=0.5, wahwah=0.5, xylo_up=0.45, xylo_down=0.45,
             splat=0.6, bubble=0.4, tweet=0.3, twinkle=0.3, rattle=0.45)
@@ -443,10 +489,35 @@ def amb_bells(n, r):
     return norm(out, 0.7)
 
 
+def amb_fire(n, r):
+    """Campfire crackles."""
+    out = lowpass(noise(n), 300) * 0.25
+    i = 0
+    while i < n:
+        m = min(int(SR * 0.012), n - i)
+        out[i:i + m] += bandpass(noise(m), 1500, 6000) * r.uniform(0.3, 1.0)
+        i += int(SR * r.uniform(0.04, 0.35))
+    return norm(out, 0.6)
+
+
+def amb_underwater(n, r):
+    """Muffled deep water with bubble blips."""
+    out = lowpass(noise(n), 250) * 0.6
+    i = int(SR * r.uniform(0.2, 1.0))
+    while i < n:
+        b = sfx_bubble()[: n - i] * 0.5
+        out[i:i + len(b)] += b
+        i += int(SR * r.uniform(0.8, 2.5))
+    return norm(out, 0.6)
+
+
 AMBIENCE = {"park": [(amb_birds, 0.13)], "street": [(amb_birds, 0.09)], "playground": [(amb_birds, 0.1)],
             "beach": [(amb_waves, 0.1), (amb_birds, 0.04)], "snow": [(amb_wind, 0.07)], "kitchen": [],
             "pirate": [(amb_waves, 0.1), (amb_birds, 0.03)], "christmas": [(amb_wind, 0.05), (amb_bells, 0.05)],
-            "space": [(amb_space, 0.06)], "bedroom": [], "livingroom": []}
+            "space": [(amb_space, 0.06)], "bedroom": [], "livingroom": [],
+            "farm": [(amb_birds, 0.12)], "camping": [(amb_birds, 0.06), (amb_fire, 0.07)], "castle": [(amb_birds, 0.1)],
+            "underwater": [(amb_underwater, 0.08)], "candy": [(amb_birds, 0.06), (amb_bells, 0.03)],
+            "market": [(amb_birds, 0.08)], "desert": [(amb_wind, 0.06)]}
 
 
 def ambience(sets, fps, n, r):
