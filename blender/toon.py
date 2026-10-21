@@ -530,7 +530,7 @@ def make_table(loc, color="#FF7AA8"):
 # ------------------------------------------------------------------ sets
 SKY = {"day": ("#D8F1FF", "#5EB8FF"), "sunset": ("#FFD6A8", "#7A8CFF"), "indoor": ("#FFF4E6", "#FFE0C2"),
        "morning": ("#FFE9F2", "#8FD0FF"), "golden": ("#FFE8B0", "#6FB6FF"), "snow": ("#EEF6FF", "#9CC8F2"),
-       "space": ("#3A2F7A", "#0A0C2A"), "underwater": ("#6FE3EC", "#0B4F96"), "candy": ("#FFE3F3", "#B9A6FF")}
+       "space": ("#3A2F7A", "#0A0C2A"), "underwater": ("#6FE3EC", "#0B4F96"), "candy": ("#FFC2E3", "#8E7BEF")}
 SUN = {"sunset": (1, 0.78, 0.6), "golden": (1, 0.87, 0.68), "morning": (1, 0.92, 0.9), "snow": (0.95, 0.97, 1), "space": (0.92, 0.93, 1),
        "underwater": (0.72, 0.93, 1), "candy": (1, 0.93, 0.96)}
 SEASON_CROWNS = {"summer": ["#3FB64E", "#47B856", "#3CA84C"], "spring": ["#FF9EC4", "#FFB8D6", "#47B856"],
@@ -783,7 +783,7 @@ def _lolly(name, loc, h, c1, c2):
 
 
 def _set_candy(pal, rnd, sky, grass):
-    box("ground", (40, 40, 0.2), (0, 6, -0.1), checker("#FFD1E8", "#FFE9F4", 3.0, 0.6), bevel=0)
+    box("ground", (40, 40, 0.2), (0, 6, -0.1), checker("#FF9ECB", "#FFBEDB", 3.0, 0.6), bevel=0)
     for i, (hx, hr, c) in enumerate(((-5, 4, "#B8F5D8"), (1, 5, "#FFC2E0"), (7, 4.5, "#C9B8FF"))):
         sphere(f"candyhill{i}", hr, (hx, 14, -hr * 0.55), mat(c, 0.5, coat=0.4), scale=(1.6, 1, 1), sub=1)
     cs = [("#FF4D8A", "#FFFFFF"), ("#4DA6FF", "#FFE27A"), ("#5CCB6B", "#FFFFFF"), ("#B57BFF", "#FFD1E8")]
@@ -805,10 +805,10 @@ def _set_candy(pal, rnd, sky, grass):
 
 
 def _set_market(pal, rnd, sky, grass):
-    box("ground", (40, 40, 0.2), (0, 6, -0.1), checker("#DCD3C6", "#CFC4B5", 10.0, 0.8), bevel=0)
-    kk("fantasy", ["fountain-round.glb", "fountain-round-detail.glb"], "fountain", (0.3, 4.4, 0), width=2.2, rnd=pal)
-    kk("fantasy", ["stall-red.glb", "stall.glb"], "stall1", (-2.7, 3.8, 0), width=1.7, rot_z=0.25, rnd=pal)
-    kk("fantasy", ["stall-green.glb", "stall.glb"], "stall2", (2.9, 3.9, 0), width=1.7, rot_z=-0.25, rnd=pal)
+    box("ground", (40, 40, 0.2), (0, 6, -0.1), checker("#C2AF98", "#B09C85", 10.0, 0.8), bevel=0)
+    kk("fantasy", ["fountain-round.glb", "fountain-round-detail.glb"], "fountain", (0.0, 5.6, 0), width=2.4, rnd=pal)
+    kk("fantasy", ["stall-red.glb", "stall.glb"], "stall1", (-1.8, 3.7, 0), width=1.5, rot_z=0.3, rnd=pal)
+    kk("fantasy", ["stall-green.glb", "stall.glb"], "stall2", (1.9, 3.8, 0), width=1.5, rot_z=-0.3, rnd=pal)
     kk("fantasy", ["cart.glb", "cart-high.glb"], "cart", (-1.1, 5.4, 0), width=1.1, rot_z=0.5, rnd=pal)
     for i, (lx, ly) in enumerate(((-1.7, 3.2), (1.9, 3.3))):
         kk("fantasy", ["lantern.glb"], f"mlantern{i}", (lx, ly, 0), 1.4)
@@ -1043,7 +1043,7 @@ def make_set(kind, rnd=None):
         sphere("planet", 1.7, (4.6, 21, 7.0), mat(p1, 0.6, emit=0.35), sub=2)
         cyl("planet_ring", 2.8, 0.03, (4.6, 21, 7.0), mat("#FFF4D6", 0.5, emit=0.3), rot=(math.radians(70), math.radians(18), 0))
         sphere("moonlet", 0.8, (-5.2, 22, 5.0), mat(p2, 0.6, emit=0.35), sub=2)
-        rk = empty("rocket", (-2.7, 3.7, 0))  # our own cute rocket
+        rk = empty("rocket", (-1.6, 4.6, 0))  # our own cute rocket
         rc = pal.choice(["#FF4D5E", "#4DA6FF", "#FF8A3D", "#B57BFF"])
         cyl("rk_body", 0.38, 1.6, (0, 0, 1.0), mat("#FFFFFF", 0.35, coat=0.4), rk, bevel=0.05)
         cone("rk_nose", 0.38, 0.0, 0.7, (0, 0, 2.15), mat(rc, 0.35, coat=0.4), rk)
@@ -1054,7 +1054,7 @@ def make_set(kind, rnd=None):
             box(f"rk_fin{j}", (0.06, 0.45, 0.6), (math.cos(a) * 0.42, math.sin(a) * 0.42, 0.42), mat(rc, 0.4), rk,
                 rot=(0, 0, a + math.pi / 2), bevel=0.02)
         cyl("rk_base", 0.3, 0.2, (0, 0, 0.12), mat("#6B6F86", 0.4, metal=0.5), rk)
-        kk("space", ["rover.glb"], "rover", (2.4, 2.9, 0), width=0.9, rot_z=-0.4)
+        kk("space", ["rover.glb"], "rover", (1.8, 3.4, 0), width=0.9, rot_z=-0.4)
         kk("space", ["satellitedish_large.glb", "satellitedish_detailed.glb"], "dish", (3.3, 4.3, 0), 1.3, rot_z=0.6, rnd=pal)
         kk("space", ["rock_crystals*"], "crystals", (0.9, 4.1, 0), 0.7, rnd=pal)
         al = kk("space", ["alien.glb", "astronauta.glb", "astronautb.glb"], "alien", (-0.9, 3.5, 0), 0.6, rot_z=0.2, rnd=pal)
@@ -1145,7 +1145,7 @@ def make_set(kind, rnd=None):
 HDRI = {"day": "farm_field_puresky", "morning": "citrus_orchard_puresky", "golden": "autumn_field_puresky",
         "sunset": "belfast_sunset_puresky", "snow": "farm_field_puresky", "indoor": "brown_photostudio_02",
         "space": "brown_photostudio_02", "underwater": "farm_field_puresky", "candy": "citrus_orchard_puresky"}
-HDRI_STRENGTH = {"indoor": 0.45, "snow": 0.5, "space": 0.3, "underwater": 0.45}
+HDRI_STRENGTH = {"indoor": 0.45, "snow": 0.5, "space": 0.3, "underwater": 0.45, "candy": 0.4}
 ASSETS = os.environ.get("ASSETS", "")
 
 

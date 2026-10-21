@@ -538,7 +538,7 @@ def sneeze(spec, cam, tgt):
     p, t = _two([-0.75, -0.3], 46, 0.65)
     T.shot(cam, tgt, 1, 34, p, t, 46, (p[0] + 0.05, p[1] + 0.25, p[2]), t)
     T.shot(cam, tgt, 35, 76, (-0.65, -2.2, 0.78), (-0.7, 0.15, 0.72), 52, (-0.68, -1.95, 0.76), (-0.7, 0.15, 0.72))
-    p, t = _two([-0.8, 1.9], 30)
+    p, t = _two([-0.8, 1.5], 30)
     T.shot(cam, tgt, 77, 168, p, t, 30, (p[0], p[1] + 0.3, p[2]), t)
 
     T.idle(fr, 1, 76)
@@ -577,8 +577,8 @@ def sneeze(spec, cam, tgt):
         T.show(pt, 96, False)
     r = fr["root"]  # the friend is blown away
     T.key(r, "location", 77, (0.55, 0.25, 0))
-    T.key(r, "location", 86, (1.25, 0.3, 0.75))
-    T.key(r, "location", 95, (1.85, 0.35, 0))
+    T.key(r, "location", 86, (1.05, 0.3, 0.75))
+    T.key(r, "location", 95, (1.45, 0.35, 0))
     T.key(fr["piv"], "rotation_euler", 77, (0, 0, 0))
     T.key(fr["piv"], "rotation_euler", 94, (0, math.radians(360), 0))
     T.key(fr["piv"], "rotation_euler", 95, (0, 0, 0), "CONSTANT")
@@ -875,20 +875,20 @@ def race(spec, cam, tgt):
     hero = T.make_character(spec["hero"], -2.3, 0.0)
     fr = T.make_character(spec["friend"], -2.3, 0.55)
     for ch in (hero, fr):
-        T.turn(ch, 1, 70, 1)
-    fin = T.empty("finish", (2.2, 0.27, 0))
+        T.turn(ch, 1, 50, 1)
+    fin = T.empty("finish", (1.9, 1.15, 0))  # finish arch just behind the line
     stripes = T.checker("#FFFFFF", "#2E3A59", 6.0, 0.5)
-    for i, y in enumerate((-0.55, 0.85)):
-        T.cyl(f"fin_pole{i}", 0.04, 1.6, (0, y - 0.27, 0.8), T.mat("#FF4D6D", 0.4), fin)
-    T.box("fin_banner", (0.06, 1.4, 0.3), (0, 0.03, 1.55), stripes, fin, bevel=0.01)
-    tape = [T.box(f"fin_tape{i}", (0.03, 0.7, 0.04), (0, -0.32 + i * 0.7, 0.45), T.mat("#FFD23F", 0.4), fin, bevel=0.005)
+    for i, x in enumerate((-0.75, 0.75)):
+        T.cyl(f"fin_pole{i}", 0.05, 1.7, (x, 0, 0.85), T.mat("#FF4D6D", 0.4), fin)
+    T.box("fin_banner", (1.6, 0.06, 0.32), (0, 0, 1.6), stripes, fin, bevel=0.01)
+    tape = [T.box(f"fin_tape{i}", (0.75, 0.03, 0.05), (-0.37 + i * 0.75, 0, 0.5), T.mat("#FFD23F", 0.4), fin, bevel=0.005)
             for i in range(2)]
 
-    p, t = _two([-2.3, -2.0], 38, 0.6)
-    T.shot(cam, tgt, 1, 28, p, t, 38, (p[0] + 0.1, p[1] + 0.2, p[2]), t)
-    T.shot(cam, tgt, 29, 104, (-1.6, -3.0, 0.9), (-1.6, 0.3, 0.55), 30, (1.5, -3.0, 0.9), (1.5, 0.3, 0.55))
-    p, t = _two([1.4, 2.8], 32, 0.75)
-    T.shot(cam, tgt, 105, 168, p, t, 32, (p[0], p[1] + 0.3, p[2]), t)
+    p, t = _two([-2.3, -1.5], 32, 0.65)
+    T.shot(cam, tgt, 1, 28, (p[0] + 0.3, p[1], p[2]), t, 32, (p[0] + 0.4, p[1] + 0.2, p[2]), t)
+    T.shot(cam, tgt, 29, 104, (-2.0, -3.6, 0.95), (-2.0, 0.3, 0.55), 26, (1.1, -3.6, 0.95), (1.1, 0.3, 0.55))
+    p, t = _two([1.2, 2.4], 30, 0.85)
+    T.shot(cam, tgt, 105, 168, p, t, 30, (p[0], p[1] + 0.3, p[2]), t)
 
     # ready... set...
     T.sfx(4, "drumroll")
@@ -919,8 +919,8 @@ def race(spec, cam, tgt):
     T.sfx(86, "slide_up")
     r = hero["root"]
     T.key(r, "location", 86, (xh, 0.0, 0))
-    T.key(r, "location", 98, ((xh + 2.6) / 2, 0.15, 1.3))
-    T.key(r, "location", 108, (2.6, 0.27, 0))
+    T.key(r, "location", 98, ((xh + 2.2) / 2, 0.2, 1.3))
+    T.key(r, "location", 108, (2.2, 0.3, 0))
     T.stretch(hero, 90, 0.25, 3, 6)
     T.arms(hero, 90, 2.5, d=3)
     T.eyes_big(fr, 96, 1.35, 3, sound="doink")
@@ -928,16 +928,16 @@ def race(spec, cam, tgt):
     T.key(fr["root"], "location", 100, (xf, 0.55, 0))
     for i, tp in enumerate(tape):  # the tape snaps
         T.key(tp, "rotation_euler", 104, (0, 0, 0))
-        T.key(tp, "rotation_euler", 112, (math.radians(70 if i else -70), 0, 0))
+        T.key(tp, "rotation_euler", 112, (0, math.radians(-70 if i else 70), 0))
     T.sfx(105, "zip")
     T.sfx(108, "land")
     T.squash(hero, 109, 0.25, 1, 6)
     T.turn(hero, 112, 0, 6)
-    _confetti("winconfetti", 110, (2.4, 0.3, 1.2))
+    _confetti("winconfetti", 110, (2.1, 0.4, 1.2))
     T.sfx(112, "tada")
     T.jump_joy(hero, 114, sound=None)
     # friend arrives puffed out, then laughs along
-    T.hop(fr, 104, xf, 1.9, 0.25, 10, sound=False)
+    T.hop(fr, 104, xf, 1.35, 0.25, 10, sound=False)
     T.turn(fr, 116, 0, 6)
     T.eyes_norm(fr, 118)
     T.mouth_set(fr, 118, 0.5, 0.7)
