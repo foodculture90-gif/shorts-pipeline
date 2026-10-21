@@ -117,6 +117,20 @@ textarea.input{min-height:80px;resize:vertical}
 .chips{display:flex;flex-wrap:wrap;gap:7px}
 .chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:7px 12px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
 .chip.on{background:var(--accentSoft);border-color:var(--accent);color:var(--accent)}
+.chip.off{opacity:.32;pointer-events:none}
+.chip .ord{font-style:normal;background:var(--accent);color:#fff;border-radius:99px;min-width:18px;height:18px;display:inline-grid;place-items:center;font-size:11px;padding:0 5px}
+.picked{background:var(--bg2);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--ink2);margin-top:14px}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:560px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.kpis .card{padding:12px 14px}.kpis .n{font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.15}
+.kpis .l{color:var(--ink2);font-size:12px;font-weight:600;display:flex;gap:5px;align-items:center}
+.kpis .d{font-size:12px;font-weight:700;color:var(--green)}
+.rank{display:grid;grid-template-columns:22px 64px 1fr;gap:12px;align-items:center;padding:10px 12px}
+.rank .no{font-weight:800;color:var(--ink3);text-align:center}
+.rank .th{width:64px;border-radius:12px;cursor:pointer;border:none;padding:0}
+.rank h3{margin:0 0 5px;font-size:14.5px;line-height:1.25}
+.rank .nums{display:flex;flex-wrap:wrap;gap:6px}
+.bar{height:6px;border-radius:9px;background:var(--bg2);margin-top:7px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border:none}
 .row .t{font-weight:700}.row .d{color:var(--ink2);font-size:12.5px}
@@ -156,9 +170,21 @@ if ("serviceWorker" in navigator && !DEMO) navigator.serviceWorker.register("sw.
 
 // ---------------------------------------------------------------- the 3D world (same names as the render engine)
 const CAST = { pip: ["Pip", "🔴"], bubu: ["Bubu", "🐰"], mimi: ["Mimi", "🐱"], gogo: ["Gogo", "🐸"], chiko: ["Chiko", "🐤"],
-  lulu: ["Lulu", "🐻"], tobi: ["Tobi", "🦊"], teo: ["Teo", "🐶"], popo: ["Popo", "🐧"] };
-const PLACES = { street: ["Street", "🏡"], park: ["Park", "🌳"], beach: ["Beach", "🏖️"], kitchen: ["Kitchen", "🍳"], playground: ["Playground", "🛝"], snow: ["Snow", "⛄"], bedroom: ["Bedroom", "🧸"], livingroom: ["Living room", "🛋️"], space: ["Moon", "🚀"], pirate: ["Pirate island", "🏴‍☠️"], christmas: ["Christmas", "🎄"] };
-const IDEAS = ["Who stole the donut?", "Balloon floats away… POP!", "Hide and seek – BOO!", "Banana peel slip", "Surprise gift box", "Ball bonk in the park", "Snow day fun", "Birthday cake mix-up", "Silly day on the moon", "Pirate island party", "Toys in the bedroom", "Christmas presents"];
+  lulu: ["Lulu", "🐻"], tobi: ["Tobi", "🦊"], teo: ["Teo", "🐶"], popo: ["Popo", "🐧"], bobo: ["Bobo", "🐼"], zuzu: ["Zuzu", "🦄"],
+  leo: ["Leo", "🦁"], dodo: ["Dodo", "🦆"] };
+const PLACES = { street: ["Street", "🏡"], park: ["Park", "🌳"], beach: ["Beach", "🏖️"], kitchen: ["Kitchen", "🍳"], playground: ["Playground", "🛝"], snow: ["Snow", "⛄"], bedroom: ["Bedroom", "🧸"], livingroom: ["Living room", "🛋️"], space: ["Moon", "🚀"], pirate: ["Pirate island", "🏴‍☠️"], christmas: ["Christmas", "🎄"],
+  farm: ["Farm", "🚜"], camping: ["Camping", "🏕️"], castle: ["Castle", "🏰"], underwater: ["Under the sea", "🐠"], candy: ["Candy Land", "🍭"],
+  market: ["Village market", "⛲"], desert: ["Desert", "🌵"] };
+// the funny stories (plots) + where they can happen (same rules as the planner)
+const INDOOR = ["kitchen", "bedroom", "livingroom"], ALLP = Object.keys(PLACES);
+const OUTDOOR = ALLP.filter(p => !INDOOR.includes(p) && !["space", "underwater"].includes(p));
+const STORIES = {
+  steal_treat: ["Treat thief", "🍩", ALLP], ball_bonk: ["Ball bonk", "⚽", [...OUTDOOR, "bedroom", "livingroom", "space"]],
+  balloon_float: ["Balloon pop", "🎈", OUTDOOR], gift_surprise: ["Surprise box", "🎁", ALLP],
+  hide_seek: ["Hide & seek", "🙈", OUTDOOR.filter(p => !["candy", "desert"].includes(p))], slip_peel: ["Banana slip", "🍌", ALLP],
+  sneeze: ["Big sneeze", "🤧", ALLP], dance_party: ["Dance party", "💃", ALLP], bubbles: ["Bubbles", "🫧", ALLP],
+  wake_up: ["Wake-up horn", "📯", ALLP], race: ["The race", "🏁", [...OUTDOOR, "space"]] };
+const IDEAS = ["Who stole the donut?", "Balloon floats away… POP!", "Hide and seek – BOO!", "Banana peel slip", "Surprise gift box", "Ball bonk in the park", "Snow day fun", "Birthday cake mix-up", "Silly day on the moon", "Pirate island party", "Toys in the bedroom", "Christmas presents", "Bubbles under the sea", "Race on the farm", "Dance party at the castle", "Big sneeze in Candy Land"];
 const CHANGES = ["Different characters", "Different place", "Funnier moments", "Snow day", "Beach day", "On the moon", "Pirate island", "Sunset colours", "Party hats on", "Start with the banana slip"];
 
 // ---------------------------------------------------------------- icons + helpers
@@ -176,6 +202,9 @@ const I = {
   link:'<path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
   dl:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>', spark:'<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>',
   eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', heart:'<path d="M12 20s-7-4.4-9.3-9A5 5 0 0 1 12 6a5 5 0 0 1 9.3 5c-2.3 4.6-9.3 9-9.3 9z"/>',
+  chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>', users:'<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M17 4a4 4 0 0 1 0 8M22 21a6 6 0 0 0-4-5.7"/>',
+  lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
 };
 const ic = (n, s = 20) => `<svg class="i" style="width:${s}px;height:${s}px" viewBox="0 0 24 24">${I[n]}</svg>`;
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -200,16 +229,20 @@ const demo = (() => {
       ep("e2", "awaiting_approval", "Don't Pop Tobi's Blue Balloon! 🎈", "tobi", "teo", "park", 2),
       ep("e3", "generating", null, "pip", "chiko", "beach", 0.2),
       ep("e4", "scheduled", "Oops! The Ball Went BONK! ⚽", "gogo", "mimi", "playground", 20, { publish_at: new Date(now + 5 * h).toISOString() }),
-      ep("e5", "published", "Bubu's Big Banana Slip! 🍌", "bubu", "pip", "street", 30, { views: 24800, likes: 902, youtube_url: "#", publish_at: new Date(now - 26 * h).toISOString() })],
-    settings: { gpu_render: false },
+      ep("e5", "published", "Bubu's Big Banana Slip! 🍌", "bubu", "pip", "street", 30, { views: 24800, likes: 902, youtube_url: "#", stats_at: new Date(now - 40 * 6e4).toISOString(), publish_at: new Date(now - 74 * h).toISOString(),
+        yt: { privacy: "public", comments: 31, hist: [3, 2, 1, 0].map((k, i) => [new Date(now - k * 864e5).toISOString().slice(0, 10), [900, 6200, 15100, 24800][i]]) } }),
+      ep("e6", "published", "Zuzu's Giant Bubble Surprise! 🫧", "zuzu", "leo", "underwater", 50, { views: 3100, likes: 140, youtube_url: "#", publish_at: new Date(now - 30 * h).toISOString(),
+        yt: { privacy: "public", comments: 6, hist: [[new Date(now - 864e5).toISOString().slice(0, 10), 800], [new Date(now).toISOString().slice(0, 10), 3100]] } }),
+      ep("e7", "published", "Who Won The Farm Race?! 🏁", "bobo", "dodo", "farm", 20, { views: 0, likes: 0, youtube_url: "#", publish_at: new Date(now - 6 * h).toISOString(), yt: { privacy: "private", comments: 0, hist: [] } })],
+    settings: { gpu_render: false, yt_c1: { title: "Story Time Kids", subs: 412, views: 27900, videos: 14 } },
     activity: [{ id: 1, kind: "success", message: "🎬 Ready: Watch Popo Steal Lulu's Snow Donut! 🍩", created_at: new Date(now - 1 * h).toISOString() }],
   };
 })();
 
 // ---------------------------------------------------------------- data layer (light queries + local cache = fast)
 async function q(p) { const { data, error } = await p; if (error) throw error; return data; }
-const EP_COLS = "id,channel_id,status,title,takeaway,duration,thumb_path,preview_path,youtube_url,views,likes,publish_at,error,created_at,idea,feedback,assets_path," +
-  "summary:story->>summary,hero:story->spec->>hero,friend:story->spec->>friend,place:story->spec->>set,wish:story->spec->wish->>note";
+const EP_COLS = "id,channel_id,status,title,takeaway,duration,thumb_path,preview_path,youtube_url,views,likes,publish_at,error,created_at,idea,feedback,assets_path,stats_at," +
+  "yt:story->yt,summary:story->>summary,hero:story->spec->>hero,friend:story->spec->>friend,place:story->spec->>set,wish:story->spec->wish->>note";
 const store = { get(k) { try { return JSON.parse(localStorage.getItem("ss_" + k) || "null"); } catch { return null; } },
                 set(k, v) { try { localStorage.setItem("ss_" + k, JSON.stringify(v)); } catch {} } };
 const api = {
@@ -288,7 +321,7 @@ function shell(active, inner, { fab = true } = {}) {
       <button class="btn" id="install" ${installEvt && !standalone() ? "" : "hidden"}>${ic("dl", 16)} Install</button></span></header>
     ${inner}</div>
     ${fab ? `<button class="fab" id="fab">${ic("plus")} New short</button>` : ""}
-    <nav class="bottom">${tab("home", "#/", "home", "Studio")}${tab("shorts", "#/shorts", "yt", "Shorts", b)}${tab("channels", "#/channels", "tv", "Channels")}${tab("settings", "#/settings", "cog", "Settings")}</nav>`;
+    <nav class="bottom">${tab("home", "#/", "home", "Studio")}${tab("shorts", "#/shorts", "yt", "Shorts", b)}${tab("views", "#/views", "chart", "Views")}${tab("channels", "#/channels", "tv", "Channels")}${tab("settings", "#/settings", "cog", "Settings")}</nav>`;
 }
 function bindCommon() {
   document.getElementById("fab")?.addEventListener("click", () => newShortSheet());
@@ -325,7 +358,7 @@ function viewHome() {
     <h1>${hi}</h1>
     <div class="sub" style="margin-bottom:14px">${ready.length ? `<b>${ready.length}</b> short${ready.length > 1 ? "s are" : " is"} ready for your OK.` : making.length ? `${making.length} short${making.length > 1 ? "s" : ""} rendering now.` : "All caught up."}${perDay ? ` · ${perDay} new shorts arrive every morning.` : ""}</div>
     <div class="pipe">${stat(ready.length, "Ready", "approve", ready.length)}${stat(making.length, "Rendering", "progress")}${stat(sched.length, "Scheduled", "scheduled")}${stat(live.length, "Live", "published")}</div>
-    ${views ? `<div class="sub" style="margin-top:8px">${ic("eye", 14)} <b>${fmtNum(views)}</b> views on your live shorts</div>` : ""}
+    ${live.length ? `<div class="sub" style="margin-top:8px;cursor:pointer" data-go="#/views">${ic("eye", 14)} <b>${fmtNum(views)}</b> views on your live shorts · <a>See views</a></div>` : ""}
     ${failed.length ? `<div class="card" style="margin-top:12px;display:flex;align-items:center;gap:10px;padding:12px" data-go="#/shorts" data-tab="progress"><span class="pill red">${failed.length} failed</span><span class="sub" style="flex:1">They retry once by themselves. Tap to see them.</span></div>` : ""}
     <h2>Ready for you ${ready.length ? `<a href="#/shorts">See all</a>` : ""}</h2>
     ${ready.length ? `<div class="reel">${ready.slice(0, 12).map(e => `<button class="tile" data-video="${e.id}">${thumb(e)}<b>${esc(e.title || "New short")}</b><span class="sub">${castLine(e)} ${esc(PLACES[e.place]?.[0] || "")}</span></button>`).join("")}</div>`
@@ -483,40 +516,120 @@ function scheduleAllSheet(list) {
 function newShortSheet(pre = {}) {
   const channels = state.channels;
   if (!channels.length) return toast("Add a channel first (Channels)");
-  sheet(`<h3>New short</h3><div class="sub">A 30-second 3D cartoon with music and sound effects. Leave everything on “Surprise me” and the AI picks.</div>
+  const story = pre.story ? [pre.story] : [], cast = [], placeSel = { v: pre.place || "" };
+  sheet(`<h3>New short</h3><div class="sub">Pick the story, the stars and the place – or leave any of them on “Surprise me”. About 30 seconds, music + sound effects, no words.</div>
     ${channels.length > 1 ? `<label class="f">Channel</label><select class="input" id="ch">${channels.map(c => `<option value="${c.id}" ${c.id === state.channel ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select>` : ""}
+    <label class="f">What happens? <span class="sub" style="font-weight:500">(tap up to 5, in the order you want them)</span></label>
+    <div class="chips" data-chips="story">${Object.entries(STORIES).map(([k, [n, e]]) => `<button type="button" class="chip" data-v="${k}">${e} ${n}</button>`).join("")}</div>
     <label class="f">Who stars? <span class="sub" style="font-weight:500">(up to 2)</span></label>
     ${chips(Object.entries(CAST).map(([k, [n, e]]) => [k, `${e} ${n}`]), "cast")}
     <label class="f">Where?</label>
-    ${chips([["", "🎲 Surprise me"], ...Object.entries(PLACES).map(([k, [n, e]]) => [k, `${e} ${n}`])], "place", [""])}
-    <label class="f">Your idea <span class="sub" style="font-weight:500">(optional)</span></label>
-    <textarea class="input" id="idea" placeholder="e.g. Popo sneaks off with Lulu's donut, and Lulu wears a crown">${esc(pre.idea || "")}</textarea>
+    ${chips([["", "🎲 Surprise me"], ...Object.entries(PLACES).map(([k, [n, e]]) => [k, `${e} ${n}`])], "place", [placeSel.v])}
+    <label class="f">Anything else? <span class="sub" style="font-weight:500">(optional)</span></label>
+    <textarea class="input" id="idea" placeholder="e.g. Lulu wears a crown, sunset colours">${esc(pre.idea || "")}</textarea>
     <div class="reel" style="gap:7px;margin-top:8px">${IDEAS.map(t => `<button type="button" class="chip" style="flex:none" data-ex="${esc(t)}">${esc(t)}</button>`).join("")}</div>
     <label class="f">How many?</label><div class="seg" id="cnt">${[1, 3, 5, 10].map(n => `<button type="button" data-n="${n}" class="${n === 1 ? "on" : ""}">${n}</button>`).join("")}</div>
-    <div style="margin-top:18px"><button class="btn primary block" id="go">${ic("spark", 16)} Make it</button></div>
+    <div class="picked" id="picked"></div>
+    <div style="margin-top:14px"><button class="btn primary block" id="go">${ic("spark", 16)} Make it</button></div>
     <div class="hint" style="text-align:center">Ready to approve in about 20–40 minutes.</div>`,
     (el, close) => {
       let n = 1;
-      el.querySelectorAll("[data-chips=cast] .chip").forEach(b => b.onclick = () => {
-        const on = el.querySelectorAll("[data-chips=cast] .chip.on");
-        if (!b.classList.contains("on") && on.length >= 2) on[0].classList.remove("on");
-        b.classList.toggle("on");
+      const paint = () => {
+        el.querySelectorAll("[data-chips=story] .chip").forEach(b => {
+          const k = b.dataset.v, i = story.indexOf(k), [nm, e, where] = STORIES[k];
+          b.classList.toggle("on", i >= 0);
+          b.classList.toggle("off", i < 0 && !!placeSel.v && !where.includes(placeSel.v));
+          b.innerHTML = `${i >= 0 ? `<i class="ord">${i + 1}</i>` : e} ${nm}`;
+        });
+        el.querySelectorAll("[data-chips=place] .chip").forEach(b => {
+          const v = b.dataset.v;
+          b.classList.toggle("on", v === placeSel.v);
+          b.classList.toggle("off", !!v && story.some(k => !STORIES[k][2].includes(v)));
+        });
+        el.querySelectorAll("[data-chips=cast] .chip").forEach(b => b.classList.toggle("on", cast.includes(b.dataset.v)));
+        const parts = [story.length ? story.map(k => STORIES[k][1] + " " + STORIES[k][0]).join(" → ") : "🎲 surprise story",
+          cast.length ? cast.map(k => CAST[k][1] + " " + CAST[k][0]).join(" & ") : "🎲 surprise stars",
+          placeSel.v ? PLACES[placeSel.v][1] + " " + PLACES[placeSel.v][0] : "🎲 surprise place"];
+        el.querySelector("#picked").innerHTML = `<b>Your short:</b> ${parts.map(esc).join(" · ")}`;
+      };
+      el.querySelectorAll("[data-chips=story] .chip").forEach(b => b.onclick = () => {
+        const i = story.indexOf(b.dataset.v);
+        if (i >= 0) story.splice(i, 1); else if (story.length < 5) story.push(b.dataset.v); else toast("Up to 5 stories");
+        paint();
       });
-      el.querySelectorAll("[data-chips=place] .chip").forEach(b => b.onclick = () => { el.querySelectorAll("[data-chips=place] .chip").forEach(x => x.classList.toggle("on", x === b)); });
+      el.querySelectorAll("[data-chips=cast] .chip").forEach(b => b.onclick = () => {
+        const i = cast.indexOf(b.dataset.v);
+        if (i >= 0) cast.splice(i, 1); else { if (cast.length >= 2) cast.shift(); cast.push(b.dataset.v); }
+        paint();
+      });
+      el.querySelectorAll("[data-chips=place] .chip").forEach(b => b.onclick = () => { placeSel.v = b.dataset.v; paint(); });
       el.querySelectorAll("[data-ex]").forEach(b => b.onclick = () => { el.querySelector("#idea").value = b.dataset.ex; });
       el.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { n = +b.dataset.n; el.querySelectorAll("[data-n]").forEach(x => x.classList.toggle("on", x === b)); });
+      paint();
       el.querySelector("#go").onclick = ev => guard(ev.currentTarget, async () => {
-        const cast = [...el.querySelectorAll("[data-chips=cast] .chip.on")].map(b => CAST[b.dataset.v][0]);
-        const place = el.querySelector("[data-chips=place] .chip.on")?.dataset.v;
         const text = el.querySelector("#idea").value.trim();
-        const parts = [cast.length ? `Starring ${cast.join(" and ")}.` : "", place ? `It happens at the ${PLACES[place][0].toLowerCase()}.` : "", text];
-        const idea = parts.filter(Boolean).join(" ") || undefined;
+        const choose = { gags: [...story], cast: [...cast], set: placeSel.v || undefined };
+        const label = [story.length ? story.map(k => STORIES[k][0]).join(", ") : "", cast.length ? `with ${cast.map(k => CAST[k][0]).join(" & ")}` : "",
+          placeSel.v ? `at the ${PLACES[placeSel.v][0].toLowerCase()}` : "", text].filter(Boolean).join(" ");
         const channel_id = el.querySelector("#ch")?.value || channels[0].id;
-        await api.commands([...Array(n)].map(() => ({ type: "generate", payload: { channel_id, idea, silent: true } })));
+        await api.commands([...Array(n)].map(() => ({ type: "generate", payload: { channel_id, idea: label || undefined, choose, silent: true } })));
         close(); toast(`Making ${n} short${n > 1 ? "s" : ""} – they'll be ready to approve soon`);
         state.tab = "progress"; if (location.hash !== "#/shorts") location.hash = "#/shorts"; else refresh();
       });
     });
+}
+
+// ---------------------------------------------------------------- Views (YouTube stats)
+function viewStats() {
+  const vids = state.episodes.filter(e => e.youtube_url && ["published", "scheduled"].includes(e.status));
+  const day = d => d.toISOString().slice(0, 10);
+  const days = [...Array(14)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - (13 - i)); return day(d); });
+  const at = (e, d) => { let v = null; for (const [k, n] of (e.yt?.hist || [])) if (k <= d) v = n; return v; };
+  const daily = days.map((d, i) => i ? vids.reduce((s, e) => {
+    const a = at(e, d), b = at(e, days[i - 1]), born = e.publish_at && day(new Date(e.publish_at)) === d;
+    return s + (a != null && (b != null || born) ? Math.max(0, a - (b || 0)) : 0); }, 0) : 0);
+  const total = vids.reduce((s, e) => s + (e.views || 0), 0), likes = vids.reduce((s, e) => s + (e.likes || 0), 0);
+  const comments = vids.reduce((s, e) => s + (e.yt?.comments || 0), 0), today = daily[13];
+  const priv = vids.filter(e => e.yt?.privacy === "private" && e.status === "published");
+  const top = [...vids].sort((a, b) => (b.views || 0) - (a.views || 0));
+  const best = Math.max(1, top[0]?.views || 0);
+  const updated = vids.map(e => e.stats_at).filter(Boolean).sort().pop();
+  const mx = Math.max(1, ...daily);
+  const kpi = (icon, label, n, d) => `<div class="card"><div class="l">${ic(icon, 14)} ${label}</div><div class="n">${n}</div>${d ? `<div class="d">${d}</div>` : ""}</div>`;
+  root.innerHTML = shell("views", `
+    <h1>Views</h1><div class="sub" style="margin-bottom:12px">${updated ? `Updated ${ago(updated)} ago · refreshes by itself every 2 hours.` : "Views appear here once your shorts are on YouTube."}
+      <button class="btn" id="refreshStats" style="margin-left:6px;padding:5px 10px;font-size:12.5px">${ic("refresh", 14)} Update now</button></div>
+    <div class="kpis">${kpi("eye", "Total views", fmtNum(total), today ? `+${fmtNum(today)} today` : "")}${kpi("heart", "Likes", fmtNum(likes))}${kpi("chat", "Comments", fmtNum(comments))}${kpi("yt", "Shorts on YouTube", vids.length)}</div>
+    <div id="chanStats"></div>
+    ${priv.length ? `<div class="card" style="margin-top:12px;border-color:var(--amber)"><b>${ic("lock", 15)} ${priv.length} of your shorts are still Private on YouTube</b>
+      <div class="sub" style="margin-top:4px">Private shorts can't get views. YouTube keeps uploads from new apps private until Google approves the app (the “YouTube API audit” form). Until then: YouTube Studio → Content → select them → Edit → Visibility → Public.</div>
+      <a class="btn" style="margin-top:10px" href="https://studio.youtube.com/" target="_blank" rel="noopener">${ic("ext", 15)} Open YouTube Studio</a></div>` : ""}
+    <h2>Views per day · 14 days</h2>
+    <div class="card"><div class="chart">${daily.map((n, i) => `<div class="${i === 13 ? "v" : ""}" style="height:${(n / mx) * 100}%" title="${n} views"></div>`).join("")}</div>
+      <div class="chart-l">${days.map((d, i) => `<span>${i % 2 ? "" : new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</span>`).join("")}</div>
+      ${daily.some(Boolean) ? "" : `<div class="hint" style="text-align:center">The daily chart fills in as the views come in.</div>`}</div>
+    <h2>Your shorts by views</h2>
+    <div class="grid">${top.length ? top.map((e, i) => `<div class="card rank">
+      <div class="no">${i + 1}</div>
+      <button class="th" data-video="${e.id}" data-thumb="${e.id}" aria-label="Play">${thumbInner(e)}</button>
+      <div><h3>${esc(e.title || "Short")}</h3>
+        <div class="nums"><span class="pill green">${ic("eye", 12)} ${fmtNum(e.views || 0)}</span><span class="pill">${ic("heart", 12)} ${fmtNum(e.likes || 0)}</span>
+          <span class="pill">${ic("chat", 12)} ${fmtNum(e.yt?.comments || 0)}</span>
+          ${e.status === "scheduled" ? `<span class="pill amber">${ic("clock", 12)} Scheduled</span>` : e.yt?.privacy === "private" ? `<span class="pill red">${ic("lock", 12)} Private</span>` : e.yt?.privacy === "unlisted" ? `<span class="pill amber">Unlisted</span>` : ""}
+          ${e.publish_at ? `<span class="pill">${ago(e.publish_at)} ago</span>` : ""}
+          <a class="pill" href="${esc(e.youtube_url)}" target="_blank" rel="noopener">${ic("ext", 12)} YouTube</a></div>
+        <div class="bar"><i style="width:${Math.max(2, (e.views || 0) / best * 100)}%"></i></div></div></div>`).join("")
+      : `<div class="card empty"><b>Nothing on YouTube yet</b>Publish a short and its views show up here.</div>`}</div>`, { fab: false });
+  root.querySelector("#refreshStats").onclick = ev => guard(ev.currentTarget, async () => { await api.command("stats", {}); toast("Updating views – about a minute"); setTimeout(refresh, 70000); });
+  bindCommon();
+  fillThumbs(top.slice(0, 60));
+  api.settings().then(st => {
+    const cs = state.channels.map(c => [c, st["yt_" + c.id]]).filter(([, v]) => v);
+    const el = document.getElementById("chanStats");
+    if (el && cs.length) el.innerHTML = `<h2>Channels</h2><div class="grid">${cs.map(([c, v]) => `<div class="card" style="display:flex;gap:12px;align-items:center;padding:12px 14px">
+      <div style="flex:1;min-width:0"><b>${esc(v.title || c.name)}</b><div class="sub">${fmtNum(v.videos)} videos</div></div>
+      <span class="pill">${ic("users", 12)} ${v.hidden_subs ? "hidden" : fmtNum(v.subs)} subscribers</span><span class="pill green">${ic("eye", 12)} ${fmtNum(v.views)}</span></div>`).join("")}</div>`;
+  }).catch(() => {});
 }
 
 // ---------------------------------------------------------------- Channels
@@ -632,7 +745,7 @@ function viewLogin(msg) {
 }
 
 // ---------------------------------------------------------------- router: draw instantly from what we have, then refresh
-const VIEWS = { "": viewHome, shorts: viewShorts, channels: viewChannels, settings: viewSettings };
+const VIEWS = { "": viewHome, shorts: viewShorts, views: viewStats, channels: viewChannels, settings: viewSettings };
 function page() { return location.hash.replace(/^#\/?/, "").split("/")[0]; }
 let lastSig = "";
 function route(local = false) {
@@ -647,7 +760,7 @@ function fail(e) { console.error(e); root.innerHTML = shell("home", `<div class=
 async function load() {
   const [eps, ch] = await Promise.all([api.episodes(), api.channels()]);
   state.episodes = eps; state.channels = ch;
-  const sig = JSON.stringify([eps.map(e => [e.id, e.status, e.title, e.thumb_path, e.views, e.error]), ch.map(c => [c.id, c.connected, c.per_day, c.name, c.auto_daily])]);
+  const sig = JSON.stringify([eps.map(e => [e.id, e.status, e.title, e.thumb_path, e.views, e.likes, e.stats_at, e.error]), ch.map(c => [c.id, c.connected, c.per_day, c.name, c.auto_daily])]);
   if (sig !== lastSig) { lastSig = sig; if (!document.querySelector(".sheet-bg") && page() !== "settings") route(true); }
 }
 let rt;
