@@ -349,6 +349,7 @@ input.in,select.in,textarea.in{background:#111113;border:1px solid #2c2c30;color
 .item.on{outline:2px solid var(--accent);outline-offset:-2px}
 .item .dot{border:none;display:grid;place-items:center;color:var(--accent)}
 .item .dot svg{width:18px;height:18px}
+.item .dot{background:var(--bg2);width:44px;height:44px;border-radius:14px}.item .dot svg{width:22px;height:22px}.item .dot.dcar{width:66px;background:#202024}.item .dot.dcar svg{width:62px;height:36px}.item .dot.dsw{overflow:hidden;padding:0}.item .dot.dsw svg{width:44px;height:44px}
 .coach{background:var(--accent);color:#0b0b0c}.coach .sub{color:#0b0b0c}.coach .btn{background:#0b0b0c;color:var(--accent)}
 .quick svg{color:var(--accent)}
 nav.tabs{background:rgba(11,11,12,.94);border-top:1px solid #1f1f22;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
@@ -684,9 +685,9 @@ function renderToday(v) {
   v.innerHTML = `${demoBanner()}
     <div class="vrow3" style="margin-top:8px"><div class="vmini"><span class="sub">Streak</span><b class="num">${stk}d</b></div><div class="vmini"><span class="sub">Level</span><b class="num">${levelOf(avatarPoints().xp).L}</b></div>
       <button class="vmini" id="toHouse" style="border:none;color:inherit"><span class="sub">Pts</span><b class="num" style="color:var(--accent)">${shortNum(wallet())}</b></button></div>
-    <div class="card vhero" style="margin-top:14px">${stepRing(steps, tg.steps)}<div><div class="eyebrow">Steps</div><div class="vbig num">${steps.toLocaleString()}</div>
-      <div class="sub num">of ${tg.steps.toLocaleString()} · ${r0(Math.min(999, steps / (tg.steps || 1) * 100))}%</div></div></div>
-    <div class="vtiles">${vtile("Kcal", r0(tot.kcal).toLocaleString(), tot.kcal / tg.kcal)}${vtile("Protein", r0(tot.p) + "g", tot.p / tg.protein)}${vtile("Burn", h && h.active_kcal != null ? r0(h.active_kcal) : "–", (h?.active_kcal || 0) / 600)}</div>
+    <div class="card vhero" style="margin-top:14px">${stepRing(tot.kcal, tg.kcal)}<div><div class="eyebrow">Calories</div><div class="vbig num">${r0(tot.kcal).toLocaleString()}</div>
+      <div class="sub num">of ${tg.kcal.toLocaleString()} kcal · ${tot.kcal > tg.kcal ? r0(tot.kcal - tg.kcal).toLocaleString() + " over" : r0(tg.kcal - tot.kcal).toLocaleString() + " left"}</div></div></div>
+    <div class="vtiles">${vtile("Protein", r0(tot.p) + "g", tot.p / tg.protein)}${vtile("Burn", h && h.active_kcal != null ? r0(h.active_kcal) : "–", (h?.active_kcal || 0) / 600)}${vtile("Steps", steps.toLocaleString(), steps / (tg.steps || 1))}</div>
 
     ${stk && !of("meal", t).length ? `<div class="demo" style="margin-top:12px;background:var(--accentSoft);color:var(--accent)">${ICON.flame}<span class="grow">Your ${stk}-day streak is waiting. Log a meal today to keep it going.</span></div>` : ""}
     <div style="margin-top:12px">${quickAddBox("qa")}</div>
@@ -1728,13 +1729,50 @@ function houseSVG(g) {
   const glow = ([x, y, w, h]) => `<circle cx="${x + w / 2}" cy="${y + h / 2}" r="${Math.min(w, h) * .5}" fill="url(#hglow)"/>`;
   const [lx, ly, lw, lh] = L.living, [kx, ky, kw, kh] = L.kitchen;
   const sx = lx + 8, sy = ly + lh * .42, ex = lx + lw * .66, by = ly + lh - 6, iw = Math.min(64, kw * .55), ix = kx + (kw - iw) / 2, iy = ky + Math.max(26, kh * .42);
-  const nd = L.spots.length, bays = garageBays(g), GH = bays ? 180 : 0, parked = g.hsel.cars.slice(0, nd + bays), bw = 64, gw = bays * bw + 12, gx = W / 2 - gw / 2;
+  const nd = L.spots.length, bays = garageBays(g), gS = Math.min(1, W / (bays * 70 + 86 + (bays >= 3 ? 18 : 0))), GH = bays ? 214 * gS : 0, parked = g.hsel.cars.slice(0, nd + bays);
   const car = (id, x, y, k) => `<g transform="translate(${x} ${y})" filter="url(#hshB)">${carSVG(HITEM[id].shape, HITEM[id].c, k)}</g>`;
-  const garage = !bays ? "" : `<rect x="0" y="${H}" width="${W}" height="180" fill="${on("paving") ? "url(#hconc)" : "url(#hgravel)"}"/>
-    <rect x="${gx}" y="${H + 12}" width="${gw}" height="156" fill="${wall}" filter="url(#hshB)"/><rect x="${gx + 6}" y="${H + 18}" width="${gw - 12}" height="144" fill="url(#hbare)"/>
-    ${Array.from({length: bays - 1}, (_, i) => `<rect x="${gx + 6 + (i + 1) * bw - 1.5}" y="${H + 18}" width="3" height="144" fill="${wall}"/>`).join("")}
-    ${Array.from({length: bays}, (_, i) => `<path d="M${gx + 10 + i * bw} ${H + 165} H${gx + 2 + (i + 1) * bw}" stroke="#55534d" stroke-width="3"/>`).join("")}
-    ${parked.slice(nd, nd + bays).map((id, i) => car(id, gx + 6 + i * bw + bw / 2, H + 90, "g" + i)).join("")}`;
+  const garage = !bays ? "" : (() => {
+    const W2 = W / gS, T = bays >= 5 ? 3 : bays >= 3 ? 2 : 1, bw = 70, gw = bays * bw + 20 + (T > 1 ? 18 : 0), gx = W2 / 2 - gw / 2, gy = 14, gh = 172;
+    const ix = gx + 9 + (T > 1 ? 18 : 0), iy = gy + 9, ih = gh - 18, x0 = gx + 9, cy = iy + 92;
+    const fill = ["", "url(#ggc)", "url(#gge)", "url(#ggs)"][T], line = ["", "#e9e6de", "#f2c94c", "#d4ff3a"][T];
+    const bx = i => ix + i * bw;
+    const defs = `<defs><pattern id="ggc" width="46" height="46" patternUnits="userSpaceOnUse"><rect width="46" height="46" fill="#b9b6ae"/><circle cx="12" cy="15" r="10" fill="#c4c1b9" opacity=".6"/><circle cx="33" cy="36" r=".9" fill="#9d9a92"/><path d="M0 46H46V0" stroke="#a3a098" stroke-width="1" fill="none"/></pattern>
+      <pattern id="gge" width="9" height="9" patternUnits="userSpaceOnUse"><rect width="9" height="9" fill="#50545b"/><circle cx="2" cy="3" r=".7" fill="#7a7f87"/><circle cx="6.5" cy="7" r=".6" fill="#383b40"/><circle cx="7" cy="2" r=".5" fill="#9aa0a8"/></pattern>
+      <pattern id="ggs" width="35" height="35" patternUnits="userSpaceOnUse"><rect width="35" height="35" fill="#151518"/><path d="M0 35H35V0" stroke="#26262b" stroke-width="1" fill="none"/></pattern>
+      <linearGradient id="ggl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".1"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset=".7" stop-color="#fff" stop-opacity=".06"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+      <radialGradient id="gspot"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+      <radialGradient id="gled"><stop offset="0" stop-color="#d4ff3a" stop-opacity=".35"/><stop offset="1" stop-color="#d4ff3a" stop-opacity="0"/></radialGradient></defs>`;
+    const tyre = (x, y) => `<circle cx="${x}" cy="${y}" r="6.5" fill="#1a1a1c"/><circle cx="${x}" cy="${y}" r="3" fill="#4a4a4f"/>`;
+    // back wall: cabinets, tool chest, EV chargers
+    const back = Array.from({length: bays}, (_, i) => {
+      const x = bx(i) + 5, w = bw - 10;
+      const cab = T === 3 ? `<rect x="${x}" y="${iy}" width="${w}" height="13" rx="1.5" fill="#1d1d21"/><path d="M${x + 3} ${iy + 10}H${x + w - 3}" stroke="#d4ff3a" stroke-width="1.2" opacity=".8"/>`
+        : i === 0 ? `<rect x="${x}" y="${iy}" width="${w}" height="13" rx="1.5" fill="#b8352a"/><path d="M${x + 3} ${iy + 4.5}H${x + w - 3}M${x + 3} ${iy + 8.5}H${x + w - 3}" stroke="#7a1f18" stroke-width="1"/>`
+        : `<rect x="${x}" y="${iy}" width="${w}" height="13" rx="1.5" fill="${T === 2 ? "#3a3d43" : "#8d8a83"}"/><path d="M${x + w / 2} ${iy + 2}V${iy + 11}" stroke="${T === 2 ? "#24262a" : "#6f6c66"}" stroke-width="1"/>`;
+      const ev = T > 1 ? `<rect x="${bx(i) + bw / 2 - 5}" y="${iy + 15}" width="10" height="9" rx="2" fill="#f4f4f0"/><circle cx="${bx(i) + bw / 2}" cy="${iy + 19.5}" r="1.8" fill="#4fd65a"/>` : "";
+      return cab + ev; }).join("");
+    // side wall: tyre rack / workbench
+    const side = T === 1 ? `<rect x="${gx + gw - 26}" y="${iy + 128}" width="15" height="24" rx="1" fill="#8a6a48"/>${tyre(x0 + 9, iy + 130)}${tyre(x0 + 9, iy + 145)}`
+      : `<rect x="${x0}" y="${iy + 18}" width="17" height="${ih - 30}" fill="${T === 3 ? "#1a1a1d" : "#3a3d43"}"/>${Array.from({length: 8}, (_, k) => tyre(x0 + 8.5, iy + 30 + k * 15)).join("")}`;
+    const lines = Array.from({length: bays + 1}, (_, i) => `<path d="M${bx(i)} ${iy + 30}V${iy + ih - 6}" stroke="${line}" stroke-width="${T === 3 ? 2 : 2.5}" opacity="${T === 1 ? .7 : .9}"/>`).join("")
+      + (T === 3 ? Array.from({length: bays + 1}, (_, i) => `<ellipse cx="${bx(i)}" cy="${iy + 92}" rx="7" ry="64" fill="url(#gled)"/>`).join("") : "");
+    const stops = Array.from({length: bays}, (_, i) => `<rect x="${bx(i) + bw / 2 - 16}" y="${iy + 30}" width="32" height="4" rx="2" fill="${T === 3 ? "#2a2a2e" : "#f2c94c"}"/>`).join("");
+    const glowL = T > 1 ? Array.from({length: bays}, (_, i) => `<ellipse cx="${bx(i) + bw / 2}" cy="${cy}" rx="${bw * .55}" ry="70" fill="url(#gspot)"/>`).join("") : "";
+    const lift = T === 3 ? (() => { const x = bx(bays - 1); return `<g>${[x + 5, x + bw - 11].map(px => `<rect x="${px}" y="${cy - 10}" width="6" height="20" rx="1" fill="#2c2c30"/><rect x="${px}" y="${cy - 10}" width="6" height="3" fill="#d4ff3a"/>`).join("")}
+      <path d="M${x + 11} ${cy - 30}H${x + bw - 11}M${x + 11} ${cy + 30}H${x + bw - 11}" stroke="#3a3a3f" stroke-width="3"/></g>`; })() : "";
+    const doors = Array.from({length: bays}, (_, i) => `<rect x="${bx(i) + 6}" y="${gy + gh - 10}" width="${bw - 12}" height="21" fill="${fill}"/><rect x="${bx(i) + 6}" y="${gy + gh - 12}" width="${bw - 12}" height="4" fill="${T === 3 ? "#0e0e10" : "#6c6a64"}"/><path d="M${bx(i) + 6} ${gy + gh - 11}H${bx(i) + bw - 6}" stroke="#fff" stroke-width=".6" opacity=".35"/>`).join("");
+    const lamps = [gx - 3, gx + gw + 3].map(x => `<circle cx="${x}" cy="${gy + gh + 13}" r="16" fill="url(#hglow)"/><circle cx="${x}" cy="${gy + gh + 6}" r="2.6" fill="#fff3c4"/>`).join("");
+    const plant = T === 3 ? [gx - 18, gx + gw + 18].map(x => `<rect x="${x - 9}" y="${gy + 20}" width="18" height="18" rx="2" fill="#2a2a2e"/>${tree(x, gy + 29, 8)}`).join("") : "";
+    const apron = `<path d="M${ix - 4} ${gy + gh + 11}H${ix + bays * bw + 4}L${ix + bays * bw + 14} 214H${ix - 14}Z" fill="${T === 3 ? "#2a2a2e" : on("paving") ? "url(#hconc)" : "#a29c8c"}" opacity="${T === 3 ? 1 : .9}"/>`;
+    return `${defs}<g transform="translate(0 ${H}) scale(${gS})"><rect x="0" y="0" width="${W2}" height="214" fill="${on("paving") || T > 1 ? "url(#hconc)" : "url(#hgravel)"}"/>${apron}
+      <rect x="${gx + 6}" y="${gy + 6}" width="${gw + 4}" height="${gh + 6}" fill="#000" opacity=".28" filter="url(#hshB)"/>
+      <rect x="${gx}" y="${gy + gh - 2}" width="${gw}" height="11" fill="${shade(wall, .62)}"/><rect x="${gx + gw - 2}" y="${gy + 4}" width="7" height="${gh + 5}" fill="${shade(wall, .76)}"/>
+      <rect x="${gx}" y="${gy}" width="${gw}" height="${gh}" fill="${wall}"/>
+      <rect x="${gx + 9}" y="${iy}" width="${gw - 18}" height="${ih}" fill="${fill}"/>${T === 3 ? `<rect x="${gx + 9}" y="${iy}" width="${gw - 18}" height="${ih}" fill="url(#ggl)"/>` : ""}
+      <rect x="${gx + 9}" y="${iy}" width="${gw - 18}" height="9" fill="url(#hinT)"/><rect x="${gx + 9}" y="${iy}" width="9" height="${ih}" fill="url(#hinL)"/>
+      ${glowL}${lines}${stops}${lift}${side}<g filter="url(#sh)">${back}</g>${doors}${lamps}${plant}
+      ${parked.slice(nd, nd + bays).map((id, i) => car(id, bx(i) + bw / 2, cy, "g" + i)).join("")}</g>`;
+  })();
   const [dx, dy, dw, dh] = L.drive, [px, py, pw, ph] = L.pool, [ux, uy] = L.loung, E = L.extra;
   const waves = Array.from({length: Math.max(2, Math.floor(ph / 26))}, (_, i) => `<path d="M${px + 12 + (i % 2) * 14} ${py + 18 + i * 24} q8 -5 16 0 t16 0${pw > 100 ? " t16 0" : ""}"/>`).join("");
   return `<svg viewBox="0 0 ${W} ${H + GH}" class="gymsvg" role="img" aria-label="Your house, seen from above">
@@ -1847,13 +1885,65 @@ function extrasSVG(E, on) {
   </g>`;
 }
 
+/* shop icons: line icons for upgrades/decor, material swatches for walls/floors, mini cars for cars */
+const SHOPI = {
+  patio: "M12 3v15M4 8Q12 2 20 8zM7 18h10M8 21l1-3M16 21l-1-3", bbq: "M5 10h14a7 7 0 0 1-14 0zM8 17l-2 4M16 17l2 4M9 7q1-2 0-4M13 7q1-2 0-4",
+  hammock: "M3 5v15M21 5v15M3 9q9 10 18 0", outkitchen: "M3 12h18v8H3zM7 12V9h10v3M8 16h2M14 16h2M10 5h4",
+  pergola: "M3 7h18M5 7v13M19 7v13M7 4v3M11 4v3M15 4v3M8 17h8", firepit: "M4 19h16M6 19l1-3h10l1 3M12 15c-3-2-2-5 0-8 1 2 3 3 2 6",
+  palms: "M12 21c0-6 1-10 3-13M15 8c-3-3-7-3-9 0M15 8c1-3 4-4 6-3M15 8c3 0 5 2 5 5M15 8c-2 1-4 4-4 6", daybeds: "M3 14h18v4H3zM5 18v2M19 18v2M5 14v-3h6v3",
+  hottub: "M3 12h18v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM8 9q1-2 0-4M12 9q1-2 0-4M16 9q1-2 0-4", sauna: "M4 21V9l8-5 8 5v12zM4 13h16M4 17h16M10 21v-4h4v4",
+  cinema: "M3 4h18v11H3zM8 20l4-5 4 5M10 7.5l4 2-4 2z", fountain: "M5 14h14l-2 6H7zM12 14V6M12 8q-4 0-5 4M12 8q4 0 5 4",
+  statues: "M10 6a2 2 0 1 0 4 0a2 2 0 1 0-4 0M8 21h8M9 21v-3h6v3M12 18v-10M9 11h6", gazebo: "M3 10l9-6 9 6zM5 10v10M19 10v10M12 10v10M4 20h16",
+  bar: "M5 4h14l-7 8zM12 12v8M8 20h8", tennis: "M4 9a5 5 0 1 0 10 0a5 5 0 1 0-10 0M12.5 12.5L20 20M17 4.5a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0",
+  helipad: "M3 12a9 9 0 1 0 18 0a9 9 0 1 0-18 0M9 8v8M15 8v8M9 12h6", umbrellas: "M12 4v16M3 10q9-9 18 0zM6 20h12",
+  beachbar: "M3 10l9-6 9 6zM5 10v10M19 10v10M5 15h14", jetski: "M3 15h12l5-4h1l-2 6H5zM9 15l2-4h3M2 20q2-1 4 0q2 1 4 0q2-1 4 0q2 1 4 0",
+  firebowl: "M4 13h16a8 6 0 0 1-16 0zM12 13c-2-2-1-4 0-6 1 2 2 3 1 6M9 21h6", skibar: "M5 3l2 18M9 3l2 18M15 10h4v8a2 2 0 0 1-4 0zM19 12h2v4h-2",
+  snowmobile: "M3 18h18M5 18l2-5h7l4 3v2M10 13l2-4h3M6 21h12", skyjacuzzi: "M3 12h18v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM8 9q1-2 0-4M12 9q1-2 0-4M16 9q1-2 0-4M20 3l1 1M3 4l1 1",
+  skybar: "M5 4h14l-7 8zM12 12v8M8 20h8M15 4l3-2", roofheli: "M4 5h16M12 5v3M6 11a6 3 0 0 0 12 0a6 3 0 0 0-12 0zM18 11h4M8 18h8M10 14v4M14 14v4",
+  beachclub: "M3 20L12 4l9 16zM12 4v16M8 20l4-6 4 6", yacht: "M2 16h20l-3 4H5zM6 16V9h8l3 7M8 12h4M12 9V4",
+  seaplane: "M2 11h20M8 11l2-6h2l-1 6M16 11l2-3M5 16h14M7 16v-5M17 16v-5",
+  windows: "M4 4h16v16H4zM12 4v16M4 12h16", lights: "M9 18h6M10 21h4M12 3a6 6 0 0 0-3 11v2h6v-2a6 6 0 0 0-3-11z",
+  garden: "M7 10a5 5 0 1 0 10 0a5 5 0 1 0-10 0M12 15v6M7 21h10", paving: "M3 4h18v16H3zM3 9.3h18M3 14.6h18M9 4v5.3M15 9.3v5.3M9 14.6V20",
+  fence: "M3 20v-8q0-4 4-4q1-3 5-3t5 3q4 0 4 4v8zM3 20h18", deck: "M3 6h18v14H3zM3 10.5h18M3 15h18M9 6v4.5M15 10.5V15M7 15v5",
+  pool: "M3 6h18v14H3zM5 11q2-1.5 4 0q2 1.5 4 0q2-1.5 4 0M5 15.5q2-1.5 4 0q2 1.5 4 0q2-1.5 4 0", loungers: "M3 16h12l6-5M5 16v3M13 16v3M3 13h9",
+  sofa: "M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3M2 12a2 2 0 0 1 4 0v2h12v-2a2 2 0 0 1 4 0v5H2zM5 17v2M19 17v2",
+  rug: "M5 4h14v16H5zM8 7h8v10H8zM7 2v2M12 2v2M17 2v2M7 20v2M12 20v2M17 20v2", table: "M3 10h18v2H3zM5 12v7M19 12v7M8 12v4M16 12v4",
+  tv: "M3 5h18v12H3zM8 21h8M12 17v4", lamp: "M8 3h8l2 7H6zM12 10v10M8 21h8",
+  plant: "M7 14h10l-1 7H8zM12 14V9M12 9c-3 0-5-2-5-5 3 0 5 2 5 5M12 11c2-1 5-1 6 1-2 2-5 1-6-1",
+  counter: "M3 9h18v11H3zM3 13h18M12 13v7M9 16h1M14 16h1M7 4h4v5", island: "M2 9h20v3H2zM4 12v8h16v-8M9 16h6",
+  stools: "M6 6h5M15 6h5M8.5 6v8M17.5 6v8M6 20l2.5-6 2.5 6M15 20l2.5-6 2.5 6", gymfloor: "M3 5h8v6H3zM13 5h8v6h-8zM3 13h8v6H3zM13 13h8v6h-8z",
+  mirror: "M7 3h10v18H7zM10 8l4-2M10 12l5-3", speakers: "M6 3h12v18H6zM9 14a3 3 0 1 0 6 0a3 3 0 1 0-6 0M12 7h.01",
+  garage: "M3 21V9l9-6 9 6v12M7 21v-9h10v9M7 15h10M7 18h10",
+};
+const lineIcon = d => `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+function swatchSVG(id, c) {
+  const m = id.split(":")[1], dk = shade(c, .78), lt = shade(c, 1.12);
+  const pat = {
+    brick: [0, 1, 2, 3, 4].map(r => `<path d="M0 ${r * 7 + 7}H34" stroke="${dk}" stroke-width="1.2"/>${[0, 1, 2].map(i => `<path d="M${(r % 2 ? 6 : 12) + i * 12} ${r * 7}v7" stroke="${dk}" stroke-width="1.2"/>`).join("")}`).join(""),
+    wood: [0, 1, 2, 3].map(i => `<path d="M${i * 8.5 + 8.5} 0V34" stroke="${dk}" stroke-width="1.1"/><path d="M${i * 8.5 + 3} 6q2 6 0 12" stroke="${dk}" stroke-width=".6" fill="none" opacity=".6"/>`).join(""),
+    concrete: [[6, 8], [20, 5], [27, 18], [10, 24], [17, 15], [28, 29], [4, 30]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1" fill="${dk}"/>`).join("") + `<path d="M0 17H34M17 0V34" stroke="${dk}" stroke-width=".6" opacity=".6"/>`,
+    plaster: `<path d="M3 10q8-3 14 2t14-1M2 24q9-4 15 1t15-2" stroke="${dk}" stroke-width=".8" fill="none" opacity=".7"/>`,
+    tile: `<path d="M0 11.3H34M0 22.6H34M11.3 0V34M22.6 0V34" stroke="${dk}" stroke-width="1.2"/>`,
+    marble: `<path d="M0 8q8 4 13 12t21 10M6 0q3 9 12 12M20 34q2-8 14-12" stroke="#b9b4ab" stroke-width=".9" fill="none"/>`,
+    bare: [[7, 9], [24, 7], [15, 20], [27, 26], [6, 28]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r=".9" fill="${dk}"/>`).join(""),
+  };
+  const key = id.startsWith("floor:") && m === "wood" ? "floorwood" : m;
+  const inner = key === "floorwood" ? [0, 1, 2, 3].map(i => `<path d="M0 ${i * 8.5 + 8.5}H34" stroke="${dk}" stroke-width="1.1"/><path d="M${i % 2 ? 10 : 22} ${i * 8.5}v8.5" stroke="${dk}" stroke-width="1.1"/>`).join("") : pat[key] || "";
+  return `<svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><defs><linearGradient id="sw${m}${id[0]}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${lt}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs><rect width="34" height="34" fill="url(#sw${m}${id[0]})"/>${inner}</svg>`;
+}
+function shopIcon(id) {
+  const it = HITEM[id];
+  if (it.cat === "cars" && !isGarage(id)) return `<span class="dot dcar"><svg viewBox="-64 -36 128 72" width="62" height="36" aria-hidden="true"><g transform="rotate(90)">${carSVG(it.shape, it.c, "i" + id)}</g></svg></span>`;
+  if (it.cat === "walls") return `<span class="dot dsw">${swatchSVG(id, it.c)}</span>`;
+  return `<span class="dot">${lineIcon(SHOPI[isGarage(id) ? "garage" : id] || "M4 4h16v16H4z")}</span>`;
+}
 let houseTab = ls.get("forma.housetab", "house");
 if (!HOUSE[houseTab]) houseTab = "house";
 function renderGym(v) {
   const g = gym(), coins = wallet(), bought = g.hown.length;
   const home = HOMES[g.hsel.home] ? g.hsel.home : "starter";
   const items = HOUSE[houseTab].filter(([id]) => !ONLY[id] || ONLY[id] === home).map(([id, name, price, c]) => { const own = hOwned(g, id), act = hOn(g, id);
-    return `<button class="item ${act ? "on" : ""}" data-hitem="${id}"><span class="dot" style="background:${c || "#26262a"}">${c ? "" : ICON.gym}</span><span class="iname">${esc(name)}${ONLY[id] ? ` <span class="sub" style="display:block;font-size:10.5px;color:var(--accent)">${HOME_NAME[home]} only</span>` : ""}${id.startsWith("home:") ? homeInfo(id.slice(5)) : ""}</span>
+    return `<button class="item ${act ? "on" : ""}" data-hitem="${id}">${shopIcon(id)}<span class="iname">${esc(name)}${ONLY[id] ? ` <span class="sub" style="display:block;font-size:10.5px;color:var(--accent)">${HOME_NAME[home]} only</span>` : ""}${id.startsWith("home:") ? homeInfo(id.slice(5)) : ""}</span>
       <span class="iprice">${act && id.startsWith("home:") ? "You live here" : !act && own && id.startsWith("home:") ? "Owned · tap to move in" : act ? (isGarage(id) ? "Built" : HITEM[id].cat === "cars" ? "Parked" : "In use") : own ? (HITEM[id].cat === "cars" ? "Owned · tap to park" : "Owned · tap to use") : `${price.toLocaleString()} pts`}</span></button>`; }).join("");
   const prCount = Object.keys(MACH).filter(id => (g.prs[id] || []).length).length;
   v.innerHTML = `${demoBanner()}<div class="row between" style="margin-top:6px"><h1 style="margin:0">House</h1><button class="ptspill" id="hPts"><i></i>${coins.toLocaleString()} pts</button></div>
