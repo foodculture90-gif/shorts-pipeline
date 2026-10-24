@@ -660,7 +660,7 @@ function channelSheet(c) {
   sheet(`<h3>${c.id ? "Edit channel" : "New channel"}</h3>
     <label class="f">Name (for you)</label><input class="input" id="nm" value="${esc(c.name)}" placeholder="e.g. Pip & Friends">
     <label class="f">About this channel <span class="sub" style="font-weight:500">(optional)</span></label><input class="input" id="ni" value="${esc(c.niche || "")}" placeholder="e.g. funny 3D cartoon shorts for kids 2-6">
-    <div class="row"><div><div class="t">New shorts every morning</div><div class="d">They wait for your OK</div></div><label class="switch"><input type="checkbox" id="ad" ${c.auto_daily ? "checked" : ""}><span></span></label></div>
+    <div class="row"><div><div class="t">New shorts every morning</div><div class="d">${["false", "0", "no", "off", false].includes(state.settings?.auto_publish ?? true) ? "They wait for your OK" : "Published automatically at the best times"}</div></div><label class="switch"><input type="checkbox" id="ad" ${c.auto_daily ? "checked" : ""}><span></span></label></div>
     <label class="f" style="margin-top:4px">Shorts per day</label><div class="seg" id="pd">${[1, 3, 5, 10, 20].map(n => `<button type="button" data-n="${n}" class="${+c.per_day === n ? "on" : ""}">${n}</button>`).join("")}</div>
     <div class="row"><div><div class="t">Made for kids</div><div class="d">Required by law when the audience is children</div></div><label class="switch"><input type="checkbox" id="mk" ${c.made_for_kids ? "checked" : ""}><span></span></label></div>
     <div style="margin-top:16px;display:flex;gap:8px">${c.id ? `<button class="btn ghost danger" id="del" aria-label="Delete channel">${ic("trash", 16)}</button>` : ""}<button class="btn primary block" id="go">Save</button></div>`,
@@ -705,6 +705,7 @@ async function finishConnect() {
 async function viewSettings() {
   const s = state.settings = await api.settings().catch(() => state.settings || {});
   const gpu = ["true", "1", "yes", true].includes(s.gpu_render);
+  const auto = !["false", "0", "no", "off", false].includes(s.auto_publish ?? true);
   const ios = /iphone|ipad/i.test(navigator.userAgent);
   root.innerHTML = shell("settings", `
     <h1>Settings</h1>
@@ -712,7 +713,9 @@ async function viewSettings() {
     <div class="card">
       <div class="row"><div><div class="t">Render on the free GPU first</div><div class="d">Full 1080p, sharper light, faster when Kaggle has a free graphics card. Falls back to the normal machines automatically.</div></div>
         <label class="switch"><input type="checkbox" id="gpu" ${gpu ? "checked" : ""}><span></span></label></div>
-      <div class="row"><div><div class="t">Every short</div><div class="d">3D cartoon · 20–40 s · music + sound effects only · no text on screen · nothing posts without your OK</div></div></div>
+      <div class="row"><div><div class="t">Publish automatically</div><div class="d">Every finished short is scheduled on YouTube at the next best time (US + UK/Ireland peak hours, 30+ min apart). Delete one in “Ready” before it's booked to stop it.</div></div>
+        <label class="switch"><input type="checkbox" id="autopub" ${auto ? "checked" : ""}><span></span></label></div>
+      <div class="row"><div><div class="t">Every short</div><div class="d">3D cartoon · 20–40 s · music + sound effects only · no text on screen · ${auto ? "published automatically at the best times" : "nothing posts without your OK"}</div></div></div>
     </div>
     <h2>App</h2>
     <div class="card">
@@ -729,6 +732,7 @@ async function viewSettings() {
     <div class="card"><div class="row"><div><div class="t">${esc(state.user?.email || "")}</div><div class="d">Only this login can open the app</div></div><button class="btn" id="logout">Sign out</button></div>
       ${CFG.GITHUB_REPO && !CFG.GITHUB_REPO.includes("YOUR_") ? `<div class="row"><div><div class="t">Worker logs</div><div class="d">See exactly what ran in the cloud</div></div><a class="btn" target="_blank" rel="noopener" href="https://github.com/${esc(CFG.GITHUB_REPO)}/actions">${ic("ext", 16)} Open</a></div>` : ""}</div>`, { fab: false });
   root.querySelector("#gpu").onchange = e => guard(null, async () => { await api.setSetting("gpu_render", e.target.checked); toast(e.target.checked ? "GPU rendering on" : "GPU rendering off"); });
+  root.querySelector("#autopub").onchange = e => guard(null, async () => { await api.setSetting("auto_publish", e.target.checked); toast(e.target.checked ? "Auto-publish on — shorts go out at the best times" : "Auto-publish off — shorts wait for your OK"); viewSettings(); });
   root.querySelector("#notif")?.addEventListener("click", async () => { if (!("Notification" in window)) return toast("This browser doesn't support notifications"); const r = await Notification.requestPermission(); toast(r === "granted" ? "Notifications on" : "Notifications blocked – allow them in browser settings"); viewSettings(); });
   root.querySelector("#logout").onclick = () => api.logout();
   root.querySelector("#install2")?.addEventListener("click", () => document.getElementById("install")?.click());
