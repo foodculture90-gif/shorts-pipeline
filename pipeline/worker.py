@@ -346,6 +346,11 @@ def cmd_publish(payload, cmd):
             video = render.render(work, st, work / "final", config.FINAL_SIZE,
                                   music_volume=float(db.settings().get("music_volume") or 0.12))
         publish_at = payload.get("publish_at")
+        if payload.get("auto") and publish_at:  # auto-publish: the slot passed while waiting -> take the next free one
+            from . import schedule
+            if datetime.fromisoformat(publish_at.replace("Z", "+00:00")) < now() + timedelta(minutes=10):
+                t = schedule.next_slot(schedule.taken_times(exclude=ep["id"]), per_day=schedule.per_day())
+                publish_at = t.isoformat() if t else None
         vid, privacy = youtube.upload(token, video, st, ch, publish_at=publish_at)
     except Exception as e:
         _set(ep["id"], status="awaiting_approval", error=f"Upload failed: {e}"[:400])
@@ -461,10 +466,30 @@ def retry_failed_renders():
     slots.kick()
 
 
+def retry_failed_plans():
+    """A short that failed before it was even planned (e.g. a planner bug) is made again once."""
+    since = (now() - timedelta(hours=36)).isoformat()
+    for e in db.select("episodes", "select=id,channel_id,idea,feedback,parent_id,error,story&status=eq.failed"
+                                   f"&story=is.null&created_at=gt.{since}&limit=25"):
+        if "3D" in str(e.get("error") or "") or "retried" in str(e.get("error") or ""):
+            continue
+        if db.update("episodes", f"id=eq.{e['id']}&status=eq.failed", {"status": "queued", "error": None,
+                                                                        "story": {"retries": 1}}):
+            db.insert("commands", {"type": "generate", "payload": {
+                "channel_id": e["channel_id"], "episode_id": e["id"], "idea": e.get("idea"), "auto": True,
+                "feedback": e.get("feedback"), "parent_id": e.get("parent_id"), "silent": True}})
+
+
 def process_queue():
     if WORKER_ID == "1":
+        for job in (retry_failed_plans, retry_failed_renders):
+            try:
+                job()
+            except Exception:  # noqa: BLE001
+                traceback.print_exc()
         try:
-            retry_failed_renders()
+            from . import schedule
+            schedule.book_ready()   # finished shorts -> next best publish time
         except Exception:  # noqa: BLE001
             traceback.print_exc()
         maybe_stats()
@@ -506,8 +531,12 @@ def daily():
         done = db.select("commands", f"select=id&type=eq.generate&created_at=gte.{today}"
                                      f"&payload->>channel_id=eq.{ch['id']}&payload->>auto=eq.true")
         silent = str(db.settings().get("silent", "true")).lower() not in ("false", "0", "no")
+        # shorts already waiting (ready, or scheduled beyond tomorrow) count towards today's batch
+        later = (now() + timedelta(hours=30)).isoformat()
+        waiting = len(db.select("episodes", f"select=id&channel_id=eq.{ch['id']}&status=eq.scheduled&publish_at=gt.{later}"))
+        waiting += len(db.select("episodes", f"select=id&channel_id=eq.{ch['id']}&status=in.(awaiting_approval,queued)"))
         batch += [{"type": "generate", "payload": {"channel_id": ch["id"], "auto": True, "silent": silent}}
-                  for _ in range(max(0, int(ch["per_day"]) - len(done)))]
+                  for _ in range(max(0, int(ch["per_day"]) - len(done) - max(0, waiting - 2)))]
     batch.append({"type": "stats", "payload": {}})
     db.insert_many("commands", batch)  # one insert = one wake-up of the workers
     if len(batch) > 1:

@@ -32,6 +32,10 @@ def dispatch(ep_id, gpu=False):
 
 def kick(done=None):
     """Start waiting shorts while a CPU slot is free. `done` = a short whose frames just finished."""
+    stuck = (now() - timedelta(hours=3)).isoformat()   # a render that never came back -> failed (retried once)
+    for r in db.select("episodes", f"select=id&status=eq.generating&story->>render=eq.cpu&updated_at=lt.{stuck}"):
+        db.update("episodes", f"id=eq.{r['id']}&status=eq.generating",
+                  {"status": "failed", "error": "3D render stopped (took too long)", "updated_at": now().isoformat()})
     since = (now() - timedelta(hours=2)).isoformat()
     busy = [r for r in db.select("episodes", f"select=id&status=eq.generating&story->>render=eq.cpu&updated_at=gt.{since}")
             if r["id"] != done]

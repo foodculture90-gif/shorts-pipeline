@@ -70,6 +70,12 @@ def main(ep_id, d):
             "status": "awaiting_approval", "preview_path": f"{base}/preview.mp4", "thumb_path": f"{base}/thumb.jpg",
             "duration": round(secs, 1), "error": None, "updated_at": datetime.now(timezone.utc).isoformat()})
         db.log(f"🎬 Ready: {ep.get('title') or 'new short'}", "success")
+        try:  # auto-publish: straight into the next best time slot
+            from . import schedule
+            if schedule.enabled():
+                schedule.book([ep_id])
+        except Exception as ex:  # noqa: BLE001  (the worker books it later instead)
+            print("auto-publish booking skipped:", ex)
     except Exception as e:
         db.update("episodes", f"id=eq.{ep_id}", {"status": "failed", "error": f"3D render failed: {e}"[:400],
                                                  "updated_at": datetime.now(timezone.utc).isoformat()})

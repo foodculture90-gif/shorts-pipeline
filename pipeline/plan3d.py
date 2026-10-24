@@ -378,17 +378,24 @@ OFFLINE_TITLES = {
     "gift_surprise": ["What's Inside The Wiggly Box?! 🎁", "The Biggest Surprise Ever! 🎁", "Don't Open The Box! 🎁"],
     "hide_seek": ["Hide And Seek... BOO! 🙈", "Where Is {H}?! 🙈", "Best Hiding Spot Ever! 🌳"],
     "slip_peel": ["Watch Out For The Banana! 🍌", "Oops! Banana Peel Slip! 🍌", "The Silly Banana Slip! 😂"],
+    "sneeze": ["The Biggest Sneeze Ever... ACHOO! 🤧", "Don't Sneeze, {H}! 🤧", "{H}'s Silly Sneeze! 😂"],
+    "dance_party": ["{H}'s Silly Dance Party! 🎉", "Try Not To Dance! 🕺", "The Wiggliest Dance Ever! 🎉"],
+    "bubbles": ["Pop All The Bubbles! 🫧", "{H} And The Giant Bubble! 🫧", "Don't Pop The Big Bubble! 🫧"],
+    "wake_up": ["Wake Up, {H}! ⏰", "Shh... Don't Wake {H}! 😴", "The Silliest Wake Up Ever! 😴"],
+    "race": ["Who Will Win The Race?! 🏁", "The Silliest Race Ever! 🏁", "{H}'s Big Race! 🏁"],
 }
+_ANY_TITLES = ["{H}'s Silliest Day Ever! 😂", "Watch What {H} Does! 😂", "Oops, {H}! 😂"]
 
 
 def _offline(spec, rnd):
     first = (spec.get("segments") or [spec])[0]
-    t = rnd.choice(OFFLINE_TITLES[first["gag"]]).format(P=PROP_NAMES[first["prop"]].title(), H=NAMES[first["hero"]])
+    prop = PROP_NAMES.get(first.get("prop"), str(first.get("prop") or "surprise")).title()
+    t = rnd.choice(OFFLINE_TITLES.get(first.get("gag"), _ANY_TITLES)).format(P=prop, H=NAMES.get(first.get("hero"), "Pip"))
     return {"title": t, "description": f"{NAMES[spec['hero']]} and {NAMES[spec['friend']]} have the silliest day! 😂\n"
                                        "Watch till the end - then watch it again! 🔁",
-            "hashtags": ["kidscartoon", "funnycartoon", "cartoonforkids", first["prop"]],
+            "hashtags": ["kidscartoon", "funnycartoon", "cartoonforkids", str(first.get("prop") or "cartoon")],
             "tags": ["kids cartoon", "funny cartoon", "3d animation for kids", "cartoon for toddlers",
-                     PROP_NAMES[first["prop"]], "funny kids video", "preschool cartoon", "cute cartoon",
+                     prop.lower(), "funny kids video", "preschool cartoon", "cute cartoon",
                      "nursery cartoon", "kids shorts", "toddler video", "cartoon shorts"],
             "takeaway": "It's more fun when we laugh together."}
 
