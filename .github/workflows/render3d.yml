@@ -15,8 +15,8 @@ env:
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
   EP: ${{ github.event.inputs.episode_id }}
-  PARTS: "20"
-  SAMPLES: "16"
+  PARTS: "18"         # = max-parallel: every part renders at the same time (one wave, no waiting)
+  SAMPLES: "12"
   RES: "67"          # rendered at 720x1280, sharpened up to 1080x1920 at the end
 
 jobs:
@@ -59,19 +59,29 @@ jobs:
       fail-fast: false
       max-parallel: 18     # leaves 2 of GitHub's 20 free machines for the app's worker + finishing
       matrix:
-        part: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        part: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: bl
+          key: blender-4.2-linux-v1
       - name: Get Blender + the short's plan
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6 > /dev/null
-          for v in 4.2.3 4.2.2 4.2.1 4.2.0; do
-            if curl -fsSL "https://download.blender.org/release/Blender4.2/blender-$v-linux-x64.tar.xz" -o b.tar.xz; then
-              tar -xJf b.tar.xz && mv "blender-$v-linux-x64" bl && break
-            fi
+          for try in 1 2 3; do
+            [ -x bl/blender ] && break
+            rm -rf bl
+            for v in 4.2.3 4.2.2 4.2.1 4.2.0; do
+              if curl -fsSL --retry 3 "https://download.blender.org/release/Blender4.2/blender-$v-linux-x64.tar.xz" -o b.tar.xz; then
+                tar -xJf b.tar.xz && mv "blender-$v-linux-x64" bl && rm -f b.tar.xz && break
+              fi
+            done
+            [ -x bl/blender ] || sleep 10
           done
-          curl -fsS "$SUPABASE_URL/rest/v1/episodes?id=eq.$EP&select=story" \
+          [ -x bl/blender ] || { echo "::error::could not download Blender"; exit 1; }
+          curl -fsS --retry 3 "$SUPABASE_URL/rest/v1/episodes?id=eq.$EP&select=story" \
             -H "apikey: $SUPABASE_SERVICE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
             | python3 -c "import sys,json; json.dump(json.load(sys.stdin)[0]['story']['spec'], open('spec.json','w'))"
           cat spec.json
@@ -84,7 +94,14 @@ jobs:
       - name: Render my frames
         env:
           ASSETS: ${{ github.workspace }}/assets
-        run: ./bl/blender -b --python blender/scene.py -- spec.json out "part:${{ matrix.part }}/$PARTS" 2>&1 | grep -E "^frame|^done|Error|Traceback|rror" || true
+        run: |
+          for try in 1 2; do   # a machine that hiccups gets a second go instead of leaving holes in the video
+            ./bl/blender -b --python blender/scene.py -- spec.json out "part:${{ matrix.part }}/$PARTS" > render.log 2>&1 || true
+            grep -E "^frame|^done|Error|Traceback|rror" render.log || true
+            grep -q "^done" render.log && break
+            echo "::warning::render attempt $try stopped early"; tail -30 render.log
+          done
+          ls out/frames | wc -l
       - uses: actions/upload-artifact@v4
         with:
           name: part-${{ matrix.part }}
@@ -95,7 +112,7 @@ jobs:
     needs: [gpu, render]
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     permissions:
       contents: read
       actions: write        # starts the next short in line
@@ -116,6 +133,10 @@ jobs:
         with:
           path: assets
           key: free-assets-v3
+      - uses: actions/cache@v4
+        with:
+          path: bl
+          key: blender-4.2-linux-v1
       - name: Video + sound + upload for approval
         env:
           BLENDER: ${{ github.workspace }}/bl/blender   # used only to redraw frames a render machine dropped
@@ -123,9 +144,9 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq fluidsynth fluid-soundfont-gm ffmpeg libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6 > /dev/null
-          for v in 4.2.3 4.2.2 4.2.1 4.2.0; do
-            if curl -fsSL "https://download.blender.org/release/Blender4.2/blender-$v-linux-x64.tar.xz" -o b.tar.xz; then
-              tar -xJf b.tar.xz && mv "blender-$v-linux-x64" bl && break
+          [ -x bl/blender ] || for v in 4.2.3 4.2.2 4.2.1 4.2.0; do
+            if curl -fsSL --retry 3 "https://download.blender.org/release/Blender4.2/blender-$v-linux-x64.tar.xz" -o b.tar.xz; then
+              rm -rf bl && tar -xJf b.tar.xz && mv "blender-$v-linux-x64" bl && rm -f b.tar.xz && break
             fi
           done
           pip install -q requests numpy
