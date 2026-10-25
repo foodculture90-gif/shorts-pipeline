@@ -153,3 +153,23 @@ jobs:
           bash pipeline/get_assets.sh assets > /dev/null || true
           curl -fsSL "https://github.com/mrbumpy409/GeneralUser-GS/raw/main/GeneralUser-GS.sf2" -o GeneralUser-GS.sf2 || rm -f GeneralUser-GS.sf2
           python -m pipeline.finish3d "$EP" out
+
+  cleanup:   # finishing crashed or timed out -> mark the short failed (it is retried once) and start the next one
+    needs: [finish]
+    if: failure() || cancelled()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Mark failed + start the next short
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -sS -X PATCH "$SUPABASE_URL/rest/v1/episodes?id=eq.$EP&status=eq.generating" \
+            -H "apikey: $SUPABASE_SERVICE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+            -H "Content-Type: application/json" -d '{"status":"failed","error":"3D render stopped (finishing failed)"}'
+          pip install -q requests && python -m pipeline.slots "$EP"
+
