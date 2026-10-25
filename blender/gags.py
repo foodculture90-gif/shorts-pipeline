@@ -1078,28 +1078,28 @@ def magic_trick(spec, cam, tgt):
 # --------------------------------------------------------------------------- 13. seesaw launch
 def seesaw(spec, cam, tgt):
     col = T.PROP_COLOR or T.VAR.choice(["#FF4D6D", "#4DA6FF", "#FFD23F", "#5CCB6B", "#B57BFF"])
-    base = T.empty("seesaw", (0.3, 0.3, 0))
+    base = T.empty("seesaw", (0.0, 0.3, 0))
     T.box("ss_block", (0.3, 0.42, 0.26), (0, 0, 0.13), T.mat("#8A5A3C", 0.6), base, bevel=0.05)
     T.cyl("ss_axle", 0.07, 0.5, (0, 0, 0.3), T.mat("#C9C9D1", 0.3, metal=0.6), base, rot=(math.pi / 2, 0, 0))
     plank = T.empty("ss_pivot", (0, 0, 0.32), base)
-    T.box("ss_plank", (2.5, 0.34, 0.07), (0, 0, 0.05), T.mat(col, 0.4, coat=0.3), plank, bevel=0.03)
+    T.box("ss_plank", (2.05, 0.34, 0.07), (0, 0, 0.05), T.mat(col, 0.4, coat=0.3), plank, bevel=0.03)
     for sx in (-1, 1):
-        T.cyl(f"ss_handle{sx}", 0.025, 0.24, (sx * 0.95, 0, 0.18), T.mat("#FFFFFF", 0.4), plank)
-    L = 1.05  # where each friend sits from the middle
+        T.cyl(f"ss_handle{sx}", 0.025, 0.24, (sx * 0.78, 0, 0.18), T.mat("#FFFFFF", 0.4), plank)
+    L = 0.82  # where each friend sits from the middle
 
     def end_z(a, side):  # height of a plank end for tilt a
         return 0.32 + 0.04 - side * L * math.sin(a)
 
-    hero = T.make_character(spec["hero"], 0.3 - L, 0.3, end_z(-0.22, -1))
-    fr = T.make_character(spec["friend"], 2.0, 0.3)
+    hero = T.make_character(spec["hero"], -L, 0.3, end_z(-0.22, -1))
+    fr = T.make_character(spec["friend"], 1.55, 0.3)
     T.turn(hero, 1, 25, 1)
     T.turn(fr, 1, -30, 1)
     T.key(plank, "rotation_euler", 1, (0, -0.22, 0))
 
-    p, t = _two([-0.8, 2.0], 26, 0.8)
+    p, t = _two([-0.85, 1.55], 24, 0.85)
     T.shot(cam, tgt, 1, 62, p, t, 26, (p[0], p[1] + 0.3, p[2]), t)
-    T.shot(cam, tgt, 63, 96, (-0.6, -3.6, 1.1), (-0.75, 0.3, 1.2), 30, (-0.6, -3.6, 1.4), (-0.75, 0.3, 1.7))
-    p, t = _two([-0.8, 2.0], 26, 0.85)
+    T.shot(cam, tgt, 63, 96, (-0.8, -3.6, 1.1), (-0.8, 0.3, 1.2), 30, (-0.8, -3.6, 1.4), (-0.8, 0.3, 1.7))
+    p, t = _two([-0.85, 1.75], 24, 0.85)
     T.shot(cam, tgt, 97, 168, p, t, 26, (p[0] + 0.2, p[1] + 0.2, p[2]), t)
 
     T.idle(hero, 1, 40)
@@ -1107,8 +1107,8 @@ def seesaw(spec, cam, tgt):
     T.eyes_happy(hero, 8)
     T.mouth_set(hero, 8, 0.0)
     # friend hops onto the high end, then a BIG stomp jump
-    xf = 0.3 + L
-    T.hop(fr, 14, 2.0, xf, 0.85, 14, sound=True)
+    xf = L
+    T.hop(fr, 14, 1.55, xf, 0.85, 14, sound=True)
     r = fr["root"]
     T.key(r, "location", 28, (xf, 0.3, end_z(-0.22, 1)))
     T.look(fr, 32, -0.05)
@@ -1126,9 +1126,9 @@ def seesaw(spec, cam, tgt):
     T.squash(fr, 61, 0.3, 1, 6)
     # the hero is launched sky high with a flip
     h = hero["root"]
-    T.key(h, "location", 60, (0.3 - L, 0.3, end_z(-0.22, -1)))
-    T.key(h, "location", 78, (0.3 - L - 0.1, 0.3, 2.3))
-    T.key(h, "location", 96, (0.3 - L, 0.3, end_z(0.22, -1)))
+    T.key(h, "location", 60, (-L, 0.3, end_z(-0.22, -1)))
+    T.key(h, "location", 78, (-L - 0.05, 0.3, 2.2))
+    T.key(h, "location", 96, (-L, 0.3, end_z(0.22, -1)))
     T.sfx(61, "slide_up")
     T.sfx(62, "whoosh")
     T.eyes_big(hero, 63, 1.45, 2, sound=None)
@@ -1146,10 +1146,10 @@ def seesaw(spec, cam, tgt):
     T.key(plank, "rotation_euler", 98, (0, -0.22, 0))
     T.sfx(96, "thud")
     T.squash(hero, 97, 0.3, 1, 6)
-    T.key(h, "location", 98, (0.3 - L, 0.3, end_z(-0.22, -1)))
+    T.key(h, "location", 98, (-L, 0.3, end_z(-0.22, -1)))
     T.key(r, "location", 96, (xf, 0.3, end_z(0.22, 1)))
-    T.key(r, "location", 112, (xf + 0.5, 0.3, 2.0))
-    T.key(r, "location", 126, (xf + 0.9, 0.3, 0.0))
+    T.key(r, "location", 112, (xf + 0.35, 0.3, 1.9))
+    T.key(r, "location", 126, (xf + 0.75, 0.3, 0.0))
     T.sfx(97, "slide_up")
     T.eyes_big(fr, 98, 1.45, 2, sound=None)
     T.mouth_set(fr, 98, 1.1, 0.9)
@@ -1196,7 +1196,7 @@ def _brush(name, ch, color, side=1):
 
 def paint_splat(spec, cam, tgt):
     hero = T.make_character(spec["hero"], -0.85, 0.1)
-    fr = T.make_character(spec["friend"], 0.95, 0.3)
+    fr = T.make_character(spec["friend"], 0.9, 0.3)
     T.turn(hero, 1, 30, 1)
     T.turn(fr, 1, -20, 1)
     cols = ["#FF4D6D", "#FFD23F", "#4DA6FF", "#5CCB6B", "#B57BFF", "#FF8A3D"]
@@ -1217,10 +1217,10 @@ def paint_splat(spec, cam, tgt):
     b2 = _brush("brush2", fr, cols[2], -1)
     T.show(b2, 1, False)
 
-    p, t = _two([-0.85, 0.95], 34, 0.9)
+    p, t = _two([-1.0, 1.05], 28, 0.85)
     T.shot(cam, tgt, 1, 52, p, t, 34, (p[0] + 0.1, p[1] + 0.25, p[2]), t)
-    T.shot(cam, tgt, 53, 96, (0.7, -2.3, 0.8), (0.75, 0.3, 0.74), 46, (0.7, -2.1, 0.8), (0.75, 0.3, 0.74))
-    p, t = _two([-0.85, 0.95], 32, 0.85)
+    T.shot(cam, tgt, 53, 96, (0.0, -3.2, 0.85), (-0.05, 0.3, 0.72), 38, (0.0, -3.0, 0.85), (-0.05, 0.3, 0.72))
+    p, t = _two([-1.0, 0.7], 28, 0.85)
     T.shot(cam, tgt, 97, 168, p, t, 32, (p[0], p[1] + 0.3, p[2]), t)
 
     # the hero paints a little picture, dab by dab
@@ -1241,7 +1241,7 @@ def paint_splat(spec, cam, tgt):
     T.eyes_happy(hero, 46)
     T.sfx(46, "sparkle")
     # the friend comes to look - very close...
-    T.hop(fr, 40, 0.95, 0.45, 0.2, 10, sound=False)
+    T.hop(fr, 40, 0.9, 0.45, 0.2, 10, sound=False)
     T.sfx(42, "tiptoe")
     T.look(fr, 52, -0.06, 0.02)
     T.lean(fr, 56, -14, 6)
@@ -1271,7 +1271,7 @@ def paint_splat(spec, cam, tgt):
     T.sfx(98, "zip")
     T.eyes_happy(fr, 100)
     T.sfx(100, "giggle")
-    T.hop(fr, 102, 0.45, -0.25, 0.25, 10, sound=False)
+    T.hop(fr, 102, 0.45, 0.08, 0.25, 10, sound=False)
     for f in (114, 120, 126):
         _arm(fr, -1, f, 0.8, fwd=-1.4, d=3)
         _arm(fr, -1, f + 3, 0.3, fwd=-0.6, d=3)
