@@ -948,6 +948,344 @@ def race(spec, cam, tgt):
     return 168, 98
 
 
+# --------------------------------------------------------------------------- 12. magic trick
+def _poof(name, f, loc, size=0.22, parent=None):
+    """A puff of magic smoke + sparkles."""
+    root = T.empty(name, loc, parent)
+    m = T.mat("#FFFFFF", 0.9)
+    for i in range(7):
+        a = i / 7 * math.tau
+        b = T.sphere(f"{name}{i}", size * (0.7 + 0.1 * (i % 3)), (math.cos(a) * size * 0.8, -0.05, math.sin(a) * size * 0.6),
+                     m, root, sub=1, seg=20)
+        T.key(b, "scale", f, (0.05, 0.05, 0.05))
+        T.key(b, "scale", f + 4, (1.2, 1.2, 1.2))
+        T.key(b, "scale", f + 12, (0.05, 0.05, 0.05))
+    T.show(root, 1, False)
+    T.show(root, f, True)
+    T.show(root, f + 13, False)
+    T.sfx(f, "pop")
+    T.sfx(f + 1, "twinkle")
+    return root
+
+
+def _wand(name, ch, side=1):
+    w = T.empty(name, (side * 0.42, -0.25, 0.6), ch["root"])
+    w.rotation_euler = (0.3, side * -0.5, 0)
+    T.cyl(name + "_stick", 0.018, 0.34, (0, 0, 0.1), T.mat("#1E1A26", 0.3, coat=0.6), w)
+    T.cyl(name + "_tip", 0.02, 0.07, (0, 0, 0.29), T.mat("#FFFFFF", 0.3), w)
+    T.star(name + "_star", 0.06, (0, 0, 0.36), T.mat("#FFD23F", 0.3, emit=1.5), w)
+    return w
+
+
+def _tap(ch, f, side=1):
+    _arm(ch, side, f, 0.9, fwd=-1.2, d=3)
+    _arm(ch, side, f + 3, 0.5, fwd=-0.6, d=3)
+    T.sfx(f + 2, "tick")
+
+
+def magic_trick(spec, cam, tgt):
+    hero = T.make_character(spec["hero"], -0.72, 0.15)
+    fr = T.make_character(spec["friend"], 0.85, 0.3)
+    T.turn(hero, 1, 22, 1)
+    T.turn(fr, 1, -18, 1)
+    table = T.make_table((0.08, 0.25, 0), spec.get("table_color", "#B7A6FF"))
+    hat = T.empty("tophat", (0, 0, 0.67), table)
+    black, band = T.mat("#1E1A26", 0.35, coat=0.4), T.mat(T.PROP_COLOR or "#FF4D6D", 0.4)
+    T.cyl("hat_brim", 0.25, 0.025, (0, 0, 0.012), black, hat, bevel=0.008)
+    T.cyl("hat_crown", 0.16, 0.26, (0, 0, 0.15), black, hat, bevel=0.01)
+    T.cyl("hat_band", 0.163, 0.05, (0, 0, 0.06), band, hat)
+    w1 = _wand("wand", hero, 1)
+    w2 = _wand("wand2", fr, -1)
+    T.show(w2, 1, False)
+
+    p, t = _two([-0.75, 0.9], 34, 0.95)
+    T.shot(cam, tgt, 1, 56, p, t, 34, (p[0], p[1] + 0.25, p[2]), t)
+    T.shot(cam, tgt, 57, 92, (0.25, -2.6, 0.95), (0.25, 0.25, 0.8), 40, (0.15, -2.4, 0.9), (0.15, 0.25, 0.8))
+    T.shot(cam, tgt, 93, 122, (-0.65, -2.0, 0.55), (-0.72, 0.15, 0.4), 45, (-0.65, -1.85, 0.5), (-0.72, 0.15, 0.4))
+    p, t = _two([-0.75, 0.9], 32, 0.9)
+    T.shot(cam, tgt, 123, 168, p, t, 32, (p[0], p[1] + 0.3, p[2]), t)
+
+    T.idle(fr, 1, 56)
+    # tap, tap, tap... POOF! flowers
+    T.sfx(4, "drumroll")
+    T.eyes_happy(hero, 6)
+    for f in (10, 18, 26):
+        _tap(hero, f)
+        T.wobble(hat, f + 2, f + 6, 6, 2, 1, sound=None)
+    T.eyes_norm(hero, 30)
+    _poof("poof1", 32, (0.08, 0.2, 1.05))
+    bunch = T.empty("bunch", (0.08, 0.25, 0.9))
+    cols = ["#FF6B8B", "#FFD23F", "#B57BFF", "#4DA6FF", "#FF8A3D"]
+    for i in range(5):
+        a = (i - 2) * 0.35
+        T.cyl(f"bstem{i}", 0.01, 0.3, (math.sin(a) * 0.12, 0, 0.12), T.mat("#3FA64E", 0.6), bunch, rot=(0, a, 0))
+        T.sphere(f"bflw{i}", 0.06, (math.sin(a) * 0.24, -0.02, 0.28 + math.cos(a) * 0.02), T.mat(cols[i], 0.5), bunch,
+                 scale=(1, 0.6, 1), sub=1)
+    T.key(bunch, "scale", 33, (0.05, 0.05, 0.05))
+    T.key(bunch, "scale", 38, (1.15, 1.15, 1.15))
+    T.key(bunch, "scale", 42, (1, 1, 1))
+    T.show(bunch, 1, False)
+    T.show(bunch, 33, True)
+    T.sfx(36, "tada")
+    T.jump_joy(hero, 40, h=0.25, n=10, times=1, sound=None)
+    T.eyes_big(fr, 36, 1.3, 3, sound=None)
+    T.mouth_set(fr, 36, 0.8)
+    for k, f in enumerate(range(42, 56, 4)):  # friend claps
+        T.arms(fr, f, 0.2 if k % 2 else 0.9, fwd=-1.3, d=2)
+        T.sfx(f, "clap")
+    T.mouth_set(fr, 56, 0.0)
+    # the friend borrows the wand - POOF! the hero turns tiny
+    T.show(bunch, 58, False)
+    T.show(w1, 60, False)
+    T.show(w2, 60, True)
+    T.sfx(60, "zip")
+    T.look(fr, 60, -0.05)
+    T.eyes_happy(fr, 62)
+    for f in (66, 74):
+        _tap(fr, f, -1)
+    T.eyes_norm(fr, 80)
+    _poof("poof2", 84, (-0.72, 0.15, 0.55), 0.3)
+    r, sz = hero["root"], hero["size"]
+    T.key(r, "scale", 85, (sz, sz, sz))
+    T.key(r, "scale", 89, (sz * 0.35, sz * 0.35, sz * 0.35))
+    T.sfx(88, "slide_down")
+    T.eyes_big(hero, 94, 1.45, 3, sound=None)
+    T.mouth_set(hero, 94, 0.9, 0.8)
+    for k, f in enumerate(range(96, 120, 4)):
+        T.arms(hero, f, 2.4 if k % 2 else 1.2, d=2)
+        T.sfx(f, "squeak")
+    T.hop(hero, 104, -0.72, -0.72, 0.15, 8, sound=False)
+    T.eyes_big(fr, 92, 1.35, 3, sound="doink")
+    T.mouth_set(fr, 92, 0.9, 0.7)
+    T.arms(fr, 96, 0.5, fwd=-1.9, d=4)  # oops - hands over mouth
+    # one more tap - back to normal
+    T.arms(fr, 118, 0.2, d=4)
+    _tap(fr, 120, -1)
+    _poof("poof3", 124, (-0.72, 0.15, 0.6), 0.32)
+    T.key(r, "scale", 125, (sz * 0.35, sz * 0.35, sz * 0.35))
+    T.key(r, "scale", 129, (sz * 1.12, sz * 1.12, sz * 1.12))
+    T.key(r, "scale", 133, (sz, sz, sz))
+    T.sfx(126, "slide_up")
+    T.arms(hero, 126, 0.0, d=3)
+    T.eyes_norm(hero, 128)
+    T.mouth_set(hero, 130, 0.0)
+    T.laugh(fr, 134, 158)
+    T.laugh(hero, 136, 156, sound=False)
+    T.jump_joy(hero, 154, sound="ding")
+    return 168, 100
+
+
+# --------------------------------------------------------------------------- 13. seesaw launch
+def seesaw(spec, cam, tgt):
+    col = T.PROP_COLOR or T.VAR.choice(["#FF4D6D", "#4DA6FF", "#FFD23F", "#5CCB6B", "#B57BFF"])
+    base = T.empty("seesaw", (0.3, 0.3, 0))
+    T.box("ss_block", (0.3, 0.42, 0.26), (0, 0, 0.13), T.mat("#8A5A3C", 0.6), base, bevel=0.05)
+    T.cyl("ss_axle", 0.07, 0.5, (0, 0, 0.3), T.mat("#C9C9D1", 0.3, metal=0.6), base, rot=(math.pi / 2, 0, 0))
+    plank = T.empty("ss_pivot", (0, 0, 0.32), base)
+    T.box("ss_plank", (2.5, 0.34, 0.07), (0, 0, 0.05), T.mat(col, 0.4, coat=0.3), plank, bevel=0.03)
+    for sx in (-1, 1):
+        T.cyl(f"ss_handle{sx}", 0.025, 0.24, (sx * 0.95, 0, 0.18), T.mat("#FFFFFF", 0.4), plank)
+    L = 1.05  # where each friend sits from the middle
+
+    def end_z(a, side):  # height of a plank end for tilt a
+        return 0.32 + 0.04 - side * L * math.sin(a)
+
+    hero = T.make_character(spec["hero"], 0.3 - L, 0.3, end_z(-0.22, -1))
+    fr = T.make_character(spec["friend"], 2.0, 0.3)
+    T.turn(hero, 1, 25, 1)
+    T.turn(fr, 1, -30, 1)
+    T.key(plank, "rotation_euler", 1, (0, -0.22, 0))
+
+    p, t = _two([-0.8, 2.0], 26, 0.8)
+    T.shot(cam, tgt, 1, 62, p, t, 26, (p[0], p[1] + 0.3, p[2]), t)
+    T.shot(cam, tgt, 63, 96, (-0.6, -3.6, 1.1), (-0.75, 0.3, 1.2), 30, (-0.6, -3.6, 1.4), (-0.75, 0.3, 1.7))
+    p, t = _two([-0.8, 2.0], 26, 0.85)
+    T.shot(cam, tgt, 97, 168, p, t, 26, (p[0] + 0.2, p[1] + 0.2, p[2]), t)
+
+    T.idle(hero, 1, 40)
+    T.look(hero, 6, 0.05)
+    T.eyes_happy(hero, 8)
+    T.mouth_set(hero, 8, 0.0)
+    # friend hops onto the high end, then a BIG stomp jump
+    xf = 0.3 + L
+    T.hop(fr, 14, 2.0, xf, 0.85, 14, sound=True)
+    r = fr["root"]
+    T.key(r, "location", 28, (xf, 0.3, end_z(-0.22, 1)))
+    T.look(fr, 32, -0.05)
+    T.eyes_happy(fr, 34)
+    T.sfx(34, "giggle")
+    T.squash(fr, 42, 0.2, 3, 3)
+    T.key(r, "location", 44, (xf, 0.3, end_z(-0.22, 1)))
+    T.key(r, "location", 52, (xf, 0.3, 1.5))
+    T.sfx(44, "boing")
+    T.arms(fr, 46, 2.4, d=3)
+    T.key(r, "location", 60, (xf, 0.3, end_z(0.22, 1)))
+    T.key(plank, "rotation_euler", 59, (0, -0.22, 0))
+    T.key(plank, "rotation_euler", 62, (0, 0.22, 0))
+    T.sfx(60, "thud")
+    T.squash(fr, 61, 0.3, 1, 6)
+    # the hero is launched sky high with a flip
+    h = hero["root"]
+    T.key(h, "location", 60, (0.3 - L, 0.3, end_z(-0.22, -1)))
+    T.key(h, "location", 78, (0.3 - L - 0.1, 0.3, 2.3))
+    T.key(h, "location", 96, (0.3 - L, 0.3, end_z(0.22, -1)))
+    T.sfx(61, "slide_up")
+    T.sfx(62, "whoosh")
+    T.eyes_big(hero, 63, 1.45, 2, sound=None)
+    T.mouth_set(hero, 63, 1.1, 0.9)
+    T.key(hero["piv"], "rotation_euler", 64, (0, 0, 0))
+    T.key(hero["piv"], "rotation_euler", 90, (0, math.radians(-360), 0))
+    T.key(hero["piv"], "rotation_euler", 91, (0, 0, 0), "CONSTANT")
+    for k, f in enumerate(range(64, 92, 4)):
+        T.arms(hero, f, 2.6 if k % 2 else 1.4, d=2)
+    T.sfx(80, "xylo_down")
+    T.eyes_happy(fr, 66)
+    T.mouth_set(fr, 66, 0.8)
+    # hero lands - and launches the friend!
+    T.key(plank, "rotation_euler", 95, (0, 0.22, 0))
+    T.key(plank, "rotation_euler", 98, (0, -0.22, 0))
+    T.sfx(96, "thud")
+    T.squash(hero, 97, 0.3, 1, 6)
+    T.key(h, "location", 98, (0.3 - L, 0.3, end_z(-0.22, -1)))
+    T.key(r, "location", 96, (xf, 0.3, end_z(0.22, 1)))
+    T.key(r, "location", 112, (xf + 0.5, 0.3, 2.0))
+    T.key(r, "location", 126, (xf + 0.9, 0.3, 0.0))
+    T.sfx(97, "slide_up")
+    T.eyes_big(fr, 98, 1.45, 2, sound=None)
+    T.mouth_set(fr, 98, 1.1, 0.9)
+    T.arms(fr, 100, 2.6, d=2)
+    T.sfx(126, "land")
+    T.squash(fr, 127, 0.32, 1, 8)
+    T.arms(fr, 128, 0.3)
+    T.dizzy_stars(fr, 128, 152)
+    T.eyes_big(hero, 108, 1.3, 3, sound=None)
+    T.mouth_set(hero, 110, 0.7)
+    T.laugh(hero, 130, 160)
+    T.laugh(fr, 146, 164, sound=False)
+    T.eyes_norm(fr, 150)
+    return 168, 80
+
+
+# --------------------------------------------------------------------------- 14. paint splat
+def _splats(ch, f, cols, name):
+    """Paint dots on a face (placed around the eyes, so they fit every kind of character)."""
+    spots = []
+    ex = [e.location for e in ch["eyes"]]
+    if not ex:
+        return spots
+    x0, y0, z0 = sum(v[0] for v in ex) / len(ex), sum(v[1] for v in ex) / len(ex), sum(v[2] for v in ex) / len(ex)
+    dx = abs(ex[0][0] - x0) or 0.15
+    for i, (ox, oz, rr) in enumerate(((-1.5, -0.95, 0.07), (1.6, -0.8, 0.06), (0.1, 1.15, 0.065), (0.0, -1.7, 0.05))):
+        sp = T.sphere(f"{name}{i}", rr, (x0 + ox * dx, y0 - 0.03, z0 + oz * dx), T.mat(cols[i % len(cols)], 0.3, coat=0.6),
+                      ch["piv"], scale=(1, 0.35, 0.9), sub=1, seg=20)
+        T.show(sp, 1, False)
+        T.show(sp, f + i, True)
+        T.key(sp, "scale", f + i, (0.2, 0.1, 0.2))
+        T.key(sp, "scale", f + i + 3, (1.15, 0.35, 1.0))
+        spots.append(sp)
+    return spots
+
+
+def _brush(name, ch, color, side=1):
+    b = T.empty(name, (side * 0.42, -0.25, 0.6), ch["root"])
+    b.rotation_euler = (0.4, side * -0.6, 0)
+    T.cyl(name + "_h", 0.018, 0.32, (0, 0, 0.1), T.mat("#C98A4A", 0.5), b)
+    T.cone(name + "_tip", 0.035, 0.0, 0.1, (0, 0, 0.3), T.mat(color, 0.3, coat=0.6), b)
+    return b
+
+
+def paint_splat(spec, cam, tgt):
+    hero = T.make_character(spec["hero"], -0.85, 0.1)
+    fr = T.make_character(spec["friend"], 0.95, 0.3)
+    T.turn(hero, 1, 30, 1)
+    T.turn(fr, 1, -20, 1)
+    cols = ["#FF4D6D", "#FFD23F", "#4DA6FF", "#5CCB6B", "#B57BFF", "#FF8A3D"]
+    T.VAR.shuffle(cols)
+    easel = T.empty("easel", (-0.1, 0.35, 0))
+    wood = T.mat("#C98A4A", 0.6)
+    for i, (lx, ly, rot) in enumerate(((-0.28, -0.05, (0.08, -0.18, 0)), (0.28, -0.05, (0.08, 0.18, 0)), (0, 0.3, (-0.35, 0, 0)))):
+        T.cyl(f"easel_leg{i}", 0.025, 1.3, (lx, ly, 0.62), wood, easel, rot=rot)
+    T.box("easel_shelf", (0.72, 0.1, 0.04), (0, -0.12, 0.58), wood, easel, bevel=0.01)
+    T.box("canvas", (0.68, 0.04, 0.54), (0, -0.14, 0.88), T.mat("#FFFDF5", 0.8), easel, bevel=0.01)
+    pal = T.empty("palette", (-0.55, 0.0, 0), hero["root"])
+    T.sphere("pal_board", 0.16, (0, -0.3, 0.42), T.mat("#E2B27A", 0.6), pal, scale=(1.2, 0.3, 0.9), rot=(0.4, 0, 0))
+    for i in range(5):
+        a = i / 5 * math.pi + 0.3
+        T.sphere(f"pal_dab{i}", 0.03, (math.cos(a) * 0.11, -0.34, 0.42 + math.sin(a) * 0.07), T.mat(cols[i], 0.3, coat=0.5),
+                 pal, scale=(1, 0.5, 1), sub=0)
+    b1 = _brush("brush", hero, cols[0], 1)
+    b2 = _brush("brush2", fr, cols[2], -1)
+    T.show(b2, 1, False)
+
+    p, t = _two([-0.85, 0.95], 34, 0.9)
+    T.shot(cam, tgt, 1, 52, p, t, 34, (p[0] + 0.1, p[1] + 0.25, p[2]), t)
+    T.shot(cam, tgt, 53, 96, (0.7, -2.3, 0.8), (0.75, 0.3, 0.74), 46, (0.7, -2.1, 0.8), (0.75, 0.3, 0.74))
+    p, t = _two([-0.85, 0.95], 32, 0.85)
+    T.shot(cam, tgt, 97, 168, p, t, 32, (p[0], p[1] + 0.3, p[2]), t)
+
+    # the hero paints a little picture, dab by dab
+    T.idle(fr, 1, 40)
+    T.look(hero, 4, 0.05, 0.03)
+    T.mouth_set(hero, 4, 0.0)
+    pic = [(-0.18, 0.12, 0.09, 0), (0.12, -0.05, 0.07, 1), (0.0, -0.12, 0.06, 3), (-0.15, -0.14, 0.05, 4),
+           (0.2, 0.15, 0.05, 2)]
+    for k, (px, pz, rr, ci) in enumerate(pic):
+        f = 8 + k * 7
+        _arm(hero, 1, f, 0.6, fwd=-1.5, d=3)
+        _arm(hero, 1, f + 3, 0.3, fwd=-0.8, d=3)
+        dab = T.sphere(f"dab{k}", rr, (px, -0.17, 0.88 + pz), T.mat(cols[ci], 0.35, coat=0.4), easel, scale=(1, 0.2, 1),
+                       sub=1, seg=20)
+        T.show(dab, 1, False)
+        T.show(dab, f + 2, True)
+        T.sfx(f + 2, "squeak" if k % 2 else "tick")
+    T.eyes_happy(hero, 46)
+    T.sfx(46, "sparkle")
+    # the friend comes to look - very close...
+    T.hop(fr, 40, 0.95, 0.45, 0.2, 10, sound=False)
+    T.sfx(42, "tiptoe")
+    T.look(fr, 52, -0.06, 0.02)
+    T.lean(fr, 56, -14, 6)
+    T.eyes_big(fr, 58, 1.2, 4, sound=None)
+    T.mouth_set(fr, 58, 0.5, 0.6)
+    # ...the hero swings for a big stroke - SPLAT!
+    T.eyes_norm(hero, 60)
+    _arm(hero, 1, 64, 2.4, fwd=0.6, d=4)
+    T.lean(hero, 64, 10, 4)
+    _arm(hero, 1, 70, 0.4, fwd=-1.6, d=3)
+    T.lean(hero, 70, -8, 3)
+    T.sfx(69, "whoosh")
+    T.sfx(71, "splat")
+    _splats(fr, 71, cols, "splat")
+    T.eyes_happy(fr, 72, 1)
+    T.squash(fr, 72, 0.15, 1, 5)
+    T.sfx(78, "drumroll")
+    T.blink(fr, 84)
+    T.eyes_big(fr, 90, 1.3, 3, sound="doink")
+    T.mouth_set(fr, 90, 0.0)
+    T.lean(fr, 90, 0, 4)
+    T.eyes_big(hero, 76, 1.35, 3, sound=None)
+    T.mouth_set(hero, 76, 0.9, 0.7)
+    T.arms(hero, 80, 0.5, fwd=-1.9, d=4)  # oops!
+    # the friend grabs a brush and paints the hero back - then they laugh
+    T.show(b2, 98, True)
+    T.sfx(98, "zip")
+    T.eyes_happy(fr, 100)
+    T.sfx(100, "giggle")
+    T.hop(fr, 102, 0.45, -0.25, 0.25, 10, sound=False)
+    for f in (114, 120, 126):
+        _arm(fr, -1, f, 0.8, fwd=-1.4, d=3)
+        _arm(fr, -1, f + 3, 0.3, fwd=-0.6, d=3)
+    T.sfx(116, "splat")
+    _splats(hero, 116, cols[2:] + cols[:2], "splat2")
+    T.arms(hero, 112, 0.0, d=4)
+    T.eyes_happy(hero, 118, 1)
+    T.laugh(hero, 132, 160)
+    T.laugh(fr, 134, 160, sound=False)
+    T.jump_joy(fr, 152, sound="ding")
+    return 168, 74
+
+
 GAGS = {"steal_treat": steal_treat, "ball_bonk": ball_bonk, "balloon_float": balloon_float,
         "gift_surprise": gift_surprise, "hide_seek": hide_seek, "slip_peel": slip_peel,
-        "sneeze": sneeze, "dance_party": dance_party, "bubbles": bubbles, "wake_up": wake_up, "race": race}
+        "sneeze": sneeze, "dance_party": dance_party, "bubbles": bubbles, "wake_up": wake_up, "race": race,
+        "magic_trick": magic_trick, "seesaw": seesaw, "paint_splat": paint_splat}

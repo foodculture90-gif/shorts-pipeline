@@ -243,6 +243,30 @@ CAST = {
                 size=1.0),
     "dodo": dict(kind="bird", body="#FFFFFF", beak="#FF9F1C", iris="#2A2A3A", belly="#FFF7E0", wing="#EFEFF4",
                  size=1.3),
+    # ---- new kinds of characters: robot, dinosaurs, dragon, monster, octopus, elephant, pig, owl, bee, two kids
+    "bolt": dict(kind="robot", body="#8FD8E8", accent="#FF6B6B", screen="#22304A", feet="#5A6B7D", iris="#2EC4F5",
+                 brow="#1A2638", size=0.95, acc_top=1.05, no_cap=True),
+    "rexy": dict(kind="dino", body="#6CCB5F", belly="#E6F7C8", plates="#FF9F43", feet="#58B04C", iris="#7A4A12",
+                 brow="#2F6A2A", size=1.0, acc_top=1.04),
+    "trixie": dict(kind="dino", body="#F59AC8", belly="#FFE3F0", frill="#B57BFF", horns="#FFF6D8", feet="#E584B6",
+                   iris="#3B8BEB", brow="#8A2A5A", size=0.95, acc_top=1.04, no_cap=True),
+    "drako": dict(kind="dino", body="#9B7BEA", belly="#FFE07A", plates="#7FD8FF", wings="#7FD8FF", horns="#FFE07A",
+                  feet="#8668D6", iris="#E8A43A", brow="#4A2A8A", size=0.95, spade=True, acc_top=1.04, no_cap=True),
+    "momo": dict(kind="monster", body="#4FC3F7", belly="#B3E5FC", fur="#38ACE6", horns="#FFB347", feet="#2F8FD8",
+                 iris="#5CCB6B", brow="#1E5A8A", size=1.0, no_cap=True, acc_top=1.12),
+    "ocki": dict(kind="octo", body="#FF8A65", spots="#FFC2AE", iris="#2A2A3A", brow="#A8452A", size=0.95, acc_top=1.13),
+    "ellie": dict(kind="elephant", body="#A9B8D6", belly="#C9D4EA", ear_in="#FFC2D9", feet="#93A3C4", iris="#3B2A1A",
+                  brow="#5A6A8A", size=1.0),
+    "pinky": dict(kind="blob", body="#FFA9C6", belly="#FFD6E5", feet="#E8789F", iris="#3B8BEB", brow="#B8456E",
+                  ears="pig", snout="#FF8FB5", curl_tail=True, mouth=(-0.43, 0.35), tuft=False, size=0.95),
+    "hoot": dict(kind="bird", body="#A0703E", belly="#F2DDB8", beak="#F2A93B", iris="#E89B1A", wing="#8A5E32",
+                 owl=True, disc="#F7E6C4", tuft=False, size=1.3, no_cap=True),
+    "buzzy": dict(kind="blob", body="#FFD23F", belly="#FFE98A", feet="#2B2B33", iris="#3B2A1A", brow="#2B2B33",
+                  ears="none", bee=True, tuft=False, size=0.9, no_cap=True),
+    "kiki": dict(kind="kid", skin="#F5C9A0", hair="#6A3B1F", shirt="#FF6FA8", pants="#4DA6FF", shoes="#FFFFFF",
+                 iris="#3B7A2A", hairdo="pigtails", ties="#FFD23F", size=1.0, acc_top=1.2),
+    "nino": dict(kind="kid", skin="#8D5A3C", hair="#1E1410", shirt="#FFC93D", pants="#3B5BDB", shoes="#FF5A5F",
+                 iris="#3B2A1A", hairdo="curly", size=1.0, acc_top=1.2),
 }
 ACCESSORIES = ["party_hat", "bow", "cap", "flower", "bowtie", "crown", "none", "none"]
 ACC_COLORS = ["#FF4D6D", "#FFD23F", "#4DA6FF", "#5CCB6B", "#B57BFF", "#FF8A3D", "#FFFFFF", "#2EC4B6"]
@@ -268,12 +292,222 @@ def eyes(parent, y, z, dx, r, iris="#3B8BEB", brow_m=None):
     return piv, pup, brows
 
 
+def torus(name, R, r, loc, m=None, parent=None, scale=(1, 1, 1), rot=(0, 0, 0)):
+    bpy.ops.mesh.primitive_torus_add(major_radius=R, minor_radius=r, major_segments=40, minor_segments=12)
+    return _finish(bpy.context.active_object, name, m, parent, loc, scale, rot, 1)
+
+
+def _face(name, piv, d, fy, ez, edx, er, my, mz, mw=1.0, cheeks=None, brow=True):
+    """Eyes + an open/closed mouth + smile, same parts (and animation API) as the original cast."""
+    ev, pp, br = eyes(piv, fy, ez, edx, er, d["iris"], mat(d.get("brow", "#3A2A2A"), 0.5) if brow else None)
+    if cheeks:
+        cx, cy, cz = cheeks
+        for side in (-1, 1):
+            sphere(f"{name}_cheek{side}", 0.07, (side * cx, cy, cz), mat("#FF8FB1", 0.6), piv, scale=(1, 0.4, 0.7))
+    mouth = sphere(name + "_mouth", 0.1 * mw, (0, my, mz), mat("#5A1020", 0.4), piv, scale=(1.2, 0.35, 0.05))
+    sphere(name + "_tongue", 0.06 * mw, (0, -0.02, -0.04), mat("#FF5A7A", 0.5), mouth, scale=(1, 0.8, 0.5))
+    w = 0.085 * mw
+    smile = curve_line(name + "_smile", [(-w, 0, w * 0.45), (0, 0, -w * 0.25), (w, 0, w * 0.45)], 0.014,
+                       mat("#5A1020", 0.4), piv, (0, my - 0.02, mz + 0.015))
+    return ev, pp, br, mouth, smile
+
+
+def _limbs(name, piv, root, arm_m, foot_m, sx=0.45, sy=-0.05, sz=0.55, ar=0.08, al=2.0, hand=None, fx=0.2, fr=0.14):
+    arms = []
+    for side in (-1, 1):
+        sh = empty(f"{name}_sh{side}", (side * sx, sy, sz), piv)
+        sphere(f"{name}_arm{side}", ar, (side * 0.06, 0, -0.14), arm_m, sh, scale=(0.9, 0.9, al))
+        if hand is not None:
+            sphere(f"{name}_hand{side}", ar * 1.2, (side * 0.07, 0, -0.14 - ar * al * 0.95), hand, sh)
+        arms.append(sh)
+    feet = [sphere(f"{name}_foot{s}", fr, (s * fx, -0.08, 0.06), foot_m, root, scale=(1.0, 1.35, 0.55)) for s in (-1, 1)]
+    return arms, feet
+
+
+def _chain(name, pts, r0, r1, m, parent):
+    """A bendy tube made of overlapping balls (tails, trunks, tentacles)."""
+    n = len(pts)
+    return [sphere(f"{name}{i}", r0 + (r1 - r0) * i / max(1, n - 1), p, m, parent, sub=1, seg=24) for i, p in enumerate(pts)]
+
+
+def _robot(name, d, root, piv, ch):
+    body = mat(d["body"], 0.3, coat=0.5, metal=0.25)
+    acc = mat(d["accent"], 0.35, coat=0.4)
+    box(name + "_body", (0.88, 0.76, 0.94), (0, 0, 0.6), body, piv, bevel=0.22)
+    box(name + "_screen", (0.7, 0.06, 0.46), (0, -0.37, 0.74), mat(d["screen"], 0.15, coat=1.0), piv, bevel=0.1)
+    box(name + "_panel", (0.42, 0.05, 0.2), (0, -0.375, 0.34), mat("#E8EEF5", 0.4), piv, bevel=0.05)
+    for i, c in enumerate(("#FF5A5F", "#FFD23F", "#5CCB6B")):
+        sphere(f"{name}_btn{i}", 0.035, (-0.11 + i * 0.11, -0.405, 0.34), mat(c, 0.2, coat=1.0, emit=0.8), piv, sub=0)
+    for side in (-1, 1):
+        cyl(f"{name}_bolt{side}", 0.1, 0.09, (side * 0.46, 0, 0.74), acc, piv, rot=(0, math.pi / 2, 0), bevel=0.02)
+    cyl(name + "_ant", 0.016, 0.26, (-0.2, 0.02, 1.18), mat("#9AA5B1", 0.3, metal=0.6), piv, rot=(0, -0.3, 0))
+    sphere(name + "_bulb", 0.065, (-0.24, 0.02, 1.32), mat(d["accent"], 0.2, emit=2.5), piv, sub=1)
+    ev, pp, br, mouth, smile = _face(name, piv, d, -0.39, 0.82, 0.17, 0.13, -0.405, 0.6, 1.0)
+    arms, feet = _limbs(name, piv, root, mat("#B8C4D0", 0.3, metal=0.5), mat(d["feet"], 0.4, coat=0.3),
+                        sx=0.47, sz=0.5, ar=0.065, al=1.8, hand=acc)
+    ch.update(eyes=ev, pupils=pp, brows=br, arms=arms, feet=feet, mouth=mouth, smile=smile, top=1.15, head=0.8)
+
+
+def _dino(name, d, root, piv, ch):
+    body_m = mat(d["body"], 0.55)
+    sphere(name + "_body", 0.5, (0, 0, 0.55), body_m, piv, scale=(1.0, 0.95, 1.0), sub=2)
+    sphere(name + "_belly", 0.3, (0, -0.33, 0.36), mat(d["belly"], 0.6), piv, scale=(1.0, 0.45, 0.8), sub=2)
+    sphere(name + "_snout", 0.23, (0, -0.42, 0.5), body_m, piv, scale=(1.08, 0.9, 0.72), sub=2)
+    for side in (-1, 1):
+        sphere(f"{name}_nostril{side}", 0.025, (side * 0.065, -0.615, 0.58), mat("#2A2A2A", 0.3), piv, sub=0)
+    ev, pp, br, mouth, smile = _face(name, piv, d, -0.37, 0.8, 0.18, 0.15, -0.6, 0.45, 1.1, cheeks=(0.27, -0.5, 0.55))
+    if d.get("plates"):  # spikes along the back
+        pm = mat(d["plates"], 0.45)
+        for i, th in enumerate((0.25, 0.65, 1.05, 1.45, 1.85)):
+            cone(f"{name}_plate{i}", 0.085 - i * 0.008, 0.0, 0.2 - i * 0.015,
+                 (0, 0.5 * math.sin(th) * 0.95, 0.55 + 0.5 * math.cos(th)), pm, piv, rot=(-th, 0, 0))
+    if d.get("frill"):  # triceratops frill + horns
+        sphere(name + "_frill", 0.44, (0, 0.14, 0.92), mat(d["frill"], 0.5), piv, scale=(1.15, 0.22, 0.85), rot=(-0.35, 0, 0))
+    if d.get("horns"):
+        hm = mat(d["horns"], 0.35, coat=0.4)
+        for side in (-1, 1):
+            cone(f"{name}_horn{side}", 0.055, 0.0, 0.22, (side * 0.15, -0.22, 1.03), hm, piv, rot=(-0.5, side * 0.25, 0))
+        if d.get("frill"):
+            cone(name + "_nosehorn", 0.045, 0.0, 0.12, (0, -0.55, 0.66), hm, piv, rot=(0.6, 0, 0))
+    if d.get("wings"):
+        wm = mat(d["wings"], 0.35)
+        for side in (-1, 1):
+            w = empty(f"{name}_wingp{side}", (side * 0.32, 0.32, 0.82), piv)
+            w.rotation_euler = (0.2, 0, side * -0.5)
+            sphere(f"{name}_wing{side}", 0.3, (side * 0.18, 0, 0.05), wm, w, scale=(1.0, 0.12, 0.7), rot=(0, side * -0.4, 0))
+    tail = _chain(name + "_tail", [(0, 0.42, 0.32), (0, 0.6, 0.24), (0, 0.76, 0.18), (0, 0.9, 0.16), (0.02, 1.02, 0.18)],
+                  0.17, 0.06, body_m, piv)
+    if d.get("spade"):
+        cone(name + "_spade", 0.09, 0.0, 0.16, (0.02, 1.1, 0.2), mat(d.get("plates", d["body"]), 0.45), piv, rot=(-1.4, 0, 0))
+    arms, feet = _limbs(name, piv, root, body_m, mat(d["feet"], 0.55), sx=0.42, sy=-0.18, sz=0.5, ar=0.065, al=1.5,
+                        fr=0.15)
+    for f in feet:
+        for k in (-1, 0, 1):
+            sphere(f"{f.name}_claw{k}", 0.03, (k * 0.07, -0.12, -0.01), WHITE, f, sub=0)
+    ch.update(eyes=ev, pupils=pp, brows=br, arms=arms, feet=feet, mouth=mouth, smile=smile, top=1.12, head=0.8)
+
+
+def _monster(name, d, root, piv, ch):
+    body_m, fur = mat(d["body"], 0.75), mat(d["fur"], 0.85)
+    sphere(name + "_body", 0.5, (0, 0, 0.55), body_m, piv, scale=(1.0, 0.92, 1.05), sub=2)
+    sphere(name + "_belly", 0.3, (0, -0.33, 0.36), mat(d["belly"], 0.8), piv, scale=(1.0, 0.45, 0.8), sub=2)
+    for i in range(20):  # shaggy fur tufts all around the outline
+        a = i / 20 * math.tau
+        if math.sin(a) < -0.75:
+            continue
+        sphere(f"{name}_tuft{i}", 0.12, (math.cos(a) * 0.48, 0.1, 0.56 + math.sin(a) * 0.5), fur if i % 2 else body_m,
+               piv, scale=(1, 0.8, 1), sub=1, seg=20)
+    hm = mat(d["horns"], 0.35, coat=0.5)
+    for side in (-1, 1):
+        h = empty(f"{name}_hornp{side}", (side * 0.22, -0.02, 1.0), piv)
+        h.rotation_euler = (0, side * 0.45, 0)
+        _chain(f"{name}_horn{side}_", [(0, 0, 0), (side * 0.03, 0, 0.08), (side * 0.07, 0, 0.15), (side * 0.12, 0, 0.2)],
+               0.07, 0.025, hm, h)
+    ev, pp, br, mouth, smile = _face(name, piv, d, -0.405, 0.76, 0.19, 0.18, -0.455, 0.42, 1.5, cheeks=(0.32, -0.38, 0.52))
+    for side in (-1, 1):  # two little teeth, seen when the mouth opens
+        cone(f"{name}_tooth{side}", 0.025, 0.0, 0.05, (side * 0.045, -0.03, 0.03), WHITE, mouth, rot=(math.pi, 0, 0))
+    arms, feet = _limbs(name, piv, root, fur, mat(d["feet"], 0.6))
+    ch.update(eyes=ev, pupils=pp, brows=br, arms=arms, feet=feet, mouth=mouth, smile=smile, top=1.12, head=0.76)
+
+
+def _octo(name, d, root, piv, ch):
+    body_m = mat(d["body"], 0.45, coat=0.3)
+    sphere(name + "_body", 0.5, (0, 0, 0.66), body_m, piv, scale=(1.0, 0.95, 1.05), sub=2)
+    sm = mat(d["spots"], 0.5)
+    for i, (sx_, sz_) in enumerate(((0.3, 1.0), (-0.32, 0.98), (0.0, 1.13), (0.42, 0.78), (-0.44, 0.74))):
+        sy_ = -0.95 * math.sqrt(max(0.0, 0.25 - sx_ * sx_ - ((sz_ - 0.66) / 1.05) ** 2))
+        sphere(f"{name}_spot{i}", 0.055, (sx_, sy_ - 0.005, sz_), sm, piv, scale=(1, 0.45, 1), sub=0)
+    for i in range(6):  # wavy legs all around the bottom
+        a = math.radians(-90 + 30 + i * 60)
+        if abs(math.degrees(a) + 90) < 20:
+            continue
+        pts = [(math.cos(a) * r, math.sin(a) * r, z) for r, z in ((0.32, 0.25), (0.45, 0.14), (0.58, 0.08), (0.68, 0.1),
+                                                                     (0.74, 0.17))]
+        _chain(f"{name}_leg{i}_", pts, 0.11, 0.045, body_m, piv)
+    ev, pp, br, mouth, smile = _face(name, piv, d, -0.44, 0.82, 0.17, 0.16, -0.475, 0.56, 1.0, cheeks=(0.3, -0.42, 0.62))
+    arms = []
+    for side in (-1, 1):  # the two front legs are the arms
+        sh = empty(f"{name}_sh{side}", (side * 0.36, -0.22, 0.38), piv)
+        _chain(f"{name}_arm{side}_", [(side * 0.03, 0, -0.04), (side * 0.08, -0.02, -0.12), (side * 0.12, -0.04, -0.2),
+                                      (side * 0.14, -0.08, -0.26)], 0.09, 0.045, body_m, sh)
+        arms.append(sh)
+    feet = [sphere(f"{name}_foot{s}", 0.1, (s * 0.2, -0.12, 0.06), body_m, root, scale=(1.0, 1.3, 0.5)) for s in (-1, 1)]
+    ch.update(eyes=ev, pupils=pp, brows=br, arms=arms, feet=feet, mouth=mouth, smile=smile, top=1.17, head=0.82)
+
+
+def _elephant(name, d, root, piv, ch):
+    body_m = mat(d["body"], 0.6)
+    sphere(name + "_body", 0.5, (0, 0, 0.55), body_m, piv, scale=(1.0, 0.92, 1.05), sub=2)
+    sphere(name + "_belly", 0.3, (0, -0.33, 0.33), mat(d["belly"], 0.65), piv, scale=(1.0, 0.45, 0.75), sub=2)
+    for side in (-1, 1):  # big flappy ears
+        e = sphere(f"{name}_ear{side}", 0.34, (side * 0.56, 0.08, 0.78), body_m, piv, scale=(0.95, 0.22, 1.1),
+                   rot=(0, 0, side * -0.35))
+        sphere(f"{name}_earin{side}", 0.24, (0, -0.06, 0.0), mat(d["ear_in"], 0.6), e, scale=(1, 0.5, 1))
+    _chain(name + "_trunk", [(0, -0.44, 0.66), (0, -0.53, 0.6), (0, -0.6, 0.55), (0, -0.66, 0.55), (0, -0.7, 0.6)],
+           0.11, 0.065, body_m, piv)
+    sphere(name + "_trunktip", 0.06, (0, -0.73, 0.64), mat(d["ear_in"], 0.6), piv, scale=(1, 0.6, 1), sub=0)
+    ev, pp, br, mouth, smile = _face(name, piv, d, -0.39, 0.8, 0.2, 0.14, -0.43, 0.37, 0.9, cheeks=(0.3, -0.4, 0.55))
+    tl = sphere(name + "_tail", 0.05, (0, 0.47, 0.3), body_m, piv, scale=(0.8, 2.0, 0.8), rot=(0.5, 0, 0))
+    sphere(name + "_tailtip", 0.05, (0, 0.06, 0.0), mat("#5A6A8A", 0.8), tl, scale=(1, 0.6, 1))
+    arms, feet = _limbs(name, piv, root, body_m, mat(d["feet"], 0.6), fr=0.15)
+    ch.update(eyes=ev, pupils=pp, brows=br, arms=arms, feet=feet, mouth=mouth, smile=smile, top=1.15, head=0.8)
+
+
+def _kid(name, d, root, piv, ch):
+    skin, hair = mat(d["skin"], 0.55), mat(d["hair"], 0.7)
+    shirt, pants = mat(d["shirt"], 0.6), mat(d["pants"], 0.65)
+    for s in (-1, 1):
+        cyl(f"{name}_leg{s}", 0.075, 0.24, (s * 0.1, 0, 0.17), pants, root)
+    sphere(name + "_torso", 0.25, (0, 0, 0.44), shirt, piv, scale=(1.0, 0.82, 1.05), sub=2)
+    sphere(name + "_neck", 0.08, (0, 0, 0.62), skin, piv, sub=0)
+    sphere(name + "_head", 0.36, (0, 0, 0.88), skin, piv, sub=2)
+    for s in (-1, 1):
+        sphere(f"{name}_earh{s}", 0.07, (s * 0.355, 0.0, 0.86), skin, piv, scale=(0.6, 0.9, 1.1))
+    sphere(name + "_nose", 0.04, (0, -0.365, 0.81), mat(d["skin"], 0.5), piv, scale=(1.2, 0.8, 0.9), sub=0)
+    if d.get("hairdo") == "curly":
+        k = 0
+        for i in range(7):
+            for j in range(9):
+                th, ph = 0.15 + i * 0.2, j / 9 * math.tau
+                x, y, z = math.sin(th) * math.cos(ph), math.sin(th) * math.sin(ph), math.cos(th)
+                if y < -0.55 and z < 0.75:
+                    continue  # keep the face free
+                sphere(f"{name}_curl{k}", 0.1, (x * 0.36, y * 0.36 + 0.02, 0.9 + z * 0.36), hair, piv, sub=0, seg=16)
+                k += 1
+    else:
+        sphere(name + "_hair", 0.375, (0, 0.06, 0.94), hair, piv, scale=(1.0, 1.0, 0.92), sub=1)
+        sphere(name + "_bangs", 0.2, (0, -0.22, 1.14), hair, piv, scale=(1.45, 0.6, 0.45), rot=(0.4, 0, 0))
+        for s in (-1, 1):
+            sphere(f"{name}_tail{s}", 0.13, (s * 0.4, 0.1, 0.98), hair, piv, scale=(0.8, 0.8, 1.15), rot=(0, s * 0.5, 0))
+            sphere(f"{name}_tie{s}", 0.05, (s * 0.33, 0.08, 1.04), mat(d.get("ties", "#FFD23F"), 0.4), piv, sub=0)
+    ev, pp, br, mouth, smile = _face(name, piv, d | {"brow": d["hair"]}, -0.3, 0.9, 0.13, 0.1, -0.34, 0.72, 0.75,
+                                     cheeks=(0.2, -0.3, 0.77))
+    arms = []
+    for side in (-1, 1):
+        sh = empty(f"{name}_sh{side}", (side * 0.25, 0, 0.53), piv)
+        sphere(f"{name}_sleeve{side}", 0.08, (side * 0.03, 0, -0.04), shirt, sh, scale=(1, 1, 1.1), sub=1)
+        sphere(f"{name}_arm{side}", 0.055, (side * 0.05, 0, -0.14), skin, sh, scale=(0.9, 0.9, 1.9))
+        sphere(f"{name}_hand{side}", 0.06, (side * 0.06, 0, -0.25), skin, sh, sub=1)
+        arms.append(sh)
+    feet = [sphere(f"{name}_foot{s}", 0.1, (s * 0.1, -0.05, 0.05), mat(d["shoes"], 0.4, coat=0.3), root,
+                   scale=(1.0, 1.5, 0.6)) for s in (-1, 1)]
+    ch.update(eyes=ev, pupils=pp, brows=br, arms=arms, feet=feet, mouth=mouth, smile=smile, top=1.24, head=0.88)
+
+
+KINDS = {"robot": _robot, "dino": _dino, "monster": _monster, "octo": _octo, "elephant": _elephant, "kid": _kid}
+
+
 def make_character(name, x=0.0, y=0.0, z=0.0):
     d = CAST[name]
     root = empty(name, (x, y, z))
     root.scale = (d["size"],) * 3
     piv = empty(name + "_piv", (0, 0, 0), root)  # squash & stretch from the floor
     ch = dict(name=name, root=root, piv=piv, mouth=None, smile=None, size=d["size"])
+    if d["kind"] in KINDS:
+        KINDS[d["kind"]](name, d, root, piv, ch)
+        mouth_set(ch, 1, 0.0)
+        accessory(ch, *LOOKS.get(name, ("none", "#FFFFFF")))
+        return ch
     if d["kind"] == "bird":
         yel = mat(d["body"], 0.5)
         sphere(name + "_body", 0.34, (0, 0, 0.38), yel, piv, scale=(1, 0.95, 1.08), sub=2)
@@ -281,6 +515,10 @@ def make_character(name, x=0.0, y=0.0, z=0.0):
             sphere(name + "_tuft", 0.07, (0, 0, 0.76), yel, piv, scale=(0.6, 0.6, 1.6), rot=(0.3, 0, 0))
         sphere(name + "_belly", 0.2 if d.get("belly") is None else 0.25, (0, -0.19, 0.32),
                mat(d.get("belly", "#FFF1B8"), 0.6), piv, scale=(1, 0.5, 0.95), sub=2)
+        if d.get("owl"):  # owl: feather discs around the eyes + ear tufts
+            for side in (-1, 1):
+                sphere(f"{name}_disc{side}", 0.15, (side * 0.12, -0.25, 0.5), mat(d["disc"], 0.7), piv, scale=(1, 0.3, 1))
+                cone(f"{name}_etuft{side}", 0.06, 0.0, 0.17, (side * 0.18, 0.0, 0.72), yel, piv, rot=(0, side * 0.4, 0))
         ev, pp, br = eyes(piv, -0.285, 0.5, 0.12, 0.11, d["iris"])
         cone(name + "_beak", 0.07, 0.0, 0.14, (0, -0.33, 0.37), mat(d["beak"], 0.4), piv, rot=(math.radians(90), 0, 0))
         arms = []
@@ -314,6 +552,9 @@ def make_character(name, x=0.0, y=0.0, z=0.0):
             e = sphere(f"{name}_ear{side}", 0.11, (side * 0.17, 0.05, 1.22), body_m, piv, scale=(0.75, 0.5, 2.6),
                        rot=(0, side * 0.22, 0))
             sphere(f"{name}_earin{side}", 0.07, (0, -0.05, 0.0), mat("#FFB3CF", 0.6), e, scale=(0.8, 0.4, 0.85))
+        elif ears == "pig":
+            cone(f"{name}_ear{side}", 0.13, 0.02, 0.22, (side * 0.3, -0.06, 1.0), mat(d["snout"], 0.6), piv,
+                 rot=(-0.5, side * 0.5, 0))
         elif ears == "cat":
             cone(f"{name}_ear{side}", 0.14, 0.02, 0.28, (side * 0.27, 0.0, 1.03), body_m, piv, rot=(0, side * 0.45, 0))
             if d.get("ear_in"):
@@ -339,6 +580,27 @@ def make_character(name, x=0.0, y=0.0, z=0.0):
         cone(name + "_horn", 0.07, 0.0, 0.32, (0, -0.12, 1.15), mat(d["horn"], 0.3, coat=0.6), piv, rot=(0.35, 0, 0))
         for i, c in enumerate(d.get("mane", [])):
             sphere(f"{name}_mane{i}", 0.11, (0.0, 0.1 + i * 0.1, 1.08 - i * 0.12), mat(c, 0.5), piv, scale=(0.8, 1, 1.1))
+    if d.get("snout"):  # piggy snout + curly tail
+        sn = mat(d["snout"], 0.5)
+        cyl(name + "_snout", 0.12, 0.09, (0, -0.47, 0.52), sn, piv, rot=(math.pi / 2, 0, 0), bevel=0.03)
+        for side in (-1, 1):
+            sphere(f"{name}_nost{side}", 0.025, (side * 0.045, -0.515, 0.52), mat("#B8456E", 0.4), piv, scale=(0.8, 0.5, 1.2),
+                   sub=0)
+    if d.get("curl_tail"):
+        curve_line(name + "_curl", [(0, 0, 0), (0.05, 0.06, 0.06), (0.0, 0.1, 0.12), (-0.06, 0.07, 0.08),
+                                    (-0.03, 0.02, 0.05), (0.02, 0.08, 0.02)], 0.022, body_m, piv, (0, 0.46, 0.3))
+    if d.get("bee"):  # stripes, see-through wings, antennae, tiny stinger
+        st = mat("#2B2B33", 0.6)
+        for i, (zz, rr) in enumerate(((0.38, 0.47), (0.2, 0.37))):
+            torus(f"{name}_stripe{i}", rr, 0.045, (0, 0, zz), st, piv, scale=(1, 0.92, 1))
+        wm = mat("#E3F6FF", 0.05, coat=1.0)
+        for side in (-1, 1):
+            sphere(f"{name}_bwing{side}", 0.26, (side * 0.32, 0.38, 0.88), wm, piv, scale=(0.55, 0.18, 1.0),
+                   rot=(0.3, 0, side * -0.6))
+            curve_line(f"{name}_ant{side}", [(0, 0, 0), (side * 0.06, -0.04, 0.14), (side * 0.13, -0.08, 0.24)], 0.014, st,
+                       piv, (side * 0.12, -0.05, 1.02))
+            sphere(f"{name}_antb{side}", 0.04, (side * 0.25, -0.13, 1.26), st, piv, sub=0)
+        cone(name + "_sting", 0.04, 0.0, 0.1, (0, 0.5, 0.3), st, piv, rot=(-math.pi / 2, 0, 0))
     if d.get("patch"):  # puppy eye patch
         sphere(name + "_patch", 0.15, (0.17, -0.37, 0.76), mat(d["patch"], 0.6), piv, scale=(1.1, 0.35, 1.2))
     if d.get("eyes_top"):
@@ -349,11 +611,12 @@ def make_character(name, x=0.0, y=0.0, z=0.0):
         ev, pp, br = eyes(piv, -0.405, 0.74, 0.175, 0.165, d["iris"], mat(d["brow"], 0.5))
     if d.get("nose"):
         sphere(name + "_nose", 0.05, (0, -0.48, 0.565), mat("#3A2A2A", 0.25, coat=1.0), piv, scale=(1.3, 0.7, 0.85))
-    mouth = sphere(name + "_mouth", 0.1, (0, -0.455, 0.44), mat("#5A1020", 0.4), piv, scale=(1.2, 0.35, 0.05))
+    my, mz = d.get("mouth", (-0.455, 0.44))
+    mouth = sphere(name + "_mouth", 0.1, (0, my, mz), mat("#5A1020", 0.4), piv, scale=(1.2, 0.35, 0.05))
     sphere(name + "_tongue", 0.06, (0, -0.02, -0.04), mat("#FF5A7A", 0.5), mouth, scale=(1, 0.8, 0.5))
     w = 0.085
     smile = curve_line(name + "_smile", [(-w, 0, w * 0.45), (0, 0, -w * 0.25), (w, 0, w * 0.45)], 0.014,
-                       mat("#5A1020", 0.4), piv, (0, -0.475, 0.455))
+                       mat("#5A1020", 0.4), piv, (0, my - 0.02, mz + 0.015))
     arms = []
     for side in (-1, 1):
         sh = empty(f"{name}_sh{side}", (side * 0.45, -0.05, 0.55), piv)
@@ -374,7 +637,7 @@ def accessory(ch, kind, color):
         return
     name, piv, d = ch["name"], ch["piv"], CAST[ch["name"]]
     bird = d["kind"] == "bird"
-    top = 0.72 if bird else (0.96 if d.get("eyes_top") else 1.06)
+    top = d.get("acc_top") or (0.72 if bird else (0.96 if d.get("eyes_top") else 1.06))
     c, m2 = mat(color, 0.4, coat=0.3), mat("#FFFFFF", 0.4)
     k = 0.75 if bird or d.get("eyes_top") else 1.0
     if kind == "party_hat":
@@ -391,7 +654,7 @@ def accessory(ch, kind, color):
             cone(f"{name}_crp{i}", 0.04 * k, 0.0, 0.1 * k, (math.cos(a) * 0.13 * k, math.sin(a) * 0.13 * k, 0.11 * k), gold, h)
         sphere(name + "_crgem", 0.03 * k, (0, -0.15 * k, 0.04 * k), mat(color, 0.1, coat=1.0), h, sub=0)
     elif kind == "cap":
-        if d.get("ears") in ("bunny", "cat") or d.get("eyes_top"):
+        if d.get("ears") in ("bunny", "cat") or d.get("eyes_top") or d.get("no_cap"):
             kind = "bow"  # a cap would hide the ears - wear a bow instead
         else:
             h = empty(name + "_cap", (0, 0.0, top - 0.12), piv)
@@ -414,7 +677,7 @@ def accessory(ch, kind, color):
                    scale=(1, 1, 0.4), sub=0)
         sphere(name + "_flc", 0.03 * k, (0, 0, 0.01), mat("#FFD23F", 0.4), h, sub=0)
     elif kind == "bowtie":
-        h = empty(name + "_tie", (0, -0.31, 0.2) if bird else (0, -0.43, 0.27), piv)
+        h = empty(name + "_tie", (0, -0.31, 0.2) if bird else (0, -0.22, 0.57) if d["kind"] == "kid" else (0, -0.43, 0.27), piv)
         for side in (-1, 1):
             cone(f"{name}_tie{side}", 0.06, 0.012, 0.09, (side * 0.045, 0, 0), c, h, rot=(0, side * math.pi / 2, 0),
                  scale=(1, 0.5, 1))
@@ -596,7 +859,7 @@ PETS = {  # free Kenney Cube Pets that hop around in the background
     "christmas": ["penguin", "polar", "deer"], "space": [], "bedroom": ["cat", "dog"], "livingroom": ["cat", "dog"],
     "farm": ["cow", "pig", "chick", "hog", "bunny"], "camping": ["deer", "fox", "beaver", "bunny"],
     "castle": ["deer", "bunny", "dog"], "underwater": ["crab"], "candy": ["bunny", "chick", "pig"],
-    "market": ["dog", "cat", "chick"], "desert": [],
+    "market": ["dog", "cat", "chick"], "desert": [], "jungle": ["monkey", "parrot", "koala", "deer"],
 }
 PET_SPOTS = {"bedroom": [(0.6, 3.1)], "livingroom": [(1.3, 2.7)], "beach": [(-1.6, 3.0), (3.3, 3.2)],
              "pirate": [(-1.6, 3.0), (3.3, 3.2)]}
@@ -839,8 +1102,62 @@ def _set_desert(pal, rnd, sky, grass):
     return "golden" if sky == "day" else sky
 
 
+def _leaf(name, loc, size, rot, m):
+    """A big jungle leaf: a flattened, pointed blob on a little stem."""
+    root = empty(name, loc)
+    root.rotation_euler = rot
+    sphere(name + "_l", size, (0, 0, size * 1.1), m, root, scale=(0.45, 0.08, 1.0), sub=1, seg=24)
+    cyl(name + "_s", 0.015, size * 0.6, (0, 0, size * 0.1), mat("#2F7A3A", 0.6), root)
+    return root
+
+
+def _set_jungle(pal, rnd, sky, grass):
+    box("ground", (40, 40, 0.2), (0, 6, -0.1), mat(pal.choice(["#4FAE4A", "#58B44F", "#4AA35A"]), 0.9), bevel=0)
+    box("jpath", (40, 2.0, 0.02), (0, 0.4, 0.005), mat(pal.choice(["#C99A63", "#B88A55", "#D4A86E"]), 0.9), bevel=0)
+    for i, (hx, hr) in enumerate(((-7, 4.5), (0, 6), (7.5, 5))):  # misty green hills far away
+        sphere(f"jhill{i}", hr, (hx, 16, -hr * 0.55), mat("#3E8E5A", 0.95), scale=(1.5, 1, 1), sub=1)
+    greens = [mat(c, 0.6) for c in ("#2E9E4F", "#3BB35A", "#228B45", "#45C267")]
+    for i, (tx, ty) in enumerate(((-4.6, 4.2), (-2.2, 5.6), (1.0, 6.4), (3.4, 4.8), (5.6, 6.2), (-0.6, 8.0), (2.4, 8.6))):
+        if not kk("nature", ["tree_palm*", "tree_fat*", "tree_default*"], f"jtree{i}", (tx, ty, 0),
+                  rnd.uniform(2.6, 3.8), rot_z=rnd.uniform(-1, 1), rnd=pal):
+            cyl(f"jtrunk{i}", 0.12, 2.6, (tx, ty, 1.3), mat("#8A5A3C", 0.7))
+            sphere(f"jcrown{i}", 0.9, (tx, ty, 2.9), greens[i % 4], sub=1)
+    for i in range(14):  # giant leaves at the sides and behind
+        x = rnd.choice([rnd.uniform(-5.5, -2.0), rnd.uniform(2.0, 5.5), rnd.uniform(-2.0, 2.0)])
+        y = rnd.uniform(2.3, 4.2) if abs(x) > 1.9 else rnd.uniform(3.4, 4.6)
+        _leaf(f"jleaf{i}", (x, y, 0), rnd.uniform(0.35, 0.6), (rnd.uniform(-0.3, 0.3), rnd.uniform(-0.7, 0.7), rnd.uniform(-0.5, 0.5)),
+              greens[i % 4])
+    for i in range(6):
+        kk("nature", ["plant_bush*", "plant_flat*", "flower_*", "mushroom_*"], f"jbush{i}",
+           (rnd.uniform(-5, 5), rnd.uniform(2.4, 4.0), 0), rnd.uniform(0.35, 0.7), rnd=pal)
+    vine = mat("#2F8A3E", 0.7)
+    for i, vx in enumerate((-3.6, -1.4, 1.7, 3.9)):  # hanging vines
+        vy = rnd.uniform(3.2, 4.4)
+        pts = [(0, 0, 0), (0.15, 0, -0.6), (-0.1, 0, -1.2), (0.12, 0, -1.8)]
+        curve_line(f"vine{i}", pts, 0.025, vine, loc=(vx, vy, 4.6))
+        for j in range(3):
+            sphere(f"vleaf{i}{j}", 0.08, (vx + 0.1 * (-1) ** j, vy - 0.03, 4.3 - j * 0.55), greens[j % 4],
+                   scale=(1, 0.3, 0.6), sub=0)
+    fcols = ("#FF4D6D", "#FF8A3D", "#FFD23F", "#FF6BD6")
+    for i in range(6):  # big tropical flowers
+        x, y = rnd.uniform(-4.5, 4.5), rnd.uniform(2.3, 3.6)
+        if abs(x) < 1.6:
+            x += 2.4 if x >= 0 else -2.4
+        for k in range(5):
+            a = k / 5 * math.tau
+            sphere(f"jfl{i}{k}", 0.07, (x + math.cos(a) * 0.08, y, 0.35 + math.sin(a) * 0.08), mat(fcols[i % 4], 0.5),
+                   scale=(1, 0.4, 0.7), rot=(0, -a, 0), sub=0)
+        sphere(f"jflc{i}", 0.04, (x, y - 0.02, 0.35), mat("#FFF2A8", 0.4), sub=0)
+        cyl(f"jfls{i}", 0.012, 0.35, (x, y + 0.02, 0.17), mat("#2F7A3A", 0.6))
+    for i in range(4):
+        kk("nature", ["rock_small*", "rock_tall*", "stump_*", "log*"], f"jrock{i}",
+           (rnd.uniform(-5, 5), rnd.uniform(2.5, 4.5), 0), rnd.uniform(0.3, 0.6), rnd=pal)
+    _clouds(6.5, 18)
+    return sky
+
+
 EXTRA_SETS = {"farm": _set_farm, "camping": _set_camping, "castle": _set_castle, "underwater": _set_underwater,
-              "candy": _set_candy, "market": _set_market, "desert": _set_desert}
+              "candy": _set_candy, "market": _set_market, "desert": _set_desert, "jungle": _set_jungle}
 
 
 def _room(pal):
@@ -1584,7 +1901,7 @@ def setup_render(samples=20, res=100):
         print("render devices:", GPU_DEVICES or "CPU", flush=True)
     sc.cycles.device = "GPU" if GPU_DEVICES else "CPU"
     sc.cycles.use_adaptive_sampling = True
-    sc.cycles.adaptive_threshold = 0.04
+    sc.cycles.adaptive_threshold = 0.05
     sc.cycles.use_denoising = True
     sc.cycles.denoiser = "OPENIMAGEDENOISE"
     sc.cycles.max_bounces = 4
@@ -1593,6 +1910,14 @@ def setup_render(samples=20, res=100):
     sc.cycles.transmission_bounces = 2
     sc.cycles.transparent_max_bounces = 2
     sc.cycles.caustics_reflective = sc.cycles.caustics_refractive = False
+    try:  # faster: light that has bounced once is finished with a cheap ambient-occlusion guess (soft toon look stays)
+        sc.cycles.use_fast_gi = True
+        sc.cycles.fast_gi_method = "REPLACE"
+        sc.cycles.ao_bounces_render = 1
+        sc.world.light_settings.distance = 2.0
+    except Exception:  # noqa: BLE001
+        pass
+    sc.cycles.light_sampling_threshold = 0.02
     sc.view_settings.view_transform = "Standard"
     sc.view_settings.look = "None"
     sc.view_settings.exposure = -0.2

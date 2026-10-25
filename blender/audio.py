@@ -517,7 +517,7 @@ AMBIENCE = {"park": [(amb_birds, 0.13)], "street": [(amb_birds, 0.09)], "playgro
             "space": [(amb_space, 0.06)], "bedroom": [], "livingroom": [],
             "farm": [(amb_birds, 0.12)], "camping": [(amb_birds, 0.06), (amb_fire, 0.07)], "castle": [(amb_birds, 0.1)],
             "underwater": [(amb_underwater, 0.08)], "candy": [(amb_birds, 0.06), (amb_bells, 0.03)],
-            "market": [(amb_birds, 0.08)], "desert": [(amb_wind, 0.06)]}
+            "market": [(amb_birds, 0.08)], "desert": [(amb_wind, 0.06)], "jungle": [(amb_birds, 0.15), (amb_wind, 0.03)]}
 
 
 def ambience(sets, fps, n, r):
