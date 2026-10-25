@@ -23,13 +23,26 @@ CAST = {
     "zuzu": "Zuzu, a lilac unicorn fluffball with a golden horn and a rainbow mane",
     "leo": "Leo, a sunny little lion fluffball with a big orange mane",
     "dodo": "Dodo, a fluffy white duckling",
+    "bolt": "Bolt, a friendly little teal robot with a blinking antenna and a screen face",
+    "rexy": "Rexy, a green baby T-rex dinosaur with orange back spikes",
+    "trixie": "Trixie, a pink baby triceratops with a purple frill and three little horns",
+    "drako": "Drako, a purple baby dragon with tiny blue wings",
+    "momo": "Momo, a shaggy blue fluffy monster with orange horns and two little teeth",
+    "ocki": "Ocki, a cheerful orange octopus with wiggly legs",
+    "ellie": "Ellie, a little blue-grey elephant with big floppy ears and a curly trunk",
+    "pinky": "Pinky, a pink piglet with a round snout and a curly tail",
+    "hoot": "Hoot, a little brown owl with big amber eyes and ear tufts",
+    "buzzy": "Buzzy, a round yellow bumblebee with black stripes and see-through wings",
+    "kiki": "Kiki, a little girl with brown pigtails and a pink t-shirt",
+    "nino": "Nino, a little boy with curly black hair and a yellow t-shirt",
 }
 ALL_SETS = ["street", "park", "beach", "kitchen", "playground", "snow", "bedroom", "livingroom", "space", "pirate",
-            "christmas", "farm", "camping", "castle", "underwater", "candy", "market", "desert"]
+            "christmas", "farm", "camping", "castle", "underwater", "candy", "market", "desert", "jungle"]
 OUTDOOR = ["street", "park", "beach", "playground", "snow", "pirate", "christmas", "farm", "camping", "castle", "candy",
-           "market", "desert"]
+           "market", "desert", "jungle"]
 INDOOR = ["kitchen", "bedroom", "livingroom"]
-GREEN = ["park", "street", "beach", "playground", "snow", "pirate", "christmas", "farm", "camping", "castle", "market"]
+GREEN = ["park", "street", "beach", "playground", "snow", "pirate", "christmas", "farm", "camping", "castle", "market",
+         "jungle"]
 COLORS = ["red", "blue", "yellow", "green", "purple", "orange", "pink"]
 ACCESSORIES = ["party_hat", "bow", "cap", "flower", "bowtie", "crown"]
 ACC_COLORS = ["#FF4D6D", "#FFD23F", "#4DA6FF", "#5CCB6B", "#B57BFF", "#FF8A3D", "#FFFFFF", "#2EC4B6"]
@@ -72,8 +85,17 @@ GAGS = {
     "race": dict(props=["flag"], sets=OUTDOOR + ["space"],
                  story="Ready, set, GO! {hero} and {friend} race to the finish line. {friend} zooms ahead, but {hero} "
                        "does a super leap over them and snaps the finish tape! Confetti, cheers and giggles."),
+    "magic_trick": dict(props=["hat"], sets=ALL_SETS,
+                        story="{hero} taps a magic hat with a wand - POOF! - out pop flowers! {friend} borrows the wand, "
+                              "taps... POOF! {hero} turns teeny tiny and squeaks! One more POOF and {hero} is back, giggling."),
+    "seesaw": dict(props=["seesaw"], sets=OUTDOOR + ["space"],
+                   story="{hero} sits on a {color} seesaw. {friend} jumps on the other end - BOING! - {hero} flies sky high "
+                         "with a flip, lands with a bump and launches {friend} up instead! Dizzy stars and big laughs."),
+    "paint_splat": dict(props=["paint"], sets=ALL_SETS,
+                        story="{hero} paints a little picture, dab by dab. {friend} leans in very close to look... and "
+                              "SPLAT! a big paint stroke lands on their face! {friend} grabs a brush and paints {hero} back."),
 }
-PROP_NAMES = {"flower": "big flower", "confetti": "confetti", "bubbles": "bubbles", "horn": "party horn",
+PROP_NAMES = {"hat": "magic hat", "seesaw": "seesaw", "paint": "paint brush", "flower": "big flower", "confetti": "confetti", "bubbles": "bubbles", "horn": "party horn",
               "flag": "finish flag","cake": "birthday cake", "icecream": "ice cream", "cookie": "cookie", "apple": "apple",
               "donut": "donut", "cupcake": "cupcake", "watermelon": "watermelon slice", "pizza": "pizza slice",
               "strawberry": "big strawberry", "gingerbread": "gingerbread man",
@@ -106,6 +128,7 @@ WORDS = {  # offline fallback when Gemini is busy
              "candy": ["candy", "candyland", "sweets", "lollipop", "sweet land"],
              "market": ["market", "fountain", "stall", "shopping", "village square"],
              "desert": ["desert", "cactus", "wild west", "cowboy"],
+             "jungle": ["jungle", "rainforest", "dinosaur land", "dino land", "palm", "monkey", "safari"],
              "park": ["park", "pond", "garden", "grass", "picnic"], "street": ["street", "town", "road", "village"]},
     "gags": {"steal_treat": ["steal", "stole", "took", "treat", "eat", "snack", "food", "hungry", "cake", "donut", "pizza", "cupcake", "gingerbread",
                              "ice cream", "cookie", "apple", "watermelon", "strawberry"],
@@ -114,7 +137,10 @@ WORDS = {  # offline fallback when Gemini is busy
              "slip_peel": ["banana", "slip", "fall", "trip", "peel"],
              "sneeze": ["sneeze", "achoo", "atchoo", "sniff"], "dance_party": ["dance", "dancing", "disco", "party"],
              "bubbles": ["bubble", "bubbles"], "wake_up": ["sleep", "asleep", "wake", "snore", "nap"],
-             "race": ["race", "racing", "running", "who is fastest", "finish line"]},
+             "race": ["race", "racing", "running", "who is fastest", "finish line"],
+             "magic_trick": ["magic", "magician", "wand", "trick", "tiny", "shrink", "poof"],
+             "seesaw": ["seesaw", "see-saw", "see saw", "launch", "fly high", "catapult"],
+             "paint_splat": ["paint", "painting", "art", "brush", "splat", "messy", "colours", "colors"]},
     "sky": {"sunset": ["sunset", "evening"], "morning": ["morning", "sunrise", "dawn"], "golden": ["golden", "afternoon"]},
     "season": {"autumn": ["autumn", "fall leaves", "halloween", "pumpkin"], "spring": ["spring", "blossom", "flowers"]},
 }
@@ -328,7 +354,7 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
                 looks[c] = w["looks"][c]
         elif rnd.random() < 0.75:
             k = rnd.choice(ACCESSORIES)
-            if k == "cap" and c in ("bubu", "mimi", "gogo", "tobi"):  # ears/eyes on top: a cap would hide them
+            if k == "cap" and c in ("bubu", "mimi", "gogo", "tobi", "bolt", "trixie", "drako", "momo", "hoot", "buzzy"):
                 k = "bow"
             looks[c] = [k, rnd.choice(ACC_COLORS)]
     spec = {"hero": a, "friend": b, "set": segs[0]["set"], "gag": segs[0]["gag"], "segments": segs,
@@ -383,6 +409,9 @@ OFFLINE_TITLES = {
     "bubbles": ["Pop All The Bubbles! 🫧", "{H} And The Giant Bubble! 🫧", "Don't Pop The Big Bubble! 🫧"],
     "wake_up": ["Wake Up, {H}! ⏰", "Shh... Don't Wake {H}! 😴", "The Silliest Wake Up Ever! 😴"],
     "race": ["Who Will Win The Race?! 🏁", "The Silliest Race Ever! 🏁", "{H}'s Big Race! 🏁"],
+    "magic_trick": ["The Magic Hat Went POOF! 🎩", "{H} Turned Teeny Tiny! 🪄", "Don't Touch The Magic Wand! 🪄"],
+    "seesaw": ["The Highest Seesaw Jump Ever! 🚀", "{H} Flew Sky High! 🚀", "Don't Jump On The Seesaw! 😂"],
+    "paint_splat": ["SPLAT! Paint On Your Face! 🎨", "{H}'s Messy Painting! 🎨", "Don't Look Too Close! 🎨"],
 }
 _ANY_TITLES = ["{H}'s Silliest Day Ever! 😂", "Watch What {H} Does! 😂", "Oops, {H}! 😂"]
 
