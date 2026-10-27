@@ -13,18 +13,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {gag: magic_trick, set: jungle, hero: rexy, friend: kiki, prop: hat, sky: day, season: summer, acc: party_hat, acc2: bow}
-          - {gag: seesaw, set: playground, hero: bolt, friend: ellie, prop: seesaw, sky: morning, season: summer, acc: none, acc2: flower}
-          - {gag: paint_splat, set: livingroom, hero: nino, friend: momo, prop: paint, sky: day, season: summer, acc: cap, acc2: crown}
-          - {gag: steal_treat, set: kitchen, hero: pinky, friend: ocki, prop: cupcake, sky: day, season: summer, acc: bowtie, acc2: none}
-          - {gag: ball_bonk, set: park, hero: trixie, friend: hoot, prop: ball, sky: golden, season: spring, acc: flower, acc2: party_hat}
-          - {gag: gift_surprise, set: castle, hero: drako, friend: buzzy, prop: gift, sky: day, season: summer, acc: crown, acc2: bow}
-          - {gag: sneeze, set: jungle, hero: ellie, friend: rexy, prop: flower, sky: golden, season: summer, acc: bow, acc2: none}
-          - {gag: dance_party, set: space, hero: kiki, friend: bolt, prop: confetti, sky: day, season: summer, acc: flower, acc2: party_hat}
-          - {gag: magic_trick, set: bedroom, hero: momo, friend: pinky, prop: hat, sky: day, season: summer, acc: party_hat, acc2: bowtie}
-          - {gag: seesaw, set: beach, hero: hoot, friend: nino, prop: seesaw, sky: sunset, season: summer, acc: none, acc2: cap}
-          - {gag: paint_splat, set: farm, hero: buzzy, friend: trixie, prop: paint, sky: morning, season: autumn, acc: bow, acc2: flower}
-          - {gag: hide_seek, set: jungle, hero: ocki, friend: drako, prop: bush, sky: day, season: summer, acc: crown, acc2: none}
+          - {gag: patience, set: park, hero: kiki, friend: ellie, prop: seed, sky: day, season: summer, acc: bow, acc2: none, every: 44}
+          - {gag: sharing, set: kitchen, hero: pip, friend: nino, prop: cookie, sky: day, season: summer, acc: none, acc2: cap, every: 38}
+          - {gag: helping, set: street, hero: rexy, friend: bubu, prop: boxes, sky: morning, season: summer, acc: cap, acc2: bow, every: 40}
+          - {gag: sorry, set: livingroom, hero: bolt, friend: lulu, prop: blocks, sky: day, season: summer, acc: none, acc2: flower, every: 40}
+          - {gag: teamwork, set: farm, hero: ocki, friend: teo, prop: rock, sky: golden, season: autumn, acc: crown, acc2: none, every: 38}
+          - {gag: try_again, set: castle, hero: hoot, friend: zuzu, prop: star, sky: day, season: spring, acc: none, acc2: crown, every: 38}
+          - {gag: seesaw, set: playground, hero: bolt, friend: ellie, prop: seesaw, sky: morning, season: summer, acc: none, acc2: flower, every: 12}
+          - {gag: paint_splat, set: livingroom, hero: nino, friend: momo, prop: paint, sky: day, season: summer, acc: cap, acc2: crown, every: 12}
     steps:
       - uses: actions/checkout@v4
       - name: Get Blender
@@ -46,7 +42,7 @@ jobs:
         env: {SAMPLES: "12", RES: "30", ASSETS: "${{ github.workspace }}/assets"}
         run: |
           echo '{"gag":"${{ matrix.gag }}","set":"${{ matrix.set }}","hero":"${{ matrix.hero }}","friend":"${{ matrix.friend }}","prop":"${{ matrix.prop }}","seed":7,"color":"blue","theme":{"sky":"${{ matrix.sky }}","season":"${{ matrix.season }}","pal":1${{ strategy.job-index }}7},"looks":{"${{ matrix.hero }}":["${{ matrix.acc }}","#FF4D6D"],"${{ matrix.friend }}":["${{ matrix.acc2 }}","#FFD23F"]}}' > spec.json
-          ./bl/blender -b --python blender/scene.py -- spec.json out every:12 2>&1 | grep -E "^frame|done|Error|Traceback|rror|line [0-9]+|kenney|dressing|pets|devices" | head -80
+          timeout 25m ./bl/blender -b --python blender/scene.py -- spec.json out every:${{ matrix.every }} 2>&1 | grep -E "^frame|done|Error|Traceback|rror|line [0-9]+|kenney|dressing|pets|devices" | head -80
           ls out/frames | wc -l
           sudo apt-get install -y -qq fluidsynth fluid-soundfont-gm > /dev/null && pip install -q numpy
           python3 blender/audio.py out/events.json sound.wav 7 7 && ffmpeg -y -loglevel error -i sound.wav -b:a 128k "sound_${{ matrix.gag }}_${{ matrix.hero }}.mp3" || true

@@ -96,7 +96,7 @@ jobs:
           ASSETS: ${{ github.workspace }}/assets
         run: |
           for try in 1 2; do   # a machine that hiccups gets a second go instead of leaving holes in the video
-            ./bl/blender -b --python blender/scene.py -- spec.json out "part:${{ matrix.part }}/$PARTS" > render.log 2>&1 || true
+            timeout 30m ./bl/blender -b --python blender/scene.py -- spec.json out "part:${{ matrix.part }}/$PARTS" > render.log 2>&1 || true
             grep -E "^frame|^done|Error|Traceback|rror" render.log || true
             grep -q "^done" render.log && break
             echo "::warning::render attempt $try stopped early"; tail -30 render.log
