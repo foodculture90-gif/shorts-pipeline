@@ -102,7 +102,7 @@ MORALS = {
                      story="{hero} plants a little seed and waters it, then waits... and waits. Nothing! {hero} even tries "
                            "to pull the tiny sprout up to make it grow faster, but {friend} says 'wait' and they sit "
                            "together. Day and night pass, they water it again... and it blooms into a giant flower!"),
-    "sharing": dict(lesson="Sharing makes everyone happy", props=["cookie", "donut", "cupcake"], sets=ALL_SETS,
+    "sharing": dict(lesson="Sharing makes everyone happy", props=["cupcake", "apple"], sets=ALL_SETS,
                     story="{hero} has a plate of yummy {prop}s. {friend} arrives hungry and sad. {hero} hugs the plate... "
                           "then has an idea and gives {friend} one! The last one they split in half, and they hug."),
     "helping": dict(lesson="Always help a friend in need", props=["boxes"], sets=ALL_SETS,
@@ -466,7 +466,7 @@ OFFLINE_TITLES = {
 }
 OFFLINE_TITLES.update({
     "patience": ["Good Things Take Time! 🌱", "{H}'s Magic Seed 🌱", "Wait For It... 🌻"],
-    "sharing": ["Sharing Is Caring! 🍪", "{H} Shares The Last {P}! 💛", "One For You, One For Me! 🍪"],
+    "sharing": ["Sharing Is Caring! 🧁", "{H} Shares The Last {P}! 💛", "One For You, One For Me! 💛"],
     "helping": ["Always Help A Friend! 🤝", "{H} To The Rescue! 💛", "Oops! Who Will Help? 📦"],
     "sorry": ["Saying Sorry Makes It Better 💛", "Oops! The Tower Fell! 🧱", "{H} Says Sorry 🌸"],
     "teamwork": ["Together We Can Do It! 💪", "The Rock Won't Move! 🪨", "Teamwork Makes It Work! 🎂"],
