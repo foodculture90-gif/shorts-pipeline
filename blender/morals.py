@@ -133,7 +133,6 @@ def _night(f_dusk, f_dark, f_dawn, f_day, name="night"):
             ob.data.energy = e0
     sky = T.empty(name, (0, 12.5, 0))
     T.sphere(name + "_moon", 0.55, (2.6, 0, 6.2), T.mat("#FFF4C2", 0.5, emit=3.0), sky, sub=1)
-    T.sphere(name + "_bite", 0.5, (2.85, -0.25, 6.4), T.mat("#1B2050", 0.9), sky, sub=1)  # crescent
     rnd = random.Random(f_dark)
     sm = T.mat("#FFF3A8", 0.3, emit=4.0)
     for i in range(16):
@@ -326,13 +325,13 @@ def sharing(spec, cam, tgt):
     treats = []
     for i, (tx, ty) in enumerate(((-0.17, -0.05), (0.0, 0.08), (0.17, -0.05))):
         tr = T.make_prop(kind, (tx, ty, 0.67), table, name=f"treat{i}")
-        tr.scale = (0.75, 0.75, 0.75)
+        tr.scale = (1.15, 1.15, 1.15)
         treats.append(tr)
 
-    p, t = _two([-0.8, 0.85], 26, 0.85, margin=0.5)
+    p, t = _two([-0.8, 0.85], 26, 0.7, margin=0.5, cam_z=1.35)
     T.shot(cam, tgt, 1, 190, p, t, 26, (p[0], p[1] + 0.25, p[2]), t)
-    T.shot(cam, tgt, 191, 250, (-0.45, -2.5, 0.85), (-0.55, 0.2, 0.78), 38, (-0.45, -2.3, 0.85), (-0.55, 0.2, 0.78))
-    p, t = _two([-0.8, 0.8], 26, 0.85, margin=0.5)
+    T.shot(cam, tgt, 191, 250, (-0.45, -2.5, 1.2), (-0.5, 0.2, 0.75), 38, (-0.45, -2.3, 1.2), (-0.5, 0.2, 0.75))
+    p, t = _two([-0.8, 0.8], 26, 0.7, margin=0.5, cam_z=1.35)
     T.shot(cam, tgt, 251, 540, p, t, 26, (p[0], p[1] + 0.3, p[2]), t)
 
     def eat(ch, f, tr, local_to, side=1):
@@ -340,12 +339,12 @@ def sharing(spec, cam, tgt):
         _arm(ch, side, f, 0.5, fwd=-1.5, d=4)
         T.key(tr, "location", f, tuple(tr.location))
         T.key(tr, "location", f + 8, local_to)
-        T.key(tr, "scale", f + 8, (0.75, 0.75, 0.75))
+        T.key(tr, "scale", f + 8, (1.15, 1.15, 1.15))
         for k in range(3):
             T.mouth_set(ch, f + 10 + k * 6, 0.6, 0.8)
             T.mouth_set(ch, f + 13 + k * 6, 0.0)
             T.sfx(f + 10 + k * 6, "chomp")
-            T.key(tr, "scale", f + 10 + k * 6, (0.75 - k * 0.22,) * 3)
+            T.key(tr, "scale", f + 10 + k * 6, (1.15 - k * 0.35,) * 3)
         T.show(tr, f + 28, False)
         _arm(ch, side, f + 28, 0.0, d=4)
         T.eyes_happy(ch, f + 30)
@@ -412,7 +411,7 @@ def sharing(spec, cam, tgt):
     halves = []
     for s, x in ((-1, -0.45), (1, 0.48)):
         hv = T.make_prop(kind, (0.05, -0.1, 0.72), None, name=f"half{s}")
-        hv.scale = (0.5, 0.5, 0.5)
+        hv.scale = (0.75, 0.75, 0.75)
         T.show(hv, 1, False)
         T.show(hv, 342, True)
         T.key(hv, "location", 342, (0.05 + s * 0.06, -0.1, 0.72))
