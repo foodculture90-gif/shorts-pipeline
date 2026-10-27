@@ -23,28 +23,32 @@ jobs:
           - {gag: paint_splat, set: livingroom, hero: nino, friend: momo, prop: paint, sky: day, season: summer, acc: cap, acc2: crown, every: 12}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: bl
+          key: blender-4.2-linux-v1
       - name: Get Blender
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6 ffmpeg > /dev/null
-          for v in 4.2.3 4.2.2 4.2.1 4.2.0; do
-            if curl -fsSL "https://download.blender.org/release/Blender4.2/blender-$v-linux-x64.tar.xz" -o b.tar.xz; then
-              tar -xJf b.tar.xz && mv "blender-$v-linux-x64" bl && break
+          [ -x bl/blender ] || for v in 4.2.3 4.2.2 4.2.1 4.2.0; do
+            if curl -fsSL --retry 3 "https://download.blender.org/release/Blender4.2/blender-$v-linux-x64.tar.xz" -o b.tar.xz; then
+              rm -rf bl && tar -xJf b.tar.xz && mv "blender-$v-linux-x64" bl && rm -f b.tar.xz && break
             fi
           done
+          bash pipeline/setup_tools.sh blender-libs ffmpeg
       - uses: actions/cache@v4
         with:
           path: assets
           key: free-assets-v3
       - name: Free sky photos + toy models
-        run: bash pipeline/get_assets.sh assets
+        run: timeout 600 bash pipeline/get_assets.sh assets
       - name: Render preview frames
         env: {SAMPLES: "12", RES: "30", ASSETS: "${{ github.workspace }}/assets"}
         run: |
           echo '{"gag":"${{ matrix.gag }}","set":"${{ matrix.set }}","hero":"${{ matrix.hero }}","friend":"${{ matrix.friend }}","prop":"${{ matrix.prop }}","seed":7,"color":"blue","theme":{"sky":"${{ matrix.sky }}","season":"${{ matrix.season }}","pal":1${{ strategy.job-index }}7},"looks":{"${{ matrix.hero }}":["${{ matrix.acc }}","#FF4D6D"],"${{ matrix.friend }}":["${{ matrix.acc2 }}","#FFD23F"]}}' > spec.json
           timeout 25m ./bl/blender -b --python blender/scene.py -- spec.json out every:${{ matrix.every }} 2>&1 | grep -E "^frame|done|Error|Traceback|rror|line [0-9]+|kenney|dressing|pets|devices" | head -80
           ls out/frames | wc -l
-          sudo apt-get install -y -qq fluidsynth fluid-soundfont-gm > /dev/null && pip install -q numpy
+          bash pipeline/setup_tools.sh fluidsynth; pip install -q numpy
+          curl -fsSL -m 120 "https://github.com/mrbumpy409/GeneralUser-GS/raw/main/GeneralUser-GS.sf2" -o GeneralUser-GS.sf2 || true
           python3 blender/audio.py out/events.json sound.wav 7 7 && ffmpeg -y -loglevel error -i sound.wav -b:a 128k "sound_${{ matrix.gag }}_${{ matrix.hero }}.mp3" || true
           python3 - <<'PY' || true
           import sys; sys.path.insert(0, "blender"); import audio as A, numpy as np, json

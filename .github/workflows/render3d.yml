@@ -68,8 +68,6 @@ jobs:
           key: blender-4.2-linux-v1
       - name: Get Blender + the short's plan
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6 > /dev/null
           for try in 1 2 3; do
             [ -x bl/blender ] && break
             rm -rf bl
@@ -81,6 +79,7 @@ jobs:
             [ -x bl/blender ] || sleep 10
           done
           [ -x bl/blender ] || { echo "::error::could not download Blender"; exit 1; }
+          bash pipeline/setup_tools.sh blender-libs
           curl -fsS --retry 3 "$SUPABASE_URL/rest/v1/episodes?id=eq.$EP&select=story" \
             -H "apikey: $SUPABASE_SERVICE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
             | python3 -c "import sys,json; json.dump(json.load(sys.stdin)[0]['story']['spec'], open('spec.json','w'))"
@@ -90,7 +89,7 @@ jobs:
           path: assets
           key: free-assets-v3
       - name: Free sky photos + toy models
-        run: bash pipeline/get_assets.sh assets
+        run: timeout 600 bash pipeline/get_assets.sh assets
       - name: Render my frames
         env:
           ASSETS: ${{ github.workspace }}/assets
@@ -142,16 +141,15 @@ jobs:
           BLENDER: ${{ github.workspace }}/bl/blender   # used only to redraw frames a render machine dropped
           ASSETS: ${{ github.workspace }}/assets
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq fluidsynth fluid-soundfont-gm ffmpeg libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1 libegl1 libxkbcommon0 libsm6 > /dev/null
           [ -x bl/blender ] || for v in 4.2.3 4.2.2 4.2.1 4.2.0; do
             if curl -fsSL --retry 3 "https://download.blender.org/release/Blender4.2/blender-$v-linux-x64.tar.xz" -o b.tar.xz; then
               rm -rf bl && tar -xJf b.tar.xz && mv "blender-$v-linux-x64" bl && rm -f b.tar.xz && break
             fi
           done
           pip install -q requests numpy
-          bash pipeline/get_assets.sh assets > /dev/null || true
-          curl -fsSL "https://github.com/mrbumpy409/GeneralUser-GS/raw/main/GeneralUser-GS.sf2" -o GeneralUser-GS.sf2 || rm -f GeneralUser-GS.sf2
+          bash pipeline/setup_tools.sh ffmpeg fluidsynth blender-libs
+          timeout 300 bash pipeline/get_assets.sh assets > /dev/null || true
+          curl -fsSL -m 120 --retry 2 "https://github.com/mrbumpy409/GeneralUser-GS/raw/main/GeneralUser-GS.sf2" -o GeneralUser-GS.sf2 || rm -f GeneralUser-GS.sf2
           python -m pipeline.finish3d "$EP" out
 
   cleanup:   # finishing crashed or timed out -> mark the short failed (it is retried once) and start the next one
