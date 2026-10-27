@@ -391,7 +391,7 @@ def cmd_stats(payload=None, cmd=None):
     """Views, likes and comments of every short on YouTube (+ a daily history for the app's chart)."""
     from . import youtube
 
-    eps = db.select("episodes", "select=id,channel_id,youtube_id,status,thumb_path,title,story"
+    eps = db.select("episodes", "select=id,channel_id,youtube_id,status,thumb_path,title,story,publish_at"
                                 "&youtube_id=not.is.null&status=in.(published,scheduled)")
     by_ch = {}
     for e in eps:
@@ -422,9 +422,21 @@ def cmd_stats(payload=None, cmd=None):
             yt = st.get("yt") or {}
             hist = [h for h in (yt.get("hist") or []) if h[0] != today][-29:] + [[today, s["views"]]]
             st["yt"] = {"privacy": s.get("privacy"), "comments": s.get("comments", 0), "hist": hist}
+            for k in ("v24",):  # views after its first day -> teaches the scheduler which times work best
+                if k in yt:
+                    st["yt"][k] = yt[k]
             v = {"views": s["views"], "likes": s["likes"], "stats_at": now().isoformat(), "story": st}
+            try:
+                pub = datetime.fromisoformat(str(e.get("publish_at")).replace("Z", "+00:00"))
+            except ValueError:
+                pub = None
             if e["status"] == "scheduled" and s["privacy"] == "public":
                 v["status"] = "published"
+                if pub and pub > now():  # made public early by hand -> it went out now
+                    pub = now()
+                    v["publish_at"] = pub.isoformat()
+            if pub and s["privacy"] == "public" and "v24" not in st["yt"] and now() - pub >= timedelta(hours=24):
+                st["yt"]["v24"] = s["views"] if now() - pub <= timedelta(hours=36) else None
             db.update("episodes", f"id=eq.{e['id']}", v)
     db.upsert("settings", {"key": "stats_at", "value": now().isoformat()}, "key")
 
@@ -548,6 +560,11 @@ def daily():
                                                    "moral": i * morals // max(1, n) != (i + 1) * morals // max(1, n)}}
                   for i in range(n)]
     batch.append({"type": "stats", "payload": {}})
+    try:  # daily research: today's best publish times (research + what our own shorts showed)
+        from . import schedule
+        schedule.plan_today()
+    except Exception:  # noqa: BLE001
+        traceback.print_exc()
     db.insert_many("commands", batch)  # one insert = one wake-up of the workers
     if len(batch) > 1:
         notify.send(f"🎬 Making {len(batch) - 1} new shorts — they'll appear in the app for approval.")
