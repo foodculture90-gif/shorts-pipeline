@@ -115,7 +115,10 @@ def _generate_3d(payload, ch, ep_id, slot=None):
         except Exception:  # noqa: BLE001
             base = None
     idea = payload.get("idea") or payload.get("feedback")
-    spec = plan3d.plan(recent, idea=idea, slot=slot, base=base, choose=payload.get("choose"))
+    choose = dict(payload.get("choose") or {})
+    if payload.get("moral"):
+        choose["moral"] = True
+    spec = plan3d.plan(recent, idea=idea, slot=slot, base=base, choose=choose)
     if idea:
         note = (spec.get("wish") or {}).get("note") or plan3d.describe(spec)[:160]
         db.log(f"💡 Your idea “{idea[:80]}”: {note}"[:400])
@@ -535,8 +538,15 @@ def daily():
         later = (now() + timedelta(hours=30)).isoformat()
         waiting = len(db.select("episodes", f"select=id&channel_id=eq.{ch['id']}&status=eq.scheduled&publish_at=gt.{later}"))
         waiting += len(db.select("episodes", f"select=id&channel_id=eq.{ch['id']}&status=in.(awaiting_approval,queued)"))
-        batch += [{"type": "generate", "payload": {"channel_id": ch["id"], "auto": True, "silent": silent}}
-                  for _ in range(max(0, int(ch["per_day"]) - len(done) - max(0, waiting - 2)))]
+        n = max(0, int(ch["per_day"]) - len(done) - max(0, waiting - 2))
+        try:  # half of the daily shorts are moral stories (setting moral_share, 0..1)
+            share = float(str(db.settings().get("moral_share", "0.5")).strip('"'))
+        except ValueError:
+            share = 0.5
+        morals = round(n * max(0.0, min(1.0, share)))
+        batch += [{"type": "generate", "payload": {"channel_id": ch["id"], "auto": True, "silent": silent,
+                                                   "moral": i * morals // max(1, n) != (i + 1) * morals // max(1, n)}}
+                  for i in range(n)]
     batch.append({"type": "stats", "payload": {}})
     db.insert_many("commands", batch)  # one insert = one wake-up of the workers
     if len(batch) > 1:

@@ -95,7 +95,32 @@ GAGS = {
                         story="{hero} paints a little picture, dab by dab. {friend} leans in very close to look... and "
                               "SPLAT! a big paint stroke lands on their face! {friend} grabs a brush and paints {hero} back."),
 }
-PROP_NAMES = {"hat": "magic hat", "seesaw": "seesaw", "paint": "paint brush", "flower": "big flower", "confetti": "confetti", "bubbles": "bubbles", "horn": "party horn",
+# moral stories: one longer story (~22-26 s) with a gentle lesson, used as the whole short
+GARDEN = ["park", "street", "playground", "farm", "camping", "castle", "market", "jungle"]
+MORALS = {
+    "patience": dict(lesson="Good things take time", props=["seed"], sets=GARDEN,
+                     story="{hero} plants a little seed and waters it, then waits... and waits. Nothing! {hero} even tries "
+                           "to pull the tiny sprout up to make it grow faster, but {friend} says 'wait' and they sit "
+                           "together. Day and night pass, they water it again... and it blooms into a giant flower!"),
+    "sharing": dict(lesson="Sharing makes everyone happy", props=["cookie", "donut", "cupcake"], sets=ALL_SETS,
+                    story="{hero} has a plate of yummy {prop}s. {friend} arrives hungry and sad. {hero} hugs the plate... "
+                          "then has an idea and gives {friend} one! The last one they split in half, and they hug."),
+    "helping": dict(lesson="Always help a friend in need", props=["boxes"], sets=ALL_SETS,
+                    story="{friend} carries a wobbly stack of boxes, trips and everything falls - {friend} cries. {hero} "
+                          "comes to help, picks up every box, gives a hand up and a hug, and they carry the boxes together."),
+    "sorry": dict(lesson="Say sorry and make it right", props=["blocks"], sets=ALL_SETS,
+                  story="{friend} builds a tall block tower. {hero} kicks a ball and - CRASH - knocks it down. {friend} is "
+                        "sad. {hero} says sorry with a little bow and a flower, and they build an even taller tower together."),
+    "teamwork": dict(lesson="Together we can do it", props=["rock"], sets=OUTDOOR + ["space"],
+                     story="A big rock blocks the way to a yummy cake. {hero} pushes and pushes, but it won't move. "
+                           "{friend} comes to help: 1, 2, 3, PUSH! Together they roll it away and share the cake."),
+    "try_again": dict(lesson="Never give up - try again", props=["star"], sets=ALL_SETS,
+                      story="{hero} wants the shiny star on top of a high ledge. Jump - bonk! Jump - slide down! {hero} "
+                            "almost gives up, but {friend} cheers 'you can do it!' - and a super jump gets the star!"),
+}
+ALLG = {**GAGS, **MORALS}
+PROP_NAMES = {"seed": "seed", "boxes": "boxes", "blocks": "block tower", "rock": "big rock", "star": "star",
+              "hat": "magic hat", "seesaw": "seesaw", "paint": "paint brush", "flower": "big flower", "confetti": "confetti", "bubbles": "bubbles", "horn": "party horn",
               "flag": "finish flag","cake": "birthday cake", "icecream": "ice cream", "cookie": "cookie", "apple": "apple",
               "donut": "donut", "cupcake": "cupcake", "watermelon": "watermelon slice", "pizza": "pizza slice",
               "strawberry": "big strawberry", "gingerbread": "gingerbread man",
@@ -140,7 +165,13 @@ WORDS = {  # offline fallback when Gemini is busy
              "race": ["race", "racing", "running", "who is fastest", "finish line"],
              "magic_trick": ["magic", "magician", "wand", "trick", "tiny", "shrink", "poof"],
              "seesaw": ["seesaw", "see-saw", "see saw", "launch", "fly high", "catapult"],
-             "paint_splat": ["paint", "painting", "art", "brush", "splat", "messy", "colours", "colors"]},
+             "paint_splat": ["paint", "painting", "art", "brush", "splat", "messy", "colours", "colors"],
+             "patience": ["patience", "patient", "take time", "takes time", "plant", "seed", "grow"],
+             "sharing": ["sharing", "share", "kind", "kindness", "generous"],
+             "helping": ["helping", "help a friend", "help", "fell down", "kind friend"],
+             "sorry": ["sorry", "apologise", "apologize", "mistake", "make it right"],
+             "teamwork": ["teamwork", "team", "together", "work together"],
+             "try_again": ["never give up", "give up", "try again", "keep trying", "practice"]},
     "sky": {"sunset": ["sunset", "evening"], "morning": ["morning", "sunrise", "dawn"], "golden": ["golden", "afternoon"]},
     "season": {"autumn": ["autumn", "fall leaves", "halloween", "pumpkin"], "spring": ["spring", "blossom", "flowers"]},
 }
@@ -159,6 +190,8 @@ Reply as JSON with any of these keys:
 def _menu():
     gags = "\n".join(f"- {k}: {g['story'].format(hero='HERO', friend='FRIEND', prop='a treat', color='coloured')} "
                      f"(props: {', '.join(g['props'])}; places: {', '.join(g['sets'])})" for k, g in GAGS.items())
+    gags += "\n" + "\n".join(f"- {k} (a whole moral story - lesson: {m['lesson']}): "
+                              f"{m['story'].format(hero='HERO', friend='FRIEND', prop='treat')}" for k, m in MORALS.items())
     cast = "\n".join(f"- {k}: {v}" for k, v in CAST.items())
     return (f"GAGS:\n{gags}\nCHARACTERS:\n{cast}\nPLACES: {', '.join(ALL_SETS)}\nCOLOURS: {', '.join(COLORS)}\n"
             f"ACCESSORIES: {', '.join(ACCESSORIES)}")
@@ -223,14 +256,14 @@ def wish(text, base=None):
     # keep only valid menu choices
     out = {}
     if isinstance(w.get("gags"), list):
-        out["gags"] = [g for g in w["gags"] if g in GAGS][:5]
+        out["gags"] = [g for g in w["gags"] if g in ALLG][:5]
     for k in ("cast", "avoid_cast"):
         if isinstance(w.get(k), list):
             out[k] = [c for c in w[k] if c in CAST][:2 if k == "cast" else 9]
     if w.get("set") in ALL_SETS:
         out["set"] = w["set"]
     if isinstance(w.get("props"), dict):
-        out["props"] = {g: p for g, p in w["props"].items() if g in GAGS and p in GAGS[g]["props"]}
+        out["props"] = {g: p for g, p in w["props"].items() if g in ALLG and p in ALLG[g]["props"]}
     if w.get("color") in COLORS:
         out["color"] = w["color"]
     if w.get("sky") in ("day", "morning", "golden", "sunset"):
@@ -261,44 +294,60 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
         w["cast"] = [c for c in choose["cast"] if c in CAST][:2]
     if choose.get("set") in ALL_SETS:
         w["set"] = choose["set"]
-    if [g for g in choose.get("gags") or [] if g in GAGS]:
-        w["gags"] = [g for g in choose["gags"] if g in GAGS][:5]
-        if w.get("set") and not all(w["set"] in GAGS[g]["sets"] for g in w["gags"]):
-            w["gags"] = [g for g in w["gags"] if w["set"] in GAGS[g]["sets"]] or w["gags"]
-            if not all(w["set"] in GAGS[g]["sets"] for g in w["gags"]):
+    if [g for g in choose.get("gags") or [] if g in ALLG]:
+        w["gags"] = [g for g in choose["gags"] if g in ALLG][:5]
+        if w.get("set") and not all(w["set"] in ALLG[g]["sets"] for g in w["gags"]):
+            w["gags"] = [g for g in w["gags"] if w["set"] in ALLG[g]["sets"]] or w["gags"]
+            if not all(w["set"] in ALLG[g]["sets"] for g in w["gags"]):
                 w.pop("set")  # the chosen story can't happen there -> keep the story, pick a fitting place
-    lo, hi = max(3, int(-(-min_s // SEG_SECONDS))), min(len(GAGS), int(max_s // SEG_SECONDS))
-    n = rnd.choice([k for k in (3, 4, 4, 5) if lo <= k <= hi] or [lo])
-    recent_gags = [g.get("gag") for g in list(_segments(recent))[:6]]
-    order = [g for g in GAGS if g not in recent_gags] + [g for g in GAGS if g in recent_gags]
-    rnd.shuffle(order)
-    order.sort(key=lambda g: g in recent_gags)  # fresh gags first
-    wanted = list(w.get("gags") or [])
-    if base and not wanted and not w.get("restyle"):  # a change request keeps the same funny moments
-        wanted = [s["gag"] for s in (base.get("segments") or [base])]
-    place = w.get("set")
-    if not place and not wanted and not base:  # pick the place first, so every place gets its turn
-        import datetime
-        sets = [x for x in ALL_SETS if x != "christmas" or datetime.date.today().month in (11, 12, 1)]  # Christmas in season
-        used = [s.get("set") for s in recent[:len(sets) * 2]]
-        least = min(used.count(x) for x in sets)
-        place = rnd.choice([x for x in sets if used.count(x) == least and x not in used[:3]] or sets)
-        w = dict(w, set=place)
-    if place:  # only gags that can happen there
-        order = [g for g in order if place in GAGS[g]["sets"]]
-        wanted = [g for g in wanted if place in GAGS[g]["sets"]]
-        n = min(n, len(order))
-    if wanted:
-        n = max(min(len(wanted), hi), lo) if len(wanted) >= lo else n
-        order = wanted + [g for g in order if g not in wanted]
-    elif slot is not None:  # shorts planned at the same moment still get different lead gags
-        lead = list(GAGS)[slot % len(GAGS)]
-        order = [lead] + [g for g in order if g != lead]
-    gags = order[:n]
-    if not wanted:
-        rest = gags[1:]
-        rnd.shuffle(rest)
-        gags = [gags[0]] + rest
+    # a moral story (one longer story with a lesson) - asked for, or half of the daily shorts
+    moral = next((g for g in (w.get("gags") or []) if g in MORALS), None)
+    if not moral and base and base.get("moral") in MORALS and not w.get("gags"):
+        moral = base["moral"]
+    if not moral and choose.get("moral"):
+        used = [s.get("moral") for s in recent[:len(MORALS) * 3]]
+        least = min(used.count(m) for m in MORALS)
+        opts = [m for m in MORALS if used.count(m) == least and m not in used[:2]] or list(MORALS)
+        if w.get("set"):
+            opts = [m for m in opts if w["set"] in MORALS[m]["sets"]] or opts
+        moral = opts[slot % len(opts)] if slot is not None else rnd.choice(opts)
+    if moral and w.get("set") and w["set"] not in MORALS[moral]["sets"]:
+        w.pop("set")
+    if moral:
+        gags = [moral]
+    else:
+        lo, hi = max(3, int(-(-min_s // SEG_SECONDS))), min(len(GAGS), int(max_s // SEG_SECONDS))
+        n = rnd.choice([k for k in (3, 4, 4, 5) if lo <= k <= hi] or [lo])
+        recent_gags = [g.get("gag") for g in list(_segments(recent))[:6]]
+        order = [g for g in GAGS if g not in recent_gags] + [g for g in GAGS if g in recent_gags]
+        rnd.shuffle(order)
+        order.sort(key=lambda g: g in recent_gags)  # fresh gags first
+        wanted = list(w.get("gags") or [])
+        if base and not wanted and not w.get("restyle"):  # a change request keeps the same funny moments
+            wanted = [s["gag"] for s in (base.get("segments") or [base])]
+        place = w.get("set")
+        if not place and not wanted and not base:  # pick the place first, so every place gets its turn
+            import datetime
+            sets = [x for x in ALL_SETS if x != "christmas" or datetime.date.today().month in (11, 12, 1)]  # Christmas in season
+            used = [s.get("set") for s in recent[:len(sets) * 2]]
+            least = min(used.count(x) for x in sets)
+            place = rnd.choice([x for x in sets if used.count(x) == least and x not in used[:3]] or sets)
+            w = dict(w, set=place)
+        if place:  # only gags that can happen there
+            order = [g for g in order if place in GAGS[g]["sets"]]
+            wanted = [g for g in wanted if place in GAGS[g]["sets"]]
+            n = min(n, len(order))
+        if wanted:
+            n = max(min(len(wanted), hi), lo) if len(wanted) >= lo else n
+            order = wanted + [g for g in order if g not in wanted]
+        elif slot is not None:  # shorts planned at the same moment still get different lead gags
+            lead = list(GAGS)[slot % len(GAGS)]
+            order = [lead] + [g for g in order if g != lead]
+        gags = order[:n]
+        if not wanted:
+            rest = gags[1:]
+            rnd.shuffle(rest)
+            gags = [gags[0]] + rest
     pairs = {(s.get("hero"), s.get("friend")) for s in recent[:6]}
     avoid = set(w.get("avoid_cast") or [])
     cast = [c for c in CAST if c not in avoid] or list(CAST)
@@ -322,7 +371,7 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
             if (a, b) not in pairs and (b, a) not in pairs:
                 break
     # one home set for the whole short when the gags allow it
-    common = [x for x in ALL_SETS if all(x in GAGS[g]["sets"] for g in gags)]
+    common = [x for x in ALL_SETS if all(x in ALLG[g]["sets"] for g in gags)]
     recent_sets = [s.get("set") for s in recent[:3]]
     fresh = [x for x in common if x not in recent_sets] or common
     if w.get("set") in common:
@@ -336,7 +385,7 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
     props = w.get("props") or {}
     segs = []
     for k, gag in enumerate(gags):
-        g = GAGS[gag]
+        g = ALLG[gag]
         hero, friend = (a, b) if k % 2 == 0 else (b, a)  # the two friends take turns being the hero
         st = home or rnd.choice(g["sets"])
         segs.append({"gag": gag, "set": st, "hero": hero, "friend": friend,
@@ -359,13 +408,15 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
             looks[c] = [k, rnd.choice(ACC_COLORS)]
     spec = {"hero": a, "friend": b, "set": segs[0]["set"], "gag": segs[0]["gag"], "segments": segs,
             "theme": theme, "looks": looks, "seed": rnd.randint(1, 10 ** 6)}
+    if moral:
+        spec["moral"], spec["lesson"] = moral, MORALS[moral]["lesson"]
     if idea:
         spec["wish"] = {"text": idea[:300], "note": w.get("note") or ""}
     return spec
 
 
 def describe_one(seg):
-    g = GAGS[seg["gag"]]
+    g = ALLG[seg["gag"]]
     return g["story"].format(hero=NAMES[seg["hero"]], friend=NAMES[seg["friend"]], prop=PROP_NAMES[seg["prop"]],
                              color=seg.get("color", "red"))
 
@@ -377,7 +428,7 @@ def describe(spec):
              "livingroom": "in the living room", "space": "on the moon", "pirate": "on pirate island",
              "christmas": "on a snowy Christmas day", "farm": "on the farm", "camping": "at the campsite",
              "castle": "at the fairy-tale castle", "underwater": "under the sea", "candy": "in Candy Land",
-             "market": "at the village market", "desert": "in the sunny desert"}.get(spec.get("set"))
+             "market": "at the village market", "desert": "in the sunny desert", "jungle": "in the jungle"}.get(spec.get("set"))
     wear = [f"{NAMES[c]} wears {ACC_WORDS[k]}" for c, (k, _) in (spec.get("looks") or {}).items() if k in ACC_WORDS]
     return s + (f" (It all happens {place}.)" if place else "") + (" " + ", ".join(wear) + "." if wear else "")
 
@@ -413,6 +464,14 @@ OFFLINE_TITLES = {
     "seesaw": ["The Highest Seesaw Jump Ever! 🚀", "{H} Flew Sky High! 🚀", "Don't Jump On The Seesaw! 😂"],
     "paint_splat": ["SPLAT! Paint On Your Face! 🎨", "{H}'s Messy Painting! 🎨", "Don't Look Too Close! 🎨"],
 }
+OFFLINE_TITLES.update({
+    "patience": ["Good Things Take Time! 🌱", "{H}'s Magic Seed 🌱", "Wait For It... 🌻"],
+    "sharing": ["Sharing Is Caring! 🍪", "{H} Shares The Last {P}! 💛", "One For You, One For Me! 🍪"],
+    "helping": ["Always Help A Friend! 🤝", "{H} To The Rescue! 💛", "Oops! Who Will Help? 📦"],
+    "sorry": ["Saying Sorry Makes It Better 💛", "Oops! The Tower Fell! 🧱", "{H} Says Sorry 🌸"],
+    "teamwork": ["Together We Can Do It! 💪", "The Rock Won't Move! 🪨", "Teamwork Makes It Work! 🎂"],
+    "try_again": ["Never Give Up! ⭐", "{H} Tries Again! ⭐", "You Can Do It, {H}! ⭐"],
+})
 _ANY_TITLES = ["{H}'s Silliest Day Ever! 😂", "Watch What {H} Does! 😂", "Oops, {H}! 😂"]
 
 
@@ -420,8 +479,12 @@ def _offline(spec, rnd):
     first = (spec.get("segments") or [spec])[0]
     prop = PROP_NAMES.get(first.get("prop"), str(first.get("prop") or "surprise")).title()
     t = rnd.choice(OFFLINE_TITLES.get(first.get("gag"), _ANY_TITLES)).format(P=prop, H=NAMES.get(first.get("hero"), "Pip"))
-    return {"title": t, "description": f"{NAMES[spec['hero']]} and {NAMES[spec['friend']]} have the silliest day! 😂\n"
-                                       "Watch till the end - then watch it again! 🔁",
+    desc = (f"{NAMES[spec['hero']]} and {NAMES[spec['friend']]} have the silliest day! 😂\n"
+            "Watch till the end - then watch it again! 🔁")
+    if spec.get("lesson"):
+        desc = (f"A sweet little story with {NAMES[spec['hero']]} and {NAMES[spec['friend']]} 💛\n"
+                "Watch till the end for the happy surprise! 🌟")
+    return {"title": t, "description": desc,
             "hashtags": ["kidscartoon", "funnycartoon", "cartoonforkids", str(first.get("prop") or "cartoon")],
             "tags": ["kids cartoon", "funny cartoon", "3d animation for kids", "cartoon for toddlers",
                      prop.lower(), "funny kids video", "preschool cartoon", "cute cartoon",
@@ -441,6 +504,9 @@ def meta(spec, past_titles=(), rnd=None, slot=None):
     cast = "\n".join(f"- {CAST[k]}" for k in (spec["hero"], spec["friend"]))
     recent = "\n".join(f"- {t}" for t in list(past_titles)[:40]) or "- (none yet)"
     wish_line = f"The parent asked for: {spec['wish']['text']}\n" if spec.get("wish") else ""
+    if spec.get("lesson"):
+        wish_line += (f"This is a MORAL STORY. The lesson: \"{spec['lesson']}\". The title should make kids curious about "
+                      f"the story or name the lesson (e.g. \"{spec['lesson']}! \u2728\"). The takeaway is exactly the lesson.\n")
     prompt = (f"{wish_line}What happens: {describe(spec)}\nCharacters:\n{cast}\n"
               f"Recent titles on this channel (don't repeat them):\n{recent}")
     try:
@@ -449,7 +515,19 @@ def meta(spec, past_titles=(), rnd=None, slot=None):
             raise ValueError("no title")
         out = _offline(spec, rnd)
         out.update({k: v for k, v in m.items() if k in out and v})
-        return out
+        return _lesson(spec, out)
     except Exception as e:  # noqa: BLE001  (Gemini busy/down -> still make the short)
         print("  meta: offline titles because", str(e)[:200])
-        return _offline(spec, rnd)
+        return _lesson(spec, _offline(spec, rnd))
+
+
+def _lesson(spec, out):
+    """Moral stories: the lesson goes in the takeaway, the description and the hashtags."""
+    if spec.get("lesson"):
+        out["takeaway"] = spec["lesson"] + "."
+        if spec["lesson"].lower() not in str(out.get("description", "")).lower():
+            out["description"] = f"{out.get('description', '').rstrip()}\n💛 Lesson: {spec['lesson']}."
+        tags = [t for t in out.get("hashtags") or [] if t not in ("moralstory", "kidslessons")]
+        out["hashtags"] = ["moralstory", "kidslessons"] + tags[:3]
+        out["tags"] = list(dict.fromkeys(["moral story for kids", "kids lesson", spec["lesson"].lower()] + list(out.get("tags") or [])))[:15]
+    return out
