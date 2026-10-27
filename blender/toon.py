@@ -208,8 +208,12 @@ def key(o, path, f, val, interp=None):
 
 
 def show(o, f, visible=True):
-    """Key visibility (render) on o and all its children."""
+    """Key visibility (render) on o and all its children. The first key also pins the state before it, so
+    show(x, 200, False) alone means "visible until 200" (not hidden from the start)."""
     for x in [o] + list(o.children_recursive):
+        ad = x.animation_data
+        if f > 1 and not (ad and ad.action and ad.action.fcurves.find("hide_render")):
+            x.keyframe_insert(data_path="hide_render", frame=f - 1)
         x.hide_render = not visible
         x.keyframe_insert(data_path="hide_render", frame=f)
 

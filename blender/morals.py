@@ -315,7 +315,7 @@ def sharing(spec, cam, tgt):
     T.turn(hero, 1, 22, 1)
     T.turn(fr, 1, -25, 1)
     table = T.make_table((0.05, 0.25, 0), spec.get("table_color", "#FFD23F"))
-    kind = spec.get("prop") if spec.get("prop") in ("cookie", "donut", "cupcake", "apple", "strawberry") else "cookie"
+    kind = spec.get("prop") if spec.get("prop") in ("cupcake", "apple") else "cupcake"  # tall treats read from the side
     TX, TY = 0.05, 0.25
 
     def loc(x, y, z):  # world -> table-local (the treats sit on the table)
@@ -328,10 +328,10 @@ def sharing(spec, cam, tgt):
         tr.scale = (1.15, 1.15, 1.15)
         treats.append(tr)
 
-    p, t = _two([-0.8, 0.85], 26, 0.7, margin=0.5, cam_z=1.35)
+    p, t = _two([-0.8, 0.85], 26, 0.65, margin=0.5, cam_z=1.6)
     T.shot(cam, tgt, 1, 190, p, t, 26, (p[0], p[1] + 0.25, p[2]), t)
-    T.shot(cam, tgt, 191, 250, (-0.45, -2.5, 1.2), (-0.5, 0.2, 0.75), 38, (-0.45, -2.3, 1.2), (-0.5, 0.2, 0.75))
-    p, t = _two([-0.8, 0.8], 26, 0.7, margin=0.5, cam_z=1.35)
+    T.shot(cam, tgt, 191, 250, (-0.45, -2.5, 1.45), (-0.5, 0.2, 0.75), 38, (-0.45, -2.3, 1.45), (-0.5, 0.2, 0.75))
+    p, t = _two([-0.8, 0.8], 26, 0.65, margin=0.5, cam_z=1.6)
     T.shot(cam, tgt, 251, 540, p, t, 26, (p[0], p[1] + 0.3, p[2]), t)
 
     def eat(ch, f, tr, local_to, side=1):
@@ -456,7 +456,7 @@ def helping(spec, cam, tgt):
     T.shot(cam, tgt, 1, 150, p, t, 22, (p[0], p[1] + 0.2, p[2]), t)
     p, t = _two([-0.7, 0.9], 28, 0.75, margin=0.5)
     T.shot(cam, tgt, 151, 330, p, t, 28, (p[0], p[1] + 0.25, p[2]), t)
-    p, t = _two([-0.9, 1.2], 22, 0.9, margin=0.5)
+    p, t = _two([-0.9, 1.35], 22, 0.9, margin=0.5)
     T.shot(cam, tgt, 331, 560, p, t, 22, (p[0] + 0.2, p[1] + 0.2, p[2]), t)
 
     # the friend wobbles in with a tall stack
@@ -535,7 +535,7 @@ def helping(spec, cam, tgt):
     carry = []
     for ch, idxs, nm in ((fr, (0, 1), "ca"), (hero, (2, 3), "cb")):
         for j, i in enumerate(idxs):
-            b = T.box(f"{nm}{j}", (0.3, 0.26, 0.2), (0, -0.42, 0.55 + j * 0.2), T.mat(cols[i], 0.5), ch["root"], bevel=0.03)
+            b = T.box(f"{nm}{j}", (0.28, 0.24, 0.18), (0, -0.48, 0.28 + j * 0.18), T.mat(cols[i], 0.5), ch["root"], bevel=0.03)
             T.show(b, 1, False)
             T.show(b, 372, True)
             carry.append(b)
@@ -544,11 +544,11 @@ def helping(spec, cam, tgt):
         T.turn(ch, 376, 0, 5)
     T.eyes_norm(fr, 380)
     xs = {id(fr): -0.05, id(hero): 0.42}
-    for k, f in enumerate(range(390, 470, 16)):
+    for k, f in enumerate(range(390, 470, 16)):  # a little walk together, staying in the shot
         for ch in (fr, hero):
             x0 = xs[id(ch)]
-            T.hop(ch, f + (4 if ch is hero else 0), x0, x0 + 0.38, 0.14, 12, sound=False)
-            xs[id(ch)] = x0 + 0.38
+            T.hop(ch, f + (4 if ch is hero else 0), x0, x0 + 0.12, 0.14, 12, sound=False)
+            xs[id(ch)] = x0 + 0.12
         T.sfx(f + 2, "tiptoe")
     for ch in (fr, hero):
         T.turn(ch, 480, 0, 5)
