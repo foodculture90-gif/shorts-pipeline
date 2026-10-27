@@ -1642,7 +1642,7 @@ def make_camera():
     return cam, tgt
 
 
-def fit(xs, lens=40, zc=0.85, y=0.2, margin=0.4, cam_z=None, min_d=2.2, max_d=3.3):
+def fit(xs, lens=40, zc=0.85, y=0.2, margin=0.4, cam_z=None, min_d=2.2, max_d=4.8):
     """Camera position + target that frame the x-range xs (portrait 9:16): low camera looking slightly up,
     characters big in the lower part of the frame (less empty ground)."""
     x0, x1 = min(xs), max(xs)

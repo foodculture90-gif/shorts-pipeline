@@ -998,12 +998,12 @@ def magic_trick(spec, cam, tgt):
     w2 = _wand("wand2", fr, -1)
     T.show(w2, 1, False)
 
-    p, t = _two([-0.75, 0.9], 34, 0.95)
-    T.shot(cam, tgt, 1, 56, p, t, 34, (p[0], p[1] + 0.25, p[2]), t)
+    p, t = _two([-0.75, 0.9], 26, 0.95, margin=0.5)
+    T.shot(cam, tgt, 1, 56, p, t, 26, (p[0], p[1] + 0.2, p[2]), t)
     T.shot(cam, tgt, 57, 92, (0.25, -2.6, 0.95), (0.25, 0.25, 0.8), 40, (0.15, -2.4, 0.9), (0.15, 0.25, 0.8))
     T.shot(cam, tgt, 93, 122, (-0.65, -2.0, 0.55), (-0.72, 0.15, 0.4), 45, (-0.65, -1.85, 0.5), (-0.72, 0.15, 0.4))
-    p, t = _two([-0.75, 0.9], 32, 0.9)
-    T.shot(cam, tgt, 123, 168, p, t, 32, (p[0], p[1] + 0.3, p[2]), t)
+    p, t = _two([-0.75, 0.9], 26, 0.9, margin=0.5)
+    T.shot(cam, tgt, 123, 168, p, t, 26, (p[0], p[1] + 0.2, p[2]), t)
 
     T.idle(fr, 1, 56)
     # tap, tap, tap... POOF! flowers
@@ -1096,11 +1096,11 @@ def seesaw(spec, cam, tgt):
     T.turn(fr, 1, -30, 1)
     T.key(plank, "rotation_euler", 1, (0, -0.22, 0))
 
-    p, t = _two([-0.85, 1.55], 24, 0.85)
-    T.shot(cam, tgt, 1, 62, p, t, 26, (p[0], p[1] + 0.3, p[2]), t)
+    p, t = _two([-0.85, 1.55], 18, 0.85, margin=0.55)
+    T.shot(cam, tgt, 1, 62, p, t, 18, (p[0], p[1] + 0.2, p[2]), t)
     T.shot(cam, tgt, 63, 96, (-0.8, -3.6, 1.1), (-0.8, 0.3, 1.2), 30, (-0.8, -3.6, 1.4), (-0.8, 0.3, 1.7))
-    p, t = _two([-0.85, 1.75], 24, 0.85)
-    T.shot(cam, tgt, 97, 168, p, t, 26, (p[0] + 0.2, p[1] + 0.2, p[2]), t)
+    p, t = _two([-0.85, 1.75], 18, 0.85, margin=0.55)
+    T.shot(cam, tgt, 97, 168, p, t, 18, (p[0] + 0.1, p[1] + 0.15, p[2]), t)
 
     T.idle(hero, 1, 40)
     T.look(hero, 6, 0.05)
@@ -1217,11 +1217,11 @@ def paint_splat(spec, cam, tgt):
     b2 = _brush("brush2", fr, cols[2], -1)
     T.show(b2, 1, False)
 
-    p, t = _two([-1.0, 1.05], 28, 0.85)
-    T.shot(cam, tgt, 1, 52, p, t, 34, (p[0] + 0.1, p[1] + 0.25, p[2]), t)
+    p, t = _two([-1.0, 1.05], 22, 0.85, margin=0.5)
+    T.shot(cam, tgt, 1, 52, p, t, 22, (p[0] + 0.05, p[1] + 0.15, p[2]), t)
     T.shot(cam, tgt, 53, 96, (0.0, -3.2, 0.85), (-0.05, 0.3, 0.72), 38, (0.0, -3.0, 0.85), (-0.05, 0.3, 0.72))
-    p, t = _two([-1.0, 0.7], 28, 0.85)
-    T.shot(cam, tgt, 97, 168, p, t, 32, (p[0], p[1] + 0.3, p[2]), t)
+    p, t = _two([-1.0, 0.7], 24, 0.85, margin=0.5)
+    T.shot(cam, tgt, 97, 168, p, t, 24, (p[0], p[1] + 0.2, p[2]), t)
 
     # the hero paints a little picture, dab by dab
     T.idle(fr, 1, 40)
@@ -1289,3 +1289,7 @@ GAGS = {"steal_treat": steal_treat, "ball_bonk": ball_bonk, "balloon_float": bal
         "gift_surprise": gift_surprise, "hide_seek": hide_seek, "slip_peel": slip_peel,
         "sneeze": sneeze, "dance_party": dance_party, "bubbles": bubbles, "wake_up": wake_up, "race": race,
         "magic_trick": magic_trick, "seesaw": seesaw, "paint_splat": paint_splat}
+
+from morals import MORALS  # noqa: E402  (longer stories with a lesson - share the helpers above)
+
+GAGS.update(MORALS)
