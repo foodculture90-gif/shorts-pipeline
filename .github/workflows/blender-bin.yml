@@ -1,0 +1,27 @@
+name: Blender copy for previews
+
+# Puts a copy of Blender 4.2 on the "blender-bin" branch (in 90 MB pieces), so character previews
+# can be rendered outside GitHub too. Runs once when this file changes, or by hand.
+on:
+  push:
+    paths: [".github/workflows/blender-bin.yml"]
+  workflow_dispatch:
+
+jobs:
+  copy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Download Blender and push it in pieces
+        run: |
+          for v in 4.2.3 4.2.2 4.2.1 4.2.0; do
+            curl -fsSL --retry 3 "https://download.blender.org/release/Blender4.2/blender-$v-linux-x64.tar.xz" -o b.tar.xz && echo "$v" > VERSION && break
+          done
+          mkdir pub && cd pub && git init -q && git checkout -q -b blender-bin
+          split -b 90m -d ../b.tar.xz blender.tar.xz.part
+          mv ../VERSION . && ls -la
+          git config user.name "bin-bot" && git config user.email "bin-bot@users.noreply.github.com"
+          git add -A && git commit -qm "Blender $(cat VERSION)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" blender-bin
