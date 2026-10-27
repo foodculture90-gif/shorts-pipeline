@@ -187,6 +187,13 @@ const STORIES = {
   sneeze: ["Big sneeze", "🤧", ALLP], dance_party: ["Dance party", "💃", ALLP], bubbles: ["Bubbles", "🫧", ALLP],
   wake_up: ["Wake-up horn", "📯", ALLP], race: ["The race", "🏁", [...OUTDOOR, "space"]],
   magic_trick: ["Magic hat", "🎩", ALLP], seesaw: ["Seesaw launch", "🚀", [...OUTDOOR, "space"]], paint_splat: ["Paint splat", "🎨", ALLP] };
+// moral stories: one longer story with a lesson is the whole short (half of the daily shorts are these)
+const GARDEN = ["park", "street", "playground", "farm", "camping", "castle", "market", "jungle"];
+const MORALS = {
+  patience: ["Good things take time", "🌱", GARDEN], sharing: ["Sharing makes us happy", "🍪", ALLP],
+  helping: ["Help a friend", "🤝", ALLP], sorry: ["Say sorry", "🌸", ALLP],
+  teamwork: ["Together we can", "💪", [...OUTDOOR, "space"]], try_again: ["Never give up", "⭐", ALLP] };
+const ALLS = { ...STORIES, ...MORALS };
 const IDEAS = ["Who stole the donut?", "Balloon floats away… POP!", "Hide and seek – BOO!", "Banana peel slip", "Surprise gift box", "Ball bonk in the park", "Snow day fun", "Birthday cake mix-up", "Silly day on the moon", "Pirate island party", "Toys in the bedroom", "Christmas presents", "Bubbles under the sea", "Race on the farm", "Dance party at the castle", "Big sneeze in Candy Land"];
 const CHANGES = ["Different characters", "Different place", "Funnier moments", "Snow day", "Beach day", "On the moon", "Pirate island", "Sunset colours", "Party hats on", "Start with the banana slip"];
 
@@ -524,6 +531,8 @@ function newShortSheet(pre = {}) {
     ${channels.length > 1 ? `<label class="f">Channel</label><select class="input" id="ch">${channels.map(c => `<option value="${c.id}" ${c.id === state.channel ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select>` : ""}
     <label class="f">What happens? <span class="sub" style="font-weight:500">(tap up to 5, in the order you want them)</span></label>
     <div class="chips" data-chips="story">${Object.entries(STORIES).map(([k, [n, e]]) => `<button type="button" class="chip" data-v="${k}">${e} ${n}</button>`).join("")}</div>
+    <label class="f">Or a story with a lesson 💛 <span class="sub" style="font-weight:500">(the whole short)</span></label>
+    <div class="chips" data-chips="moral">${Object.entries(MORALS).map(([k, [n, e]]) => `<button type="button" class="chip" data-v="${k}">${e} ${n}</button>`).join("")}</div>
     <label class="f">Who stars? <span class="sub" style="font-weight:500">(up to 2)</span></label>
     ${chips(Object.entries(CAST).map(([k, [n, e]]) => [k, `${e} ${n}`]), "cast")}
     <label class="f">Where?</label>
@@ -544,20 +553,31 @@ function newShortSheet(pre = {}) {
           b.classList.toggle("off", i < 0 && !!placeSel.v && !where.includes(placeSel.v));
           b.innerHTML = `${i >= 0 ? `<i class="ord">${i + 1}</i>` : e} ${nm}`;
         });
+        el.querySelectorAll("[data-chips=moral] .chip").forEach(b => {
+          b.classList.toggle("on", story.includes(b.dataset.v));
+          b.classList.toggle("off", !story.includes(b.dataset.v) && !!placeSel.v && !MORALS[b.dataset.v][2].includes(placeSel.v));
+        });
         el.querySelectorAll("[data-chips=place] .chip").forEach(b => {
           const v = b.dataset.v;
           b.classList.toggle("on", v === placeSel.v);
-          b.classList.toggle("off", !!v && story.some(k => !STORIES[k][2].includes(v)));
+          b.classList.toggle("off", !!v && story.some(k => !ALLS[k][2].includes(v)));
         });
         el.querySelectorAll("[data-chips=cast] .chip").forEach(b => b.classList.toggle("on", cast.includes(b.dataset.v)));
-        const parts = [story.length ? story.map(k => STORIES[k][1] + " " + STORIES[k][0]).join(" → ") : "🎲 surprise story",
+        const parts = [story.length ? story.map(k => ALLS[k][1] + " " + ALLS[k][0]).join(" → ") : "🎲 surprise story",
           cast.length ? cast.map(k => CAST[k][1] + " " + CAST[k][0]).join(" & ") : "🎲 surprise stars",
           placeSel.v ? PLACES[placeSel.v][1] + " " + PLACES[placeSel.v][0] : "🎲 surprise place"];
         el.querySelector("#picked").innerHTML = `<b>Your short:</b> ${parts.map(esc).join(" · ")}`;
       };
       el.querySelectorAll("[data-chips=story] .chip").forEach(b => b.onclick = () => {
         const i = story.indexOf(b.dataset.v);
+        if (story.some(k => MORALS[k])) story.length = 0;  // a lesson story is the whole short
         if (i >= 0) story.splice(i, 1); else if (story.length < 5) story.push(b.dataset.v); else toast("Up to 5 stories");
+        paint();
+      });
+      el.querySelectorAll("[data-chips=moral] .chip").forEach(b => b.onclick = () => {
+        const on = story.includes(b.dataset.v);
+        story.length = 0;
+        if (!on) story.push(b.dataset.v);
         paint();
       });
       el.querySelectorAll("[data-chips=cast] .chip").forEach(b => b.onclick = () => {
@@ -572,7 +592,7 @@ function newShortSheet(pre = {}) {
       el.querySelector("#go").onclick = ev => guard(ev.currentTarget, async () => {
         const text = el.querySelector("#idea").value.trim();
         const choose = { gags: [...story], cast: [...cast], set: placeSel.v || undefined };
-        const label = [story.length ? story.map(k => STORIES[k][0]).join(", ") : "", cast.length ? `with ${cast.map(k => CAST[k][0]).join(" & ")}` : "",
+        const label = [story.length ? story.map(k => ALLS[k][0]).join(", ") : "", cast.length ? `with ${cast.map(k => CAST[k][0]).join(" & ")}` : "",
           placeSel.v ? `at the ${PLACES[placeSel.v][0].toLowerCase()}` : "", text].filter(Boolean).join(" ");
         const channel_id = el.querySelector("#ch")?.value || channels[0].id;
         await api.commands([...Array(n)].map(() => ({ type: "generate", payload: { channel_id, idea: label || undefined, choose, silent: true } })));
@@ -718,6 +738,7 @@ async function viewSettings() {
         <label class="switch"><input type="checkbox" id="gpu" ${gpu ? "checked" : ""}><span></span></label></div>
       <div class="row"><div><div class="t">Publish automatically</div><div class="d">Every finished short is scheduled on YouTube at the next best time (US + UK/Ireland peak hours, 30+ min apart). Delete one in “Ready” before it's booked to stop it.</div></div>
         <label class="switch"><input type="checkbox" id="autopub" ${auto ? "checked" : ""}><span></span></label></div>
+      <div class="row"><div><div class="t">Stories with a lesson 💛</div><div class="d">Half of the daily shorts are moral stories: good things take time, sharing, helping a friend, saying sorry, teamwork, never giving up</div></div></div>
       <div class="row"><div><div class="t">Every short</div><div class="d">3D cartoon · 20–40 s · music + sound effects only · no text on screen · ${auto ? "published automatically at the best times" : "nothing posts without your OK"}</div></div></div>
     </div>
     <h2>App</h2>
