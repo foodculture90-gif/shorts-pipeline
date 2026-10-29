@@ -12,28 +12,22 @@ from gags import _arm, _confetti, _flower, _two
 
 # --------------------------------------------------------------------------- little acting helpers
 def _sad(ch, f, d=6, sound=True):
-    T.brows(ch, f, -0.035, d)
-    for e in ch["eyes"]:
-        T.key(e, "scale", f - d, tuple(e.scale))
-        T.key(e, "scale", f, (1, 1, 0.62))
-    T.mouth_set(ch, f, 0.0)
+    T.feel(ch, f, "sad", d)
+    T.look(ch, f, 0.0, -0.03)
     T.lean(ch, f, 9, d, axis=0)
     if sound:
         T.sfx(f, "wahwah")
 
 
 def _cheer_up(ch, f, d=6):
-    T.brows(ch, f, 0.0, d)
-    T.eyes_norm(ch, f, d)
+    T.feel(ch, f, "happy", d)
+    T.look(ch, f, 0.0, 0.0)
     T.lean(ch, f, 0, d, axis=0)
 
 
 def _determined(ch, f, d=5):
-    T.brows(ch, f, -0.03, d)
-    for e in ch["eyes"]:
-        T.key(e, "scale", f - d, tuple(e.scale))
-        T.key(e, "scale", f, (1.05, 1, 0.8))
-    T.mouth_set(ch, f, 0.0)
+    T.feel(ch, f, "angry", d)
+    T.smile_shape(ch, f, 0.3, 1.0, d)
 
 
 def _nod(ch, f0, times=2):

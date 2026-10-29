@@ -10,6 +10,7 @@ import bpy
 FPS = 24
 MATS = {}
 EVENTS = []  # [frame, sound kind]
+CHARS = []   # every character made in the current gag (add_life gives them breathing + blinks)
 LOOKS = {}   # per short: {character: [accessory, colour]} - same outfit in every gag of the short
 THEME = {}   # per short: {"sky": ..., "season": ..., "pal": seed} - colours of the set
 VAR = random.Random(1)  # per gag: prop colours
@@ -25,6 +26,7 @@ def reset():
     sc.render.fps = FPS
     MATS.clear()
     EVENTS.clear()
+    CHARS.clear()
     return sc
 
 
@@ -56,6 +58,11 @@ def mat(hexs, rough=0.45, coat=0.0, emit=0.0, metal=0.0):
         b.inputs["Emission Strength"].default_value = emit
     MATS[key] = m
     return m
+
+
+def _shade(hexs, k):
+    h = hexs.lstrip("#")
+    return "#" + "".join(f"{max(0, min(255, int(int(h[i:i + 2], 16) * k))):02X}" for i in (0, 2, 4))
 
 
 def iris_mat(hexs):
@@ -280,27 +287,27 @@ def show(o, f, visible=True):
 CAST = {
     "pip": dict(kind="blob", body="#FF4D5E", belly="#FFC2B8", feet="#FFD27A", iris="#3B8BEB", brow="#7A1E2A",
                 ears="round", tuft=True, size=1.0),
-    "bubu": dict(kind="blob", body="#4DA6FF", belly="#DDF0FF", feet="#FFFFFF", iris="#6B3E1F", brow="#1E4A7A",
+    "bubu": dict(whiskers=True, kind="blob", body="#4DA6FF", belly="#DDF0FF", feet="#FFFFFF", iris="#6B3E1F", brow="#1E4A7A",
                  ears="bunny", tuft=False, size=0.95),
-    "mimi": dict(kind="blob", body="#B57BFF", belly="#F0E4FF", feet="#FFD27A", iris="#2FAF5A", brow="#4A2A7A",
+    "mimi": dict(whiskers=True, lashes=True, kind="blob", body="#B57BFF", belly="#F0E4FF", feet="#FFD27A", iris="#2FAF5A", brow="#4A2A7A",
                  ears="cat", tuft=False, tail=True, size=0.9),
     "gogo": dict(kind="blob", body="#5CCB6B", belly="#E9FFD9", feet="#FFB347", iris="#8A4B12", brow="#2A6A2A",
                  ears="none", eyes_top=True, tuft=False, size=0.95),
     "chiko": dict(kind="bird", body="#FFD53D", beak="#FF8A1F", iris="#6B3E1F", size=1.35),
-    "lulu": dict(kind="blob", body="#FF8FC8", belly="#FFE6F3", feet="#FFFFFF", iris="#3B8BEB", brow="#8A2A5A",
+    "lulu": dict(lashes=True, kind="blob", body="#FF8FC8", belly="#FFE6F3", feet="#FFFFFF", iris="#3B8BEB", brow="#8A2A5A",
                  ears="round", ear_in="#FFD1E6", tuft=False, size=0.9),
-    "tobi": dict(kind="blob", body="#FF9A3D", belly="#FFF4E6", feet="#6B3E1F", iris="#2FAF5A", brow="#8A3E12",
+    "tobi": dict(whiskers=True, kind="blob", body="#FF9A3D", belly="#FFF4E6", feet="#6B3E1F", iris="#2FAF5A", brow="#8A3E12",
                  ears="cat", ear_in="#FFF4E6", tuft=False, tail=True, tail_tip="#FFFFFF", size=0.97),
-    "teo": dict(kind="blob", body="#F2D2A2", belly="#FFF6E8", feet="#FFFFFF", iris="#6B3E1F", brow="#7A4A22",
+    "teo": dict(whiskers=True, kind="blob", body="#F2D2A2", belly="#FFF6E8", feet="#FFFFFF", iris="#6B3E1F", brow="#7A4A22",
                 ears="floppy", ear_col="#A0663A", patch="#A0663A", tuft=False, nose=True, size=0.95),
     "popo": dict(kind="bird", body="#2E4A7A", belly="#FFFFFF", beak="#FFA53D", iris="#3B2A1A", tuft=False,
                  size=1.3, wing="#2E4A7A"),
-    "bobo": dict(kind="blob", body="#FFFFFF", belly="#F1F1F4", feet="#2B2B33", iris="#3B2A1A", brow="#2B2B33",
+    "bobo": dict(whiskers=True, kind="blob", body="#FFFFFF", belly="#F1F1F4", feet="#2B2B33", iris="#3B2A1A", brow="#2B2B33",
                  ears="round", ear_col="#2B2B33", patches="#2B2B33", tuft=False, nose=True, size=1.0),
-    "zuzu": dict(kind="blob", body="#EADCFF", belly="#FFFFFF", feet="#FFB3E6", iris="#B04BD9", brow="#8A4AA8",
+    "zuzu": dict(lashes=True, kind="blob", body="#EADCFF", belly="#FFFFFF", feet="#FFB3E6", iris="#B04BD9", brow="#8A4AA8",
                  ears="cat", ear_in="#FFC2E6", tuft=False, horn="#FFD23F", mane=["#FF8FC8", "#8FD3FF", "#FFE27A", "#9EF0C0"],
                  size=0.92),
-    "leo": dict(kind="blob", body="#FFC24D", belly="#FFF0C9", feet="#C9822E", iris="#6B3E1F", brow="#A0582A",
+    "leo": dict(whiskers=True, kind="blob", body="#FFC24D", belly="#FFF0C9", feet="#C9822E", iris="#6B3E1F", brow="#A0582A",
                 ears="round", ear_in="#FFE0A0", tuft=False, ruff="#D9772B", tail=True, tail_tip="#D9772B", nose=True,
                 size=1.0),
     "dodo": dict(kind="bird", body="#FFFFFF", beak="#FF9F1C", iris="#2A2A3A", belly="#FFF7E0", wing="#EFEFF4",
@@ -310,22 +317,22 @@ CAST = {
                  brow="#1A2638", size=0.95, acc_top=1.05, no_cap=True),
     "rexy": dict(kind="dino", body="#6CCB5F", belly="#E6F7C8", plates="#FF9F43", feet="#58B04C", iris="#7A4A12",
                  brow="#2F6A2A", size=1.0, acc_top=1.04),
-    "trixie": dict(kind="dino", body="#F59AC8", belly="#FFE3F0", frill="#B57BFF", horns="#FFF6D8", feet="#E584B6",
+    "trixie": dict(lashes=True, kind="dino", body="#F59AC8", belly="#FFE3F0", frill="#B57BFF", horns="#FFF6D8", feet="#E584B6",
                    iris="#3B8BEB", brow="#8A2A5A", size=0.95, acc_top=1.04, no_cap=True),
     "drako": dict(kind="dino", body="#9B7BEA", belly="#FFE07A", plates="#7FD8FF", wings="#7FD8FF", horns="#FFE07A",
                   feet="#8668D6", iris="#E8A43A", brow="#4A2A8A", size=0.95, spade=True, acc_top=1.04, no_cap=True),
     "momo": dict(kind="monster", body="#4FC3F7", belly="#B3E5FC", fur="#38ACE6", horns="#FFB347", feet="#2F8FD8",
                  iris="#5CCB6B", brow="#1E5A8A", size=1.0, no_cap=True, acc_top=1.12),
-    "ocki": dict(kind="octo", body="#FF8A65", spots="#FFC2AE", iris="#2A2A3A", brow="#A8452A", size=0.95, acc_top=1.13),
-    "ellie": dict(kind="elephant", body="#A9B8D6", belly="#C9D4EA", ear_in="#FFC2D9", feet="#93A3C4", iris="#3B2A1A",
+    "ocki": dict(lashes=True, kind="octo", body="#FF8A65", spots="#FFC2AE", iris="#2A2A3A", brow="#A8452A", size=0.95, acc_top=1.13),
+    "ellie": dict(lashes=True, kind="elephant", body="#A9B8D6", belly="#C9D4EA", ear_in="#FFC2D9", feet="#93A3C4", iris="#3B2A1A",
                   brow="#5A6A8A", size=1.0),
-    "pinky": dict(kind="blob", body="#FFA9C6", belly="#FFD6E5", feet="#E8789F", iris="#3B8BEB", brow="#B8456E",
+    "pinky": dict(lashes=True, kind="blob", body="#FFA9C6", belly="#FFD6E5", feet="#E8789F", iris="#3B8BEB", brow="#B8456E",
                   ears="pig", snout="#FF8FB5", curl_tail=True, mouth=(-0.43, 0.35), tuft=False, size=0.95),
     "hoot": dict(kind="bird", body="#A0703E", belly="#F2DDB8", beak="#F2A93B", iris="#E89B1A", wing="#8A5E32",
                  owl=True, disc="#F7E6C4", tuft=False, size=1.3, no_cap=True),
-    "buzzy": dict(kind="blob", body="#FFD23F", belly="#FFE98A", feet="#2B2B33", iris="#3B2A1A", brow="#2B2B33",
+    "buzzy": dict(lashes=True, kind="blob", body="#FFD23F", belly="#FFE98A", feet="#2B2B33", iris="#3B2A1A", brow="#2B2B33",
                   ears="none", bee=True, tuft=False, size=0.9, no_cap=True),
-    "kiki": dict(kind="kid", skin="#F5C9A0", hair="#6A3B1F", shirt="#FF6FA8", pants="#4DA6FF", shoes="#FFFFFF",
+    "kiki": dict(lashes=True, kind="kid", skin="#F5C9A0", hair="#6A3B1F", shirt="#FF6FA8", pants="#4DA6FF", shoes="#FFFFFF",
                  iris="#3B7A2A", hairdo="pigtails", ties="#FFD23F", size=1.0, acc_top=1.2),
     "nino": dict(kind="kid", skin="#8D5A3C", hair="#1E1410", shirt="#FFC93D", pants="#3B5BDB", shoes="#FF5A5F",
                  iris="#3B2A1A", hairdo="curly", size=1.0, acc_top=1.2),
@@ -334,16 +341,49 @@ ACCESSORIES = ["party_hat", "bow", "cap", "flower", "bowtie", "crown", "none", "
 ACC_COLORS = ["#FF4D6D", "#FFD23F", "#4DA6FF", "#5CCB6B", "#B57BFF", "#FF8A3D", "#FFFFFF", "#2EC4B6"]
 
 
+LID_COLOR = None  # skin colour of the character being built (eyelids)
+
+
+def _half_sphere(name, r, m, parent):
+    """Upper half of a sphere (an eyelid), pivot at the centre."""
+    import bmesh
+    me = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=32, v_segments=16, radius=r)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < -1e-4], context="VERTS")
+    bm.to_mesh(me)
+    bm.free()
+    for poly in me.polygons:
+        poly.use_smooth = True
+    o = bpy.data.objects.new(name, me)
+    sc.collection.objects.link(o)
+    o.parent = parent
+    me.materials.append(m)
+    so = o.modifiers.new("t", "SOLIDIFY")
+    so.thickness = r * 0.06
+    return o
+
+
 def eyes(parent, y, z, dx, r, iris="#3B8BEB", brow_m=None):
     piv, pup, brows = [], [], []
     for side in (-1, 1):
         e = empty(f"{parent.name}_eye{side}", (side * dx, y, z), parent)
-        sphere(e.name + "_w", r, (0, 0, 0), WHITE, e, scale=(1, 0.6, 1.2), sub=2)
-        p = empty(e.name + "_p", (0, -r * 0.5, r * 0.04), e)
-        sphere(e.name + "_iris", r * 0.6, (0, 0, 0), iris_mat(iris), p, scale=(1, 0.32, 1.12), sub=2)
-        sphere(e.name + "_pupil", r * 0.36, (0, -r * 0.08, 0), BLACK, p, scale=(1, 0.3, 1.12), sub=2)
-        sphere(e.name + "_hl", r * 0.17, (r * 0.2 * -side, -r * 0.2, r * 0.26), SHINE, p, sub=0)
-        sphere(e.name + "_hl2", r * 0.08, (r * 0.2 * side, -r * 0.2, -r * 0.22), SHINE, p, sub=0)
+        e["sink"] = r * 0.24  # sits deeper in the face (sculpt.py) - a gentle dome, not a ping-pong ball
+        e.rotation_euler = (0, 0, side * math.atan2(dx, 0.45) * 0.5)  # follows the round face (no edge poking out)
+        bl = empty(e.name + "_bl", (0, 0, 0), e)  # blink layer (add_life) - separate from expression moves
+        sphere(e.name + "_w", r, (0, 0, 0), WHITE, bl, scale=(1, 0.5, 1.18), sub=2)
+        p = empty(e.name + "_p", (0, -r * 0.42, r * 0.04), bl)
+        p["r"] = r
+        if LID_COLOR:  # an eyelid in skin colour: hidden behind the eye when open, slides down for moods
+            tilt = empty(e.name + "_lidt", (0, 0, 0), e)
+            sc_ = empty(e.name + "_lids", (0, 0, 0), tilt)
+            sc_.scale = (1.07, 0.56, 1.24)
+            lid = _half_sphere(e.name + "_lid", r, mat(LID_COLOR, 0.6), sc_)
+            lid.rotation_euler = (-math.pi / 2, 0, 0)
+        sphere(e.name + "_iris", r * 0.6, (0, 0, 0), iris_mat(iris), p, scale=(1, 0.3, 1.12), sub=2)
+        sphere(e.name + "_pupil", r * 0.36, (0, -r * 0.07, 0), BLACK, p, scale=(1, 0.28, 1.12), sub=2)
+        sphere(e.name + "_hl", r * 0.17, (r * 0.2 * -side, -r * 0.18, r * 0.26), SHINE, p, sub=0)
+        sphere(e.name + "_hl2", r * 0.08, (r * 0.2 * side, -r * 0.18, -r * 0.22), SHINE, p, sub=0)
         piv.append(e)
         pup.append(p)
         if brow_m:
@@ -352,6 +392,42 @@ def eyes(parent, y, z, dx, r, iris="#3B8BEB", brow_m=None):
             b["z0"] = b.location[2]
             brows.append(b)
     return piv, pup, brows
+
+
+def whiskers(name, piv, x, y, z, col="#3A2A2A"):
+    """Three fine whiskers on each side of the muzzle. Returns the two whisker roots (moved onto the skin)."""
+    wm = mat(col, 0.4)
+    roots = []
+    for side in (-1, 1):
+        rt = empty(f"{name}_wsk{side}", (side * x, y, z), piv)
+        for k, (dz, ang) in enumerate(((0.025, 0.18), (0.0, 0.0), (-0.025, -0.16))):
+            L = 0.2 - abs(k - 1) * 0.03
+            curve_line(f"{name}_wsk{side}_{k}", [(0, 0, dz), (side * L * 0.5, -0.02, dz + ang * L * 0.4 + 0.01),
+                                                 (side * L, -0.01, dz + ang * L)], 0.0035, wm, rt)
+        rt["clear"] = 0.0
+        roots.append(rt)
+    return roots
+
+
+def lashes(eyes_, r, col="#1E1418"):
+    """Three curled lashes on the top-outer edge of each eye (they blink with the eye)."""
+    lm = mat(col, 0.4)
+    for e in eyes_:
+        side = 1 if e.location[0] > 0 else -1
+        bl = next((c for c in e.children if c.name.endswith("_bl")), e)
+        for k, a in enumerate((0.35, 0.75, 1.15)):
+            x, z = side * math.sin(a) * r * 0.92, math.cos(a) * r * 1.12
+            curve_line(f"{e.name}_lash{k}", [(x, -r * 0.3, z), (x * 1.18, -r * 0.42, z * 1.22),
+                                             (x * 1.38, -r * 0.4, z * 1.32 + r * 0.06)], r * 0.035, lm, bl)
+
+
+def fluff(name, piv, loc, r, length, scale=(1, 1, 1), density=None):
+    """An invisible region that changes the fur there: longer tufts (head top, cheeks, tail) or no fur."""
+    o = sphere(name, r, loc, mat("#FFFFFF"), piv, scale=scale, sub=0, seg=12)
+    o["nocolor"], o["furlen"], o["soft"] = True, length, 0.35
+    if density is not None:
+        o["fur"] = density
+    return o
 
 
 def torus(name, R, r, loc, m=None, parent=None, scale=(1, 1, 1), rot=(0, 0, 0)):
@@ -367,7 +443,7 @@ def _face(name, piv, d, fy, ez, edx, er, my, mz, mw=1.0, cheeks=None, brow=True)
         for side in (-1, 1):
             sphere(f"{name}_cheek{side}", 0.07, (side * cx, cy, cz), mat("#FF8FB1", 0.6), piv, scale=(1, 0.4, 0.7))
     mouth = sphere(name + "_mouth", 0.1 * mw, (0, my, mz), mat("#5A1020", 0.4), piv, scale=(1.2, 0.35, 0.05))
-    sphere(name + "_tongue", 0.06 * mw, (0, -0.02, -0.04), mat("#FF5A7A", 0.5), mouth, scale=(1, 0.8, 0.5))
+    sphere(name + "_tongue", 0.06 * mw, (0, -0.045, -0.045), mat("#FF6F8E", 0.45), mouth, scale=(1.05, 0.5, 0.45))
     w = 0.085 * mw
     smile = curve_line(name + "_smile", [(-w, 0, w * 0.45), (0, 0, -w * 0.25), (w, 0, w * 0.45)], 0.014,
                        mat("#5A1020", 0.4), piv, (0, my - 0.02, mz + 0.015))
@@ -448,6 +524,15 @@ def _dino(name, d, root, piv, ch):
     for e in ev:
         e["clear"] = 0.2
     face += ev + br + [mouth, smile]
+    sp = mat(_shade(d["body"], 0.78), 0.5)  # a few darker spots on the back and head
+    for i, (x, y, z, r) in enumerate(((0.2, 0.22, 0.48, 0.07), (-0.18, 0.25, 0.4, 0.06), (0.05, 0.3, 0.6, 0.055),
+                                      (-0.1, 0.18, HZ + 0.25, 0.05), (0.14, 0.12, HZ + 0.3, 0.04),
+                                      (0.02, 0.6, 0.28, 0.045), (0.25, 0.08, 0.25, 0.05))):
+        p = sphere(f"{name}_spot{i}", r, (x, y, z), sp, piv, scale=(1, 3, 1), sub=0, seg=12)
+        p["soft"] = 0.12
+        paint.append(p)
+    if d.get("lashes"):
+        lashes(ev, 0.15)
     body = sculpt.sculpt(ch, shape, paint, face, fuzz=0.25, rough=0.5, bump=0.25, grain="scales")
     if d.get("plates"):  # spikes along the back, from the top of the head to the tail
         pm = mat(d["plates"], 0.45)
@@ -531,6 +616,8 @@ def _octo(name, d, root, piv, ch):
             t["stiff"] = 2.6
             shape.append(t)
     ev, pp, br, mouth, smile = _face(name, piv, d, -0.44, 0.82, 0.17, 0.16, -0.475, 0.56, 1.0)
+    if d.get("lashes"):
+        lashes(ev, 0.16)
     body = sculpt.sculpt(ch, shape, paint, ev + br + [mouth, smile], fuzz=0.0, rough=0.35, coat=0.5, bump=0.03,
                          grain="skin")
     arms = []
@@ -571,7 +658,13 @@ def _elephant(name, d, root, piv, ch):
     ev, pp, br, mouth, smile = _face(name, piv, d, -0.35, HZ + 0.06, 0.2, 0.14, -0.4, HZ - 0.27, 0.9)
     for e in ev:
         e["clear"] = 0.2
-    body = sculpt.sculpt(ch, shape, paint, ev + br + [mouth, smile], fuzz=0.5, bump=0.1)
+    if d.get("lashes"):
+        lashes(ev, 0.14)
+    for o in shape:
+        o["fur"] = 0.0  # bare skin ...
+    paint.append(fluff(name + "_tuft", piv, (0, -0.02, HZ + 0.36), 0.13, 3.2, (1.0, 0.9, 0.6), density=1.0))  # ... + a tuft
+    body = sculpt.sculpt(ch, shape, paint, ev + br + [mouth, smile], fuzz=0.5, bump=0.1,
+                         fur=dict(length=0.02, density=26000.0) if FUR else None)
     tl = sphere(name + "_tail", 0.05, (0, 0.36, 0.25), body_m, piv, scale=(0.8, 2.0, 0.8), rot=(0.5, 0, 0))
     sphere(name + "_tailtip", 0.05, (0, 0.06, 0.0), mat("#5A6A8A", 0.8), tl, scale=(1, 0.6, 1))
     arms, feet = _limbs(name, piv, root, body_m, mat(d["feet"], 0.6), sx=0.28, sz=0.47, fr=0.15, fx=0.17)
@@ -615,8 +708,15 @@ def _kid(name, d, root, piv, ch):
             shape.append(t)
             sphere(f"{name}_tie{s}", 0.05, (s * 0.33, 0.08, 1.04), mat(d.get("ties", "#FFD23F"), 0.4), piv, sub=0)
     ev, pp, br, mouth, smile = _face(name, piv, d | {"brow": d["hair"]}, -0.3, 0.9, 0.13, 0.1, -0.34, 0.72, 0.75)
+    for o in shape:
+        hairy = o.name.split("_")[-1].startswith(("curl", "hair", "bangs", "tail"))
+        o["fur"] = 1.0 if hairy else 0.0
+    if d.get("lashes"):
+        lashes(ev, 0.1)
+    curly = d.get("hairdo") == "curly"
     body = sculpt.sculpt(ch, shape, paint, ev + br + [mouth, smile], fuzz=0.2, rough=0.5, bump=0.04, grain="skin",
-                         blend=0.006)
+                         blend=0.006, fur=(dict(length=0.016 if curly else 0.034, density=30000.0, radius=0.0022, comb=-0.2 if curly else -0.75)
+                                           if FUR else None))
     arms = []
     for side in (-1, 1):
         sh = empty(f"{name}_sh{side}", (side * 0.25, 0, 0.53), piv)
@@ -659,7 +759,9 @@ def _bird(name, d, root, piv, ch):
     for e in ev:
         e["clear"] = 0.13
     beak["clear"] = 0.06
-    fur = dict(length=0.014, density=22000.0, radius=0.0024) if FUR else None
+    fur = dict(length=0.015, density=22000.0, radius=0.0024) if FUR else None
+    paint += [fluff(name + "_fcrown", piv, (0, 0.0, 0.82), 0.12, 2.6, (1.2, 1.1, 0.8)),
+              fluff(name + "_fchest", piv, (0, -0.22, 0.36), 0.16, 1.6, (1.2, 0.8, 0.9))]
     body = sculpt.sculpt(ch, shape, paint, ev + br + [beak], fuzz=0.6, fur=fur)
     arms = []
     for side in (-1, 1):
@@ -684,6 +786,9 @@ def make_character(name, x=0.0, y=0.0, z=0.0):
     root.scale = (d["size"],) * 3
     piv = empty(name + "_piv", (0, 0, 0), root)  # squash & stretch from the floor
     ch = dict(name=name, root=root, piv=piv, mouth=None, smile=None, size=d["size"])
+    CHARS.append(ch)
+    global LID_COLOR
+    LID_COLOR = None if d["kind"] == "robot" else (d.get("skin") if d["kind"] == "kid" else d.get("body"))
     if d["kind"] in KINDS:
         KINDS[d["kind"]](name, d, root, piv, ch)
         mouth_set(ch, 1, 0.0)
@@ -820,7 +925,7 @@ def _blob(name, d, root, piv, ch):
                            scale=(1.3, 0.7, 0.85)))
     my, mz = -0.45, HZ - 0.24
     mouth = sphere(name + "_mouth", 0.09, (0, my, mz), mat("#5A1020", 0.4), piv, scale=(1.2, 0.35, 0.05))
-    sphere(name + "_tongue", 0.055, (0, -0.02, -0.04), mat("#FF5A7A", 0.5), mouth, scale=(1, 0.8, 0.5))
+    sphere(name + "_tongue", 0.055, (0, -0.045, -0.045), mat("#FF6F8E", 0.45), mouth, scale=(1.05, 0.5, 0.45))
     w = 0.075
     smile = curve_line(name + "_smile", [(-w, 0, w * 0.45), (0, 0, -w * 0.25), (w, 0, w * 0.45)], 0.013,
                        mat("#5A1020", 0.4), piv, (0, my - 0.02, mz + 0.015))
@@ -830,8 +935,20 @@ def _blob(name, d, root, piv, ch):
     mouth["clear"] = 0.13
     face += ev + br + [mouth, smile]
     furry = not (d.get("bee") or d.get("snout") or frog)
+    if furry:  # fluffier in the right places: a soft crown, cheek tufts, a fuzzy tail; short on belly + muzzle
+        paint += [fluff(name + "_fcrown", piv, (0, 0.02, HZ + 0.36), 0.2, 2.4, (1.3, 1.1, 0.7)),
+                  fluff(name + "_fbelly", piv, (0, -0.26, 0.3), 0.24, 0.75, (1.0, 0.8, 1.12)),
+                  fluff(name + "_fmuzzle", piv, (0, -0.4, HZ - 0.18), 0.17, 0.5, (1.35, 0.7, 0.9))]
+        for side in (-1, 1):
+            paint.append(fluff(f"{name}_fcheek{side}", piv, (side * 0.42, -0.12, HZ - 0.12), 0.14, 1.9))
+        if d.get("tail"):
+            paint.append(fluff(name + "_ftail", piv, (0, 0.44, 0.26), 0.12, 2.2))
+    if d.get("whiskers"):
+        face += whiskers(name, piv, 0.12, -0.46, HZ - 0.15)
+    if d.get("lashes"):
+        lashes(ev, 0.15)
     sculpt.sculpt(ch, shape, paint, face, fuzz=0.0 if d.get("bee") else 0.7,
-                  fur={} if furry and FUR else None)
+                  fur=dict(length=0.019) if furry and FUR else None)
     arms = []
     for side in (-1, 1):  # chubby arms with mitten hands
         sh = empty(f"{name}_sh{side}", (side * 0.25, -0.02, 0.48), piv)
@@ -1885,29 +2002,112 @@ def shot(cam, tgt, f0, f1, pos0, tgt0, lens, pos1=None, tgt1=None):
 # ------------------------------------------------------------------ acting
 def blink(ch, f):
     for e in ch["eyes"]:
+        tgt = next((c for c in e.children if c.name.endswith("_bl")), e)
         for ff, z in ((f - 1, 1.0), (f + 1, 0.08), (f + 3, 1.0)):
-            key(e, "scale", ff, (1, 1, z))
+            key(tgt, "scale", ff, (1, 1, z))
 
 
 def eyes_big(ch, f, s=1.25, d=4, sound="sparkle"):
+    """Surprised eyes: a little wider + taller and the pupils shrink (they never pop out of the face)."""
     if sound:
         sfx(f - d, sound)
+    s = 1.0 + min(0.16, (s - 1.0) * 0.55)
+    brows(ch, f, 0.04, d)
+    brow_tilt(ch, f, -0.15, d)
+    lids(ch, f, 0.0, 0.0, d)
     for e in ch["eyes"]:
-        key(e, "scale", f - d, (1, 1, 1))
-        key(e, "scale", f, (s, s, s))
+        key(e, "scale", f - d, tuple(e.scale))
+        key(e, "scale", f, (s, 1, s * 1.04))
+    for p in ch["pupils"]:
+        key(p, "scale", f - d, tuple(p.scale))
+        key(p, "scale", f, (0.82, 1, 0.82))
 
 
 def eyes_norm(ch, f, d=4):
     for e in ch["eyes"]:
         key(e, "scale", f - d, tuple(e.scale))
         key(e, "scale", f, (1, 1, 1))
+    for p in ch["pupils"]:
+        if p.animation_data:
+            key(p, "scale", f, (1, 1, 1))
+    for b in ch.get("brows") or []:
+        if b.animation_data:
+            key(b, "location", f, (b.location[0], b.location[1], b["z0"]))
+            key(b, "rotation_euler", f, (0, 0, 0))
+    lids(ch, f, 0.0, 0.0, d)
+    sm = ch.get("smile")
+    if sm is not None and sm.animation_data:
+        key(sm, "scale", f, (1, 1, 1))
 
 
 def eyes_happy(ch, f, d=3):
     """^^ closed happy eyes."""
     for e in ch["eyes"]:
         key(e, "scale", f - d, tuple(e.scale))
-        key(e, "scale", f, (1.1, 1, 0.22))
+        key(e, "scale", f, (1.05, 1, 0.2))
+    brows(ch, f, 0.025, d)
+    brow_tilt(ch, f, -0.12, d)
+    smile_shape(ch, f, 1.4, 1.3, d)
+
+
+def lids(ch, f, close=0.0, tilt=0.0, d=4):
+    """Eyelids: close 0 = wide open, 0.5 = half (sleepy/smug), 1 = shut. tilt > 0 = angry (inner ends down),
+    tilt < 0 = sad (outer ends down)."""
+    for e in ch.get("eyes") or []:
+        side = 1 if e.location[0] > 0 else -1
+        t = next((c for c in e.children if c.name.endswith("_lidt")), None)
+        if t is None:
+            continue
+        lid = t.children[0].children[0]
+        key(lid, "rotation_euler", f - d, tuple(lid.rotation_euler))
+        key(lid, "rotation_euler", f, (-math.pi / 2 + close * math.pi * 0.95, 0, 0))
+        key(t, "rotation_euler", f - d, tuple(t.rotation_euler))
+        key(t, "rotation_euler", f, (0, -side * tilt, 0))
+
+
+def brow_tilt(ch, f, tilt=0.0, d=4):
+    """Brows: tilt > 0 = angry/determined (inner ends down), < 0 = sad/worried (inner ends up)."""
+    for b in ch.get("brows") or []:
+        side = 1 if b.location[0] > 0 else -1
+        key(b, "rotation_euler", f - d, tuple(b.rotation_euler))
+        key(b, "rotation_euler", f, (0, -side * tilt, 0))
+
+
+def smile_shape(ch, f, curve=1.0, width=1.0, d=4):
+    """The closed mouth line: curve 1 = smile, 0 = flat, -1 = frown; width > 1 = big grin."""
+    sm = ch.get("smile")
+    if sm is None:
+        return
+    key(sm, "scale", f - d, tuple(sm.scale))
+    key(sm, "scale", f, (width, 1, curve if abs(curve) > 0.05 else 0.05))
+
+
+def feel(ch, f, mood="neutral", d=5):
+    """Whole-face expressions: brows, eyelids, eyes, pupils and mouth together.
+    moods: neutral, happy, sad, angry, surprised, scared, sleepy, sly, proud"""
+    M = {  # brows up, brow tilt, lid close, lid tilt, eye scale, pupil, mouth curve, width, open
+        "neutral":   (0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0),
+        "happy":     (0.025, -0.1, 0.15, -0.1, 1.0, 1.08, 1.3, 1.25, 0.0),
+        "sad":       (0.01, -0.45, 0.38, -0.35, 0.98, 1.1, -0.9, 0.9, 0.0),
+        "angry":     (-0.03, 0.5, 0.35, 0.4, 1.0, 0.85, -0.6, 1.0, 0.0),
+        "surprised": (0.05, -0.15, 0.0, 0.0, 1.12, 0.8, 0.0, 1.0, 0.55),
+        "scared":    (0.04, -0.4, 0.0, -0.15, 1.1, 0.75, -0.5, 0.9, 0.35),
+        "sleepy":    (-0.005, -0.1, 0.55, -0.1, 1.0, 1.0, 0.4, 0.9, 0.0),
+        "sly":       (0.0, 0.25, 0.45, 0.2, 1.0, 0.95, 0.8, 1.15, 0.0),
+        "proud":     (0.03, 0.0, 0.3, 0.0, 1.0, 1.0, 1.2, 1.2, 0.0),
+    }
+    bu, bt, lc, lt, es, ps, mc, mw, mo = M.get(mood, M["neutral"])
+    brows(ch, f, bu, d)
+    brow_tilt(ch, f, bt, d)
+    lids(ch, f, lc, lt, d)
+    for e in ch.get("eyes") or []:
+        key(e, "scale", f - d, tuple(e.scale))
+        key(e, "scale", f, (es, 1, es))
+    for p_ in ch.get("pupils") or []:
+        key(p_, "scale", f - d, tuple(p_.scale))
+        key(p_, "scale", f, (ps, 1, ps))
+    smile_shape(ch, f, mc, mw, d)
+    mouth_set(ch, f, mo)
 
 
 def brows(ch, f, up=0.0, d=4):
@@ -1918,8 +2118,13 @@ def brows(ch, f, up=0.0, d=4):
 
 
 def look(ch, f, dx, dz=0.0):
+    """Move the pupils (dx, dz were tuned for the big round eyes: scaled to each eye, kept inside it)."""
     for p in ch["pupils"]:
-        key(p, "location", f, (dx, p.location[1], dz))
+        r = float(p.get("r", 0.165))
+        k = r / 0.165
+        x = max(-0.34 * r, min(0.34 * r, dx * k))
+        z = max(-0.28 * r, min(0.3 * r, dz * k + r * 0.04))
+        key(p, "location", f, (x, p.location[1], z))
 
 
 def mouth_set(ch, f, open_z, w=1.0):
@@ -1928,6 +2133,8 @@ def mouth_set(ch, f, open_z, w=1.0):
     if m is None:
         return
     is_open = open_z > 0.2
+    if is_open:  # a wide, friendly open mouth - not a tall dark hole that reads as a nose
+        open_z, w = 0.22 + (open_z - 0.2) * 0.35, w * 1.15
     key(m, "scale", f, (w, 0.35, open_z if is_open else 0.05))
     if sm is not None:
         for o, hide in ((sm, is_open), (m, not is_open)):
@@ -1980,28 +2187,121 @@ def place(ch, f, x, y=None, z=0.0, interp=None):
     key(r, "location", f, (x, r.location[1] if y is None else y, z), interp)
 
 
+def _kz(o, path, idx, f, v, left=None, right=None):
+    """Key one channel; optional handle types ('VECTOR' = no slow-down there)."""
+    vec = list(getattr(o, path))
+    vec[idx] = v
+    setattr(o, path, vec)
+    o.keyframe_insert(data_path=path, index=idx, frame=f)
+    if left or right:
+        fc = o.animation_data.action.fcurves.find(path, index=idx)
+        for kp in fc.keyframe_points:
+            if int(round(kp.co[0])) == f:
+                if left:
+                    kp.handle_left_type = left
+                if right:
+                    kp.handle_right_type = right
+
+
 def hop(ch, f0, x0, x1, h=0.4, n=12, y0=None, y1=None, sound=True):
+    if h < 0.2:
+        return walk(ch, f0, x0, x1, n, y0, y1, sound)
     r, p = ch["root"], ch["piv"]
     y0 = r.location[1] if y0 is None else y0
     y1 = y0 if y1 is None else y1
     if sound:
-        sfx(f0 + 2, "boing")
+        sfx(f0 + 3, "boing")
         sfx(f0 + n, "land")
+    t0, t1 = f0 + 3, f0 + n          # take-off, landing
+    # anticipation: crouch, then stretch out of the ground
     key(p, "scale", f0, (1, 1, 1))
-    key(p, "scale", f0 + 2, (1.12, 1.12, 0.82))
-    key(r, "location", f0 + 2, (x0, y0, 0))
-    key(p, "scale", f0 + 5, (0.92, 0.92, 1.15))
-    key(r, "location", f0 + n // 2 + 1, ((x0 + x1) / 2, (y0 + y1) / 2, h))
-    key(p, "scale", f0 + n - 1, (0.95, 0.95, 1.08))
-    key(r, "location", f0 + n, (x1, y1, 0))
-    key(p, "scale", f0 + n + 1, (1.15, 1.15, 0.8))
-    key(p, "scale", f0 + n + 5, (1, 1, 1))
+    key(p, "scale", f0 + 2, (1.14, 1.14, 0.8))
+    key(p, "scale", t0 + 2, (0.9, 0.9, 1.17))
+    key(p, "scale", (t0 + t1) // 2, (1, 1, 1))
+    key(p, "scale", t1 - 1, (0.94, 0.94, 1.1))
+    key(p, "scale", t1 + 1, (1.18, 1.18, 0.78))   # splat on landing
+    key(p, "scale", t1 + 4, (0.97, 0.97, 1.04))   # rebound
+    key(p, "scale", t1 + 7, (1, 1, 1))
+    # travel: steady across, height follows a gravity arc
+    for i, (x, y) in ((0, (x0, y0)), (1, (x1, y1))):
+        f = t0 if i == 0 else t1
+        _kz(r, "location", 0, f, x)
+        _kz(r, "location", 1, f, y)
+    _kz(r, "location", 2, f0, 0.0)
+    _kz(r, "location", 2, t0, 0.0, right="VECTOR")
+    span = t1 - t0
+    _kz(r, "location", 2, t0 + span * 0.25, h * 0.75)
+    _kz(r, "location", 2, t0 + span * 0.5, h)
+    _kz(r, "location", 2, t0 + span * 0.75, h * 0.75)
+    _kz(r, "location", 2, t1, 0.0, left="VECTOR")
+    if abs(x1 - x0) > 0.3:  # turn a bit into the jump
+        rz = r.rotation_euler[2]
+        d_ = 1 if x1 > x0 else -1
+        key(r, "rotation_euler", f0, (0, 0, rz))
+        key(r, "rotation_euler", t0, (0, 0, rz + math.radians(22) * d_))
+        key(r, "rotation_euler", t1 + 6, (0, 0, rz))
+    # a little forward tilt in the air
+    dirx = 1 if x1 >= x0 else -1
+    lean(ch, t0 + 2, -6 * dirx if x1 != x0 else 0, d=2)
+    lean(ch, t1 + 4, 0, d=4)
+    # arms: up during the jump, flop down after landing (overshoot = follow-through)
     for a in ch["arms"]:
         side = 1 if a.location[0] > 0 else -1
-        key(a, "rotation_euler", f0 + 2, (0, 0, 0))
-        key(a, "rotation_euler", f0 + 6, (0, -side * 1.6, 0))
-        key(a, "rotation_euler", f0 + n + 2, (0, 0, 0))
-    return f0 + n + 5
+        key(a, "rotation_euler", f0, tuple(a.rotation_euler))
+        key(a, "rotation_euler", f0 + 2, (0.2, -side * 0.15, 0))
+        key(a, "rotation_euler", t0 + 3, (-0.2, -side * 1.7, 0))
+        key(a, "rotation_euler", t1, (0, -side * 1.2, 0))
+        key(a, "rotation_euler", t1 + 3, (0.15, side * 0.18, 0))
+        key(a, "rotation_euler", t1 + 7, (0, 0, 0))
+    return t1 + 7
+
+
+def walk(ch, f0, x0, x1, n=12, y0=None, y1=None, sound=True):
+    """A little waddle from x0 to x1 in n frames: alternating stepping feet, body bob + rock, arm swing."""
+    r, p = ch["root"], ch["piv"]
+    y0 = r.location[1] if y0 is None else y0
+    y1 = y0 if y1 is None else y1
+    steps = max(2, round(n / 6))
+    step = n / steps
+    if abs(x1 - x0) > 0.05:  # look where you're going, then turn back to the camera
+        rz = r.rotation_euler[2]
+        dirn = 1 if x1 > x0 else -1
+        key(r, "rotation_euler", f0, (0, 0, rz))
+        key(r, "rotation_euler", f0 + 4, (0, 0, rz + math.radians(32) * dirn))
+        key(r, "rotation_euler", f0 + n - 2, (0, 0, rz + math.radians(32) * dirn))
+        key(r, "rotation_euler", f0 + n + 4, (0, 0, rz))
+    _kz(r, "location", 0, f0, x0)
+    _kz(r, "location", 1, f0, y0)
+    _kz(r, "location", 2, f0, 0.0)
+    _kz(r, "location", 0, f0 + n, x1)
+    _kz(r, "location", 1, f0 + n, y1)
+    _kz(r, "location", 2, f0 + n, 0.0)
+    feet = ch.get("feet") or []
+    for k in range(steps):
+        fs = f0 + k * step
+        fm = fs + step / 2
+        side = 1 if k % 2 else -1
+        key(p, "location", int(fs), (0, 0, 0))
+        key(p, "location", int(fm), (0, 0, 0.035))
+        key(p, "rotation_euler", int(fm), (0, math.radians(5 * side), 0))
+        if len(feet) == 2:
+            ft = feet[0 if side < 0 else 1]
+            if "home" not in ft:
+                ft["home"] = tuple(ft.location)
+            hx, hy, hz = ft["home"]
+            key(ft, "location", int(fs), (hx, hy, hz))
+            key(ft, "location", int(fm), (hx, hy - 0.05, hz + 0.06))
+            key(ft, "location", int(fs + step), (hx, hy, hz))
+        for a in ch["arms"]:
+            aside = 1 if a.location[0] > 0 else -1
+            key(a, "rotation_euler", int(fm), (0.45 * side * aside, -aside * 0.12, 0))
+        if sound:
+            sfx(int(fs) + 1, "tiptoe")
+    key(p, "location", f0 + n, (0, 0, 0))
+    key(p, "rotation_euler", f0 + n + 2, (0, 0, 0))
+    for a in ch["arms"]:
+        key(a, "rotation_euler", f0 + n + 3, (0, 0, 0))
+    return f0 + n + 3
 
 
 def jump_joy(ch, f0, h=0.45, n=12, times=2, sound="ding"):
@@ -2049,6 +2349,199 @@ def idle(ch, f0, f1, period=24, amt=0.03):
         key(p, "scale", f, (1, 1, 1))
         key(p, "scale", f + period // 2, (1 + amt * 0.5, 1 + amt * 0.5, 1 - amt))
         f += period
+
+
+def _wave(o, path, idx, amp, period, phase=0.0):
+    """Add a gentle never-ending sine on top of whatever is keyed (F-curve modifier, additive)."""
+    if o.animation_data is None or o.animation_data.action is None or \
+            o.animation_data.action.fcurves.find(path, index=idx) is None:
+        o.keyframe_insert(data_path=path, index=idx, frame=1)
+    fc = o.animation_data.action.fcurves.find(path, index=idx)
+    m = fc.modifiers.new("FNGENERATOR")
+    m.function_type = "SIN"
+    m.amplitude = amp
+    m.phase_multiplier = math.tau / period
+    m.phase_offset = phase
+    m.use_additive = True
+
+
+# ------------------------------------------------------------------ background life
+INDOOR = ("indoor", "space", "underwater")
+
+
+def _free_spot(x, y, h=0.8, r=0.35):
+    """True if a small character fits at (x, y): standing on the ground, nothing in the way, and seen from the front."""
+    dg = bpy.context.evaluated_depsgraph_get()
+    from mathutils import Vector
+    hit, loc, *_ = sc.ray_cast(dg, Vector((x, y, 4.0)), Vector((0, 0, -1)), distance=6.0)
+    if not hit or loc.z > 0.12:
+        return False   # no ground here, or something (bench, bush, table...) stands on it
+    for dx in (-r, 0, r):
+        for dz in (0.15, h * 0.6, h):
+            o = Vector((x + dx, -3.5, dz))
+            tgt = Vector((x + dx, y - 0.05, dz))
+            d = tgt - o
+            hit, loc, *_ = sc.ray_cast(dg, o, d.normalized(), distance=d.length)
+            if hit:
+                return False   # something in front would hide them
+    return True
+
+
+def add_extras(set_kind, sky, end, rnd):
+    """Background friends (smaller, further back) doing their own little things - walking by, waving,
+    hopping, playing with a ball - plus birds and butterflies outdoors. The set feels alive."""
+    global FUR
+    main = {c["name"] for c in CHARS}
+    pool = [n for n in CAST if n not in main and CAST[n]["kind"] != "robot"]
+    rnd.shuffle(pool)
+    outdoors = sky not in INDOOR
+    spots = []
+    for _ in range(60):
+        x, y = rnd.uniform(-3.2, 3.2), rnd.uniform(1.6, 3.4)
+        if all(abs(x - sx) > 0.9 for sx, _y in spots) and _free_spot(x, y):
+            spots.append((x, y))
+        if len(spots) >= (3 if outdoors else 2):
+            break
+    fur, FUR = FUR, False   # small + far away: no fur strands needed (keeps renders fast)
+    try:
+        for i, (x, y) in enumerate(spots):
+            nm = pool[i % len(pool)]
+            ch = make_character(nm, x, y)
+            k = 0.62
+            ch["root"].scale = tuple(v * k for v in ch["root"].scale)
+            ch["extra"] = True
+            turn(ch, 1, rnd.uniform(-25, 25), 1)
+            role = rnd.choice(["walk", "wave", "hop", "look"]) if i else "walk"
+            _extra_role(ch, role, x, y, end, rnd)
+    finally:
+        FUR = fur
+    if outdoors:
+        for i in range(rnd.choice((2, 3))):
+            _flyer(f"flyer{i}", end, rnd)
+        for i in range(rnd.choice((1, 2))):
+            _butterfly(f"butterfly{i}", end, rnd)
+
+
+def _extra_role(ch, role, x, y, end, rnd):
+    f = rnd.randint(5, 30)
+    if role == "walk":  # stroll a little way left/right and back, with pauses
+        x0 = x
+        while f < end - 40:
+            dx = rnd.choice((-1, 1)) * rnd.uniform(0.4, 0.9)
+            x1 = x0 + dx
+            if not _free_spot(x1, y):
+                x1 = x0 - dx
+            n = int(abs(x1 - x0) * 34) + 12
+            walk(ch, f, x0, x1, n, y, y, sound=False)
+            x0 = x1
+            f += n + rnd.randint(20, 60)
+    elif role == "wave":
+        while f < end - 30:
+            a = ch["arms"][rnd.randint(0, 1)]
+            side = 1 if a.location[0] > 0 else -1
+            key(a, "rotation_euler", f, (0, 0, 0))
+            for k in range(3):
+                key(a, "rotation_euler", f + 4 + k * 6, (0, -side * 2.4, side * 0.3))
+                key(a, "rotation_euler", f + 7 + k * 6, (0, -side * 2.0, -side * 0.3))
+            key(a, "rotation_euler", f + 26, (0, 0, 0))
+            if rnd.random() < 0.6:
+                eyes_happy(ch, f + 4)
+                eyes_norm(ch, f + 26)
+            f += rnd.randint(70, 140)
+    elif role == "hop":
+        while f < end - 30:
+            hop(ch, f, x, x, 0.3, 12, y, y, sound=False)
+            f += rnd.randint(50, 110)
+    else:  # look around, now and then a happy face
+        while f < end - 20:
+            look(ch, f, rnd.uniform(-0.06, 0.06), rnd.uniform(-0.02, 0.03))
+            if rnd.random() < 0.3:
+                feel(ch, f, rnd.choice(["happy", "sly", "surprised"]))
+                feel(ch, f + 30, "neutral")
+            turn(ch, f + 2, rnd.uniform(-35, 35), 8)
+            f += rnd.randint(40, 90)
+
+
+def _flyer(name, end, rnd):
+    """A little bird flapping across the sky now and then."""
+    col = rnd.choice(["#4DA6FF", "#FF6B6B", "#FFD23F", "#2E3A59", "#FFFFFF"])
+    root = empty(name, (0, 0, 0))
+    body = mat(col, 0.5)
+    sphere(name + "_b", 0.09, (0, 0, 0), body, root, scale=(1.3, 0.9, 0.85), sub=1, seg=16)
+    sphere(name + "_h", 0.06, (0.11, 0, 0.04), body, root, sub=1, seg=16)
+    cone(name + "_k", 0.02, 0.0, 0.05, (0.18, 0, 0.04), mat("#FFA53D", 0.4), root, rot=(0, math.pi / 2, 0))
+    wings = []
+    for s_ in (-1, 1):
+        w = empty(f"{name}_wp{s_}", (0, s_ * 0.03, 0.03), root)
+        sphere(f"{name}_w{s_}", 0.09, (0, s_ * 0.08, 0), body, w, scale=(0.7, 1.2, 0.15), sub=0, seg=12)
+        wings.append((w, s_))
+    f = rnd.randint(1, 60)
+    show(root, 1, False)
+    while f < end:
+        d_ = rnd.choice((-1, 1))
+        y, z = rnd.uniform(6, 11), rnd.uniform(2.4, 4.2)
+        n = rnd.randint(90, 150)
+        show(root, f, True)
+        root.rotation_euler = (0, 0, 0 if d_ > 0 else math.pi)
+        root.keyframe_insert("rotation_euler", frame=f)
+        key(root, "location", f, (-7 * d_, y, z), "LINEAR")
+        key(root, "location", f + n, (7 * d_, y, z + rnd.uniform(-0.5, 0.8)), "LINEAR")
+        for w, s_ in wings:
+            for k in range(f, f + n, 6):
+                key(w, "rotation_euler", k, (s_ * 0.9, 0, 0))
+                key(w, "rotation_euler", k + 3, (-s_ * 0.6, 0, 0))
+        show(root, f + n, False)
+        f += n + rnd.randint(60, 200)
+
+
+def _butterfly(name, end, rnd):
+    """A butterfly fluttering around near the ground in the background."""
+    root = empty(name, (0, 0, 0))
+    c = mat(rnd.choice(["#FF8FC8", "#FFD23F", "#8FD3FF", "#B57BFF", "#FF8A3D"]), 0.4)
+    sphere(name + "_b", 0.012, (0, 0, 0), mat("#2B2B33", 0.5), root, scale=(1, 1, 3), sub=0, seg=8)
+    wings = []
+    for s_ in (-1, 1):
+        w = empty(f"{name}_wp{s_}", (0, 0, 0), root)
+        sphere(f"{name}_w{s_}", 0.05, (s_ * 0.045, 0, 0.01), c, w, scale=(1, 0.12, 1.2), sub=0, seg=12)
+        wings.append((w, s_))
+    x, y = rnd.uniform(-2.5, 2.5), rnd.uniform(1.2, 2.6)
+    for f in range(1, end + 30, 20):
+        x = max(-3.2, min(3.2, x + rnd.uniform(-0.4, 0.4)))
+        y = max(1.0, min(3.0, y + rnd.uniform(-0.25, 0.25)))
+        key(root, "location", f, (x, y, rnd.uniform(0.35, 1.0)))
+    for w, s_ in wings:
+        for k in range(1, end + 30, 4):
+            key(w, "rotation_euler", k, (0, s_ * 1.1, 0))
+            key(w, "rotation_euler", k + 2, (0, -s_ * 0.4, 0))
+
+
+def add_life(end):
+    """Characters never freeze: breathing, a slow sway, drifting arms and natural blinks (every 2-5 s)."""
+    for i, ch in enumerate(CHARS):
+        rnd = random.Random(sum(map(ord, ch["name"])) * 7 + i)
+        p = ch["piv"]
+        per = rnd.uniform(52, 64)
+        ph = rnd.uniform(0, math.tau)
+        _wave(p, "scale", 2, 0.016, per, ph)               # breathe in = a bit taller ...
+        _wave(p, "scale", 0, -0.006, per, ph)              # ... and a bit narrower
+        _wave(p, "scale", 1, -0.006, per, ph)
+        _wave(p, "rotation_euler", 1, math.radians(1.6), rnd.uniform(80, 110), rnd.uniform(0, math.tau))
+        _wave(p, "rotation_euler", 0, math.radians(1.0), rnd.uniform(70, 95), rnd.uniform(0, math.tau))
+        for a in ch.get("arms") or []:
+            side = 1 if a.location[0] > 0 else -1
+            _wave(a, "rotation_euler", 1, side * math.radians(4), per, ph + 1.0)
+            _wave(a, "rotation_euler", 0, math.radians(3), per * 1.3, ph + side)
+        lids = [c for e in ch.get("eyes") or [] for c in e.children if c.name.endswith("_bl")]
+        f = rnd.randint(18, 50)
+        while lids and f < end - 4:
+            for b in lids:
+                key(b, "scale", f - 1, (1, 1, 1))
+                key(b, "scale", f + 1, (1, 1, 0.1))
+                key(b, "scale", f + 3, (1, 1, 1))
+            if rnd.random() < 0.15:      # sometimes a quick double blink
+                f += 6
+                continue
+            f += rnd.randint(50, 120)
 
 
 def wobble(obj, f0, f1, amp=8, step=3, axis=2, sound="tick"):

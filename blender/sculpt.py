@@ -147,7 +147,8 @@ def sculpt(ch, shape, paint, face=(), res=0.012, fuzz=0.6, rough=0.55, coat=0.0,
         e.stiffness = float(o.get("stiff", STIFF))
         e.radius = r / _k(e.stiffness)
         e.size_x, e.size_y, e.size_z = scl
-        info.append((np.array(_unit(o, inv)), r * (scl.x + scl.y + scl.z) / 3, _color(o)))
+        info.append((np.array(_unit(o, inv)), r * (scl.x + scl.y + scl.z) / 3, _color(o),
+                     float(o.get("fur", 1.0)), float(o.get("furlen", 1.0))))
     bpy.context.view_layer.update()
     dg = bpy.context.evaluated_depsgraph_get()
     me = bpy.data.meshes.new_from_object(mo.evaluated_get(dg))
@@ -166,7 +167,7 @@ def sculpt(ch, shape, paint, face=(), res=0.012, fuzz=0.6, rough=0.55, coat=0.0,
     V = V.reshape(n, 3)
     Vh = np.c_[V, np.ones(n)]
     dists, cols = [], []
-    for A, rad, col in info:
+    for A, rad, col, _fd, _fl in info:
         q = Vh @ A.T
         dists.append((np.linalg.norm(q[:, :3], axis=1) - 1.0) * rad)
         cols.append(col)
@@ -174,13 +175,20 @@ def sculpt(ch, shape, paint, face=(), res=0.012, fuzz=0.6, rough=0.55, coat=0.0,
     w = np.exp(-(D - D.min(0)) / blend)
     w /= w.sum(0)
     C = (w[:, :, None] * np.array(cols)[:, None, :]).sum(0)
+    FD = (w * np.array([i[3] for i in info])[:, None]).sum(0)   # fur density per part (0 = bare skin)
+    FL = (w * np.array([i[4] for i in info])[:, None]).sum(0)   # fur length per part
     for o in paint:
         A = np.array(_unit(o, inv))
         s = np.linalg.norm((Vh @ A.T)[:, :3], axis=1)
         soft = float(o.get("soft", 0.06))
         t = np.clip((1.0 + soft - s) / (2 * soft), 0.0, 1.0)
         t = t * t * (3 - 2 * t)
-        C = C * (1 - t[:, None]) + _color(o)[None, :] * t[:, None]
+        if not o.get("nocolor"):
+            C = C * (1 - t[:, None]) + _color(o)[None, :] * t[:, None]
+        if "fur" in o:
+            FD = FD * (1 - t) + float(o["fur"]) * t
+        if "furlen" in o:
+            FL = FL * (1 - t) + float(o["furlen"]) * t
     # where fur grows: everywhere except right around the eyes, nose and mouth (keeps the face clean)
     fm = np.ones(n)
     for f in face:
@@ -192,7 +200,9 @@ def sculpt(ch, shape, paint, face=(), res=0.012, fuzz=0.6, rough=0.55, coat=0.0,
         t = np.clip((dd - rad) / 0.06, 0.0, 1.0)
         fm = np.minimum(fm, t * t * (3 - 2 * t))
     fa = me.attributes.new("fur", "FLOAT", "POINT")
-    fa.data.foreach_set("value", fm)
+    fa.data.foreach_set("value", fm * FD)
+    la = me.attributes.new("furlen", "FLOAT", "POINT")
+    la.data.foreach_set("value", FL)
     ca = me.color_attributes.new("Col", "FLOAT_COLOR", "POINT")
     ca.data.foreach_set("color", np.c_[C, np.ones(n)].ravel())
     body.data.materials.append(plush_material(ch["name"] + "_plush", fuzz, rough, coat, bump, grain))
@@ -206,7 +216,7 @@ def sculpt(ch, shape, paint, face=(), res=0.012, fuzz=0.6, rough=0.55, coat=0.0,
         if y0 is None or y1 is None:
             continue
         mw = f.matrix_world.copy()
-        delta = piv.matrix_world.to_3x3() @ Vector((0, y1 - y0, 0))
+        delta = piv.matrix_world.to_3x3() @ Vector((0, y1 - y0 + float(f.get("sink", 0.0)), 0))
         mw.translation = mw.translation + delta
         f.matrix_world = mw
     # ---- remove the old parts (their other children are kept, re-hung on the pivot where they are)
@@ -255,9 +265,10 @@ def solid_skin(o, hexcol=None):
     if "Col" not in me.color_attributes:
         ca = me.color_attributes.new("Col", "FLOAT_COLOR", "POINT")
         ca.data.foreach_set("color", np.tile(np.r_[c, 1.0], len(me.vertices)))
-    if "fur" not in me.attributes:
-        fa = me.attributes.new("fur", "FLOAT", "POINT")
-        fa.data.foreach_set("value", np.ones(len(me.vertices)))
+    for nm in ("fur", "furlen"):
+        if nm not in me.attributes:
+            fa = me.attributes.new(nm, "FLOAT", "POINT")
+            fa.data.foreach_set("value", np.ones(len(me.vertices)))
     return o
 
 
@@ -274,7 +285,7 @@ def match_skin(parts, body):
         o.data.materials.append(m)
 
 
-def add_fur(body, length=0.017, density=20000.0, radius=0.0026, seed=0):
+def add_fur(body, length=0.017, density=20000.0, radius=0.0026, seed=0, comb=-0.4):
     """Short soft fur over the whole skin (real strands, coloured like the skin under them)."""
     ng = bpy.data.node_groups.new(body.name + "_fur", "GeometryNodeTree")
     ng.interface.new_socket("Geometry", in_out="INPUT", socket_type="NodeSocketGeometry")
@@ -302,9 +313,10 @@ def add_fur(body, length=0.017, density=20000.0, radius=0.0026, seed=0):
     res.inputs["Count"].default_value = 3
     L(line.outputs[0], res.inputs["Curve"])
     # strand direction: along the surface normal, combed a little downwards, plus a random wiggle
+    comb_down = comb
     comb = N.new("ShaderNodeVectorMath")
     comb.operation = "ADD"
-    comb.inputs[1].default_value = (0, 0, -0.4)
+    comb.inputs[1].default_value = (0, 0, comb_down)
     L(dist.outputs["Normal"], comb.inputs[0])
     rnd = N.new("FunctionNodeRandomValue")
     rnd.data_type = "FLOAT_VECTOR"
@@ -329,7 +341,14 @@ def add_fur(body, length=0.017, density=20000.0, radius=0.0026, seed=0):
     fl.operation = "MULTIPLY"
     L(scl.outputs[1], fl.inputs[0])
     L(fa.outputs["Attribute"], fl.inputs[1])
-    L(fl.outputs[0], inst.inputs["Scale"])
+    la = N.new("GeometryNodeInputNamedAttribute")  # longer tufts on the head, cheeks, tail...
+    la.data_type = "FLOAT"
+    la.inputs["Name"].default_value = "furlen"
+    fl2 = N.new("ShaderNodeMath")
+    fl2.operation = "MULTIPLY"
+    L(fl.outputs[0], fl2.inputs[0])
+    L(la.outputs["Attribute"], fl2.inputs[1])
+    L(fl2.outputs[0], inst.inputs["Scale"])
     real = N.new("GeometryNodeRealizeInstances")
     L(inst.outputs[0], real.inputs[0])
     # colour of the skin under each strand

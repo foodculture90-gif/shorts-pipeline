@@ -40,6 +40,11 @@ def build(seg):
     T.make_world(sky)
     cam, tgt = T.make_camera()
     end, thumb = gags.GAGS[seg["gag"]](seg, cam, tgt)
+    try:  # friends in the background, birds, butterflies
+        T.add_extras(seg.get("set", "street"), sky, end, random.Random(seg.get("seed", 1) * 13 + 5))
+    except Exception as e:  # noqa: BLE001 - the short still works without them
+        print("extras skipped:", e)
+    T.add_life(end)  # breathing, sway, blinks - nobody stands frozen
     T.sc.frame_start, T.sc.frame_end = 1, end
     T.setup_render(samples, res)
     return end, thumb
