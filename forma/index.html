@@ -683,25 +683,27 @@ function renderOnboarding(v) {
 
 function renderToday(v) {
   const t = dayStr(), tg = targets(S.profile), tot = dayTotals(t), h = healthOf(t);
-  const stk = streak();
+  const stk = streak(), lost = lostStreak();
   const steps = r0(h?.steps || 0), T = trainingTotals(), trainedToday = trainingMap().has(t);
   const vtile = (l, n, p) => `<div class="vtile"><span class="eyebrow">${l}</span><b class="num">${n}</b><span class="vbar"><i style="width:${Math.max(0, Math.min(100, (p || 0) * 100))}%"></i></span></div>`;
   const macro = (l, val, goal, col) => `<div class="macro"><div class="lbl"><span>${l}</span><span class="num">${r0(val)} / ${goal} g</span></div><div class="bar"><i style="width:${Math.min(100, val / goal * 100)}%;background:${col}"></i></div></div>`;
   const tile = (l, n, unit = "") => `<div class="tile"><div class="l">${l}</div><div class="n num">${n}<span class="sub"> ${unit}</span></div></div>`;
   v.innerHTML = `${demoBanner()}
-    <div class="vrow3" style="margin-top:8px"><div class="vmini"><span class="sub">Streak</span><b class="num">${stk}d</b></div><div class="vmini"><span class="sub">Level</span><b class="num">${levelOf(avatarPoints().xp).L}</b></div>
+    <div class="vrow3" style="margin-top:8px"><div class="vmini"><span class="sub">Streak</span><b class="num" style="${stk && !of("meal", t).length ? "color:var(--amber)" : ""}">${stk}d</b></div><div class="vmini"><span class="sub">Level</span><b class="num">${levelOf(avatarPoints().xp).L}</b></div>
       <button class="vmini" id="toHouse" style="border:none;color:inherit"><span class="sub">Pts</span><b class="num" style="color:var(--accent)">${shortNum(wallet())}</b></button></div>
     <div class="card vhero" style="margin-top:14px">${stepRing(tot.kcal, tg.kcal)}<div><div class="eyebrow">Calories</div><div class="vbig num">${r0(tot.kcal).toLocaleString()}</div>
       <div class="sub num">of ${tg.kcal.toLocaleString()} kcal · ${tot.kcal > tg.kcal ? r0(tot.kcal - tg.kcal).toLocaleString() + " over" : r0(tg.kcal - tot.kcal).toLocaleString() + " left"}</div></div></div>
     <div class="vtiles">${vtile("Protein", r0(tot.p) + "g", tot.p / tg.protein)}${vtile("Burn", h && h.active_kcal != null ? r0(h.active_kcal) : "–", (h?.active_kcal || 0) / 600)}${vtile("Steps", steps.toLocaleString(), steps / (tg.steps || 1))}</div>
 
-    ${stk && !of("meal", t).length ? `<div class="demo" style="margin-top:12px;background:var(--accentSoft);color:var(--accent)">${ICON.flame}<span class="grow">Your ${stk}-day streak is waiting. Log a meal today to keep it going.</span></div>` : ""}
+    ${stk && !of("meal", t).length ? `<div class="demo" style="margin-top:12px;background:var(--amberSoft);color:var(--amber)">${ICON.flame}<span class="grow">Your ${stk}-day streak ends at midnight. Log a meal today to keep it going.</span></div>` : ""}
+    ${lost && ls.get("forma.lostseen", "") !== t ? `<div class="demo" id="lostCard" style="margin-top:12px;background:var(--redSoft);color:var(--red)">${ICON.flame}<span class="grow">Your ${lost}-day streak ended. Log a meal today to start a new one.</span><button class="x" id="lostX" aria-label="Dismiss" style="color:inherit">×</button></div>` : ""}
     <div style="margin-top:12px">${quickAddBox("qa")}</div>
     <div class="quick" style="margin-top:12px;grid-template-columns:repeat(5,1fr);gap:6px">
       <button id="qMeal">${ICON.camera}Snap meal</button><button id="qScan">${ICON.barcode}Barcode</button><button id="qWork">${ICON.train}Workout</button><button id="qWeight">${ICON.scale}Weight</button><button id="qBody">${ICON.body}Body check</button></div>
     <h2>Training</h2>${trainingSummary(false)}
     ${h ? "" : `<button class="card" id="toSync" style="margin-top:14px;width:100%;text-align:left;border:none;color:inherit;display:flex;gap:12px;align-items:center"><span style="color:var(--accent)">${ICON.watch}</span><span class="grow"><b>Connect Apple Health</b><div class="sub">Bring in your steps, calories burned and workouts from your iPhone.</div></span></button>`}`;
   bindPts("#toHouse");
+  if ($("#lostX")) $("#lostX").onclick = () => { ls.set("forma.lostseen", t); $("#lostCard").remove(); };
   bindQuickAdd("qa"); $("#qMeal").onclick = snapMeal; $("#qScan").onclick = scanBarcode; $("#qWork").onclick = workoutSheet; $("#qWeight").onclick = weightSheet; $("#qBody").onclick = physiqueCheck;
   if ($("#toSync")) $("#toSync").onclick = () => { go("profile"); setTimeout(() => $("#health")?.scrollIntoView({behavior: "smooth"}), 50); };
 }
@@ -1061,6 +1063,9 @@ async function lookupBarcode(code) {
 /* ---------------- streaks & badges ---------------- */
 const mealDays = () => new Set(of("meal").map(e => e.day));
 function streak() { if (!S.profile) return 0; const m = mealDays(); let d = dayStr(); if (!m.has(d)) d = addDays(d, -1); let n = 0; while (m.has(d)) { n++; d = addDays(d, -1); } return n; }
+/* a streak breaks the moment a whole day passes with nothing logged; returns the length of a streak that broke yesterday */
+function lostStreak() { if (!S.profile) return 0; const m = mealDays(), t = dayStr(), y = addDays(t, -1); if (m.has(t) || m.has(y)) return 0;
+  let n = 0, d = addDays(y, -1); while (m.has(d)) { n++; d = addDays(d, -1); } return n >= 2 ? n : 0; }
 function bestStreak() { let best = 0, cur = 0, prev = null; for (const d of [...mealDays()].sort()) { cur = prev && addDays(prev, 1) === d ? cur + 1 : 1; best = Math.max(best, cur); prev = d; } return best; }
 const BADGES = [
   ["first_meal", "First bite", "Log your first meal", c => [c.meals, 1]],
@@ -1104,7 +1109,7 @@ function badgesSection() {
 }
 
 /* ---------------- reminders (web push) ---------------- */
-const REM_DEFAULT = {enabled: false, lunch: "13:00", evening: "20:30", workout: "08:00", lunchOn: true, eveningOn: true, workoutOn: false};
+const REM_DEFAULT = {enabled: false, lunch: "13:00", evening: "20:30", late: "22:30", lost: "09:00", workout: "08:00", lunchOn: true, eveningOn: true, lateOn: true, lostOn: true, workoutOn: false};
 const remPrefs = () => ({...REM_DEFAULT, ...(S.profile.reminders || {})});
 const canPush = () => LIVE && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 async function pushCall(body) {
@@ -1146,7 +1151,7 @@ function remindersCard() {
     <label class="grow" for="rk_${k}"><b style="font-size:14px">${l}</b><div class="sub">${d}</div></label>
     <input class="in num" type="time" data-rt="${k}" value="${esc(r[k])}" aria-label="${l} time"></div>`;
   return `<h2>Reminders</h2><div class="card">${top}<div style="margin-top:10px">
-    ${row("lunch", "Midday check", "Only if nothing is logged yet today")}${row("evening", "Streak saver", "Only if today isn't logged")}</div>
+    ${row("lunch", "Midday check", "Only if nothing is logged yet today")}${row("evening", "Streak saver", "Only if today isn't logged")}${row("late", "Last chance", "Your streak ends at midnight")}${row("lost", "Streak ended", "The morning after a missed day")}</div>
     ${on ? `<button class="btn ghost small" id="remTest" style="margin-top:6px">Send a test</button>` : ""}</div>`;
 }
 function bindReminders() {
