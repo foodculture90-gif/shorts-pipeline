@@ -422,7 +422,7 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function toast(msg, act) { document.querySelectorAll(".toast").forEach(x => x.remove()); const t = document.createElement("div"); t.className = "toast"; t.textContent = msg;
   if (act) { const b = document.createElement("button"); b.className = "tact"; b.textContent = act.label; b.onclick = () => { t.remove(); act.fn(); }; t.appendChild(b); }
-  document.body.appendChild(t); setTimeout(() => t.remove(), act ? 5000 : 2600); }
+  document.body.appendChild(t); setTimeout(() => { if (t.isConnected) t.remove(); }, act ? 5000 : 2600); }
 const ls = { get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
              set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
 const ICON = {
@@ -743,8 +743,13 @@ function renderFood(v) {
 async function snapMeal() {
   const f = await pickPhoto(); if (!f) return;
   const img = await shrink(f), thumb = await shrink(f, 160, 0.7);
+  const note = await new Promise(res => {
+    sheet(`<h3>Anything I can't see?</h3><img class="photo-prev" src="${img}" alt="Your meal" style="max-height:200px">
+      <input class="in" id="phN" maxlength="140" style="margin-top:12px" placeholder="Optional: e.g. cooked in butter, large portion, diet coke" aria-label="Note about the meal">
+      <div class="row" style="margin-top:12px"><button class="btn ghost grow" id="phSkip">Skip</button><button class="btn grow" id="phGo">Work it out</button></div>`, {sticky: true});
+    $("#phSkip").onclick = () => res(""); $("#phGo").onclick = () => res($("#phN").value.trim()); });
   sheet(`<h3>Reading your plate…</h3><img class="photo-prev" src="${img}" alt="Your meal"><div class="row" style="margin-top:14px"><span class="spinner"></span><span class="sub">Spotting each food and estimating portions</span></div>`);
-  try { const r = await ai("food", {image: img}); closeSheet(); mealSheet({name: r.name, meal: r.meal || guessMeal(), items: r.items || [], note: r.note, thumb}, img); }
+  try { const r = await ai("food", {image: img, context: foodContext({note})}); closeSheet(); mealSheet({name: r.name, meal: r.meal || guessMeal(), items: cleanItems(r.items), note: r.note, thumb}, img); }
   catch (e) { closeSheet(); toast(e.message); }
 }
 function editMeal(id) { const e = S.entries.find(x => x.id === id); if (!e) return; const {items, name, meal, thumb, ...keep} = e.data;
@@ -765,20 +770,22 @@ function mealSheet(m, img, editId) {
       <label class="f">Meal<select class="in" id="mMeal">${["breakfast", "lunch", "snack", "dinner"].map(x => `<option${m.meal === x ? " selected" : ""}>${x}</option>`).join("")}</select></label></div>
       <div style="overflow-x:auto;margin-top:12px"><div class="item-edit" style="min-width:330px"><span class="h">Food</span><span class="h">g</span><span class="h">kcal</span><span class="h">P</span><span class="h">C</span><span></span>${rows()}</div></div>
       <button class="link" id="addItem" style="margin-top:10px">+ Add a food</button>
-      <div class="row between" style="margin-top:14px"><span class="num" style="font-weight:800">${r0(t.kcal)} kcal · ${r0(t.p)} g protein</span></div>
+      <div class="row between" style="margin-top:14px"><span class="num" id="mTot" style="font-weight:800">${r0(t.kcal)} kcal · ${r0(t.p)} g protein</span></div>
       <div class="row" style="margin-top:12px">${editId ? `<button class="btn danger" id="mDel" aria-label="Delete">Delete</button>` : ""}<button class="btn ghost grow" id="mCancel">Cancel</button><button class="btn grow" id="mSave">${editId ? "Save" : "Save meal"}</button></div>`);
     if (editId) $("#mDel").onclick = async () => { try { await DB.remove(editId); closeSheet(); toast("Deleted"); render(); } catch (e) { toast(e.message); } };
     document.querySelectorAll(".item-edit input").forEach(inp => inp.onchange = () => {
       const it = m.items[+inp.dataset.i], k = inp.dataset.k, old = {...it};
       it[k] = k === "name" ? inp.value : +inp.value;
       if (k === "grams" && old.grams > 0) { const s = it.grams / old.grams; ["kcal", "p", "c", "f"].forEach(q => it[q] = r1(old[q] * s)); }
-      m.name = $("#mName").value; m.meal = $("#mMeal").value; draw(); });
-    document.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { m.items.splice(+b.dataset.rm, 1); draw(); });
+      if (k === "grams") ["kcal", "p", "c"].forEach(q => { const el = document.querySelector(`.item-edit input[data-i="${inp.dataset.i}"][data-k="${q}"]`); if (el) el.value = r0(it[q]); });
+      const t2 = m.items.reduce((a, i) => ({kcal: a.kcal + (+i.kcal || 0), p: a.p + (+i.p || 0)}), {kcal: 0, p: 0}); $("#mTot").textContent = `${r0(t2.kcal)} kcal · ${r0(t2.p)} g protein`; });
+    document.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { m.name = $("#mName").value; m.meal = $("#mMeal").value; m.items.splice(+b.dataset.rm, 1); draw(); });
     $("#addItem").onclick = () => { m.name = $("#mName").value; m.meal = $("#mMeal").value; m.items.push({name: "", grams: 100, kcal: 0, p: 0, c: 0, f: 0}); draw(); };
     $("#mCancel").onclick = closeSheet;
     $("#mSave").onclick = async () => { const items = m.items.filter(i => i.name && (+i.kcal || 0) >= 0);
       if (!items.length) return toast("Add at least one food");
       const data = {...(m.keep || {}), name: $("#mName").value || items[0].name, meal: $("#mMeal").value, items, thumb: m.thumb || null};
+      if (editId && data.typed) { const c = ls.get("forma.foodcache", {}); c[foodKey(data.typed)] = {name: data.name, items: items.map(i => ({...i})), learned: true}; ls.set("forma.foodcache", c); }
       try { if (editId) await DB.update(editId, data); else await DB.add("meal", S.foodDay || dayStr(), data);
         closeSheet(); toast(editId ? "Updated" : "Meal saved"); render(); } catch (e) { toast(e.message); } };
   };
@@ -873,12 +880,14 @@ function prGrid() {
 function workoutSheet() {
   sheet(`<h3>Add a workout</h3><form id="wkf" class="stack" style="margin-top:12px">
     <label class="f">Type<select class="in" id="wkT">${["Strength training", "Running", "Walking", "Cycling", "Swimming", "HIIT", "Yoga", "Football", "Other"].map(x => `<option>${x}</option>`).join("")}</select></label>
+    <label class="f">Date<input class="in" id="wkD" type="date" value="${dayStr()}" max="${dayStr()}" required></label>
     <div class="fgrid"><label class="f">Minutes<input class="in num" id="wkM" type="number" min="1" max="600" value="60" required></label>
     <label class="f">Calories (optional)<input class="in num" id="wkK" type="number" min="0" max="4000"></label></div>
     <div class="row"><button type="button" class="btn ghost grow" id="wkC">Cancel</button><button class="btn grow">Save</button></div></form>`);
   $("#wkC").onclick = closeSheet;
   $("#wkf").onsubmit = async e => { e.preventDefault();
-    try { await DB.add("workout", dayStr(), {type: $("#wkT").value, minutes: +$("#wkM").value, kcal: +$("#wkK").value || null}); closeSheet(); toast("Workout saved"); render(); }
+    const d = $("#wkD").value || dayStr(); if (d > dayStr()) return toast("Pick today or an earlier day");
+    try { await DB.add("workout", d, {type: $("#wkT").value, minutes: +$("#wkM").value, kcal: +$("#wkK").value || null}); closeSheet(); toast(d === dayStr() ? "Workout saved" : `Workout saved for ${niceDay(d)}`); render(); }
     catch (err) { toast(err.message); } };
 }
 
@@ -2044,7 +2053,7 @@ function localFood(text) {
   const parts = text.toLowerCase().replace(/[.!]/g, "").split(/\s*(?:,|\+| and | with | & )\s*/).filter(Boolean), items = [];
   for (let raw of parts) {
     let n = 1, grams = null; raw = raw.trim();
-    let m = raw.match(/^(\d+(?:\.\d+)?)\s*(g|gr|grams?|ml)\b\s*(?:of\s+)?(.*)$/); if (m) { grams = +m[1]; raw = m[3]; }
+    let m = raw.match(/^(\d+(?:\.\d+)?)\s*(g|gr|grams?|ml|kg|oz)\b\s*(?:of\s+)?(.*)$/); if (m) { grams = +m[1] * ({kg: 1000, oz: 28.35}[m[2]] || 1); raw = m[3]; }
     else if ((m = raw.match(/^(\d+(?:\.\d+)?|a|an|one|two|three|four|five|six|half|couple)\s+(?:of\s+)?(.*)$/))) { n = NUMW[m[1]] ?? +m[1]; raw = m[2]; }
     raw = raw.replace(/^(a |an |some |large |big |small )/, "").trim();
     const f = LOCAL_FOODS.find(([re]) => re.test(raw)); if (!f) return null;
@@ -2054,6 +2063,26 @@ function localFood(text) {
   return items.length ? {name: items.length === 1 ? items[0].name : text.slice(0, 60), meal: guessMeal(), items} : null;
 }
 const foodKey = t => t.toLowerCase().replace(/\s+/g, " ").trim();
+/* extra guidance sent with every food request, so answers are better even before the server prompt is updated */
+const FOOD_RULES = "Be precise: split dishes into their real ingredients (incl. cooking oil, butter, sauces, dressings, sugar in drinks). " +
+  "Respect any amount or unit given (g, ml, kg, oz, cups, tbsp, tsp, slices, pieces, cans, bottles, bowls, plates, small/medium/large). " +
+  "Know restaurant and supermarket items (McDonald's, Burger King, Subway, Starbucks, Costa, Supermac's, Nando's, Tesco, Lidl, Aldi, Dunnes, Centra, Spar, Pingo Doce, Continente) and use their published values. " +
+  "Know Irish and Portuguese foods (full Irish breakfast, chicken fillet roll, breakfast roll, coddle, bacalhau, francesinha, pastel de nata, bifana, caldo verde, arroz de pato). " +
+  "Diet/zero drinks are ~0 kcal. For alcohol count ~7 kcal per gram of alcohol in kcal. Cooked weights for rice/pasta/meat unless they say dry/raw. " +
+  "Check every item: kcal must be close to 4*p + 4*c + 9*f (except alcohol). Name the portion in the item name, e.g. 'Chicken breast (150 g, grilled)'.";
+function foodContext(extra = {}) {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  const recent = [...new Set(of("meal").slice(-25).map(m => m.data.typed || m.data.name).filter(Boolean))].slice(-12);
+  return {rules: FOOD_RULES, hour: new Date().getHours(), timezone: tz, country_hint: /Dublin/.test(tz) ? "Ireland" : /Lisbon/.test(tz) ? "Portugal" : "",
+    goal: S.profile?.goal, recent_foods: recent, ...extra};
+}
+const ALC = /beer|wine|vodka|gin|rum|whisk|cider|cocktail|spritz|prosecco|champagne|sangria|port\b|shot/i;
+function cleanItems(items) {
+  return (items || []).filter(i => i && i.name).map(i => { const it = {name: String(i.name).slice(0, 60), grams: r0(i.grams), kcal: r0(i.kcal), p: r1(+i.p || 0), c: r1(+i.c || 0), f: r1(+i.f || 0)};
+    const mac = it.p * 4 + it.c * 4 + it.f * 9;
+    if (!ALC.test(it.name) && mac > 20 && Math.abs(it.kcal - mac) / mac > 0.25) it.kcal = r0(mac);
+    return it; });
+}
 function bindQuickAdd(id = "qa", day) {
   const f = $("#" + id); if (!f) return;
   f.onsubmit = async e => { e.preventDefault(); const inp = $("#" + id + "In"), text = inp.value.trim(), b = f.querySelector("button");
@@ -2062,11 +2091,11 @@ function bindQuickAdd(id = "qa", day) {
     let r = cache[key] || localFood(text);
     if (!r) { b.disabled = true; inp.disabled = true; b.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px"></span>'; }
     try {
-      if (!r) { r = await ai("text", {context: {text, hour: new Date().getHours()}}); }
-      const items = (r.items || []).filter(i => i && i.name).map(i => ({name: String(i.name).slice(0, 60), grams: r0(i.grams), kcal: r0(i.kcal), p: r1(i.p), c: r1(i.c), f: r1(i.f)}));
+      if (!r) { r = await ai("text", {context: foodContext({text})}); }
+      const items = r.learned ? r.items.map(i => ({...i})) : cleanItems(r.items);
       if (!items.length) throw new Error(r.error || "Couldn't work that one out, try adding more detail");
       const name = String(r.name || text).slice(0, 60);
-      cache[key] = {name, items}; const keys = Object.keys(cache); if (keys.length > 200) delete cache[keys[0]]; ls.set("forma.foodcache", cache);
+      if (!r.learned) cache[key] = {name, items}; const keys = Object.keys(cache); if (keys.length > 200) delete cache[keys[0]]; ls.set("forma.foodcache", cache);
       const total = items.reduce((s, i) => s + i.kcal, 0);
       const ent = await DB.add("meal", day || dayStr(), {name, meal: guessMeal(), items, typed: text});
       render(); toast(`Added ${name} · ${total} kcal`, {label: "Edit", fn: () => editMeal(ent.id)});
@@ -2080,7 +2109,7 @@ function sheet(html, opt = {}) { closeSheet(); const s = document.createElement(
 function closeSheet() {
   if (S.tick) { clearInterval(S.tick); S.tick = null; }
   if (S.scanner) { const q = S.scanner; S.scanner = null; try { if (q.isScanning) q.stop().then(() => q.clear()).catch(() => {}); } catch {} }
-  $("#scrim")?.remove();
+  document.querySelectorAll("#scrim").forEach(sc => { try { sc.remove(); } catch {} });
 }
 function confirmSheet(msg, fn) {
   sheet(`<h3>${esc(msg)}</h3><div class="row" style="margin-top:16px"><button class="btn ghost grow" id="cN">Keep</button><button class="btn danger grow" id="cY">Delete</button></div>`);
