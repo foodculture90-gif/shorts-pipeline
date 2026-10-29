@@ -392,6 +392,8 @@ input,select,textarea,input.in,select.in,textarea.in{font-size:16px}
 .prcell{background:var(--card);border:none;border-radius:18px;padding:13px 14px;display:grid;gap:2px;text-align:left;color:var(--ink)}
 .prcell b{font-family:var(--disp);font-weight:800;font-size:24px}
 .prcell.none b{color:var(--ink3)}
+.mgroup{padding:14px 16px}.mgroup summary{list-style:none;display:flex;align-items:center;gap:10px;cursor:pointer}.mgroup summary::-webkit-details-marker{display:none}
+.mgroup .chev{color:var(--ink3);transition:transform .2s;display:grid}.mgroup[open] .chev{transform:rotate(90deg)}.mgroup .list .li{padding-left:0;padding-right:0}
 </style>
 
 </head>
@@ -701,8 +703,9 @@ function renderToday(v) {
     <div class="quick" style="margin-top:12px;grid-template-columns:repeat(5,1fr);gap:6px">
       <button id="qMeal">${ICON.camera}Snap meal</button><button id="qScan">${ICON.barcode}Barcode</button><button id="qWork">${ICON.train}Workout</button><button id="qWeight">${ICON.scale}Weight</button><button id="qBody">${ICON.body}Body check</button></div>
     <h2>Training</h2>${trainingSummary(false)}
+    <h2>Workouts <button class="btn ghost small" id="addWT">+ Add</button></h2>${workoutHistory()}
     ${h ? "" : `<button class="card" id="toSync" style="margin-top:14px;width:100%;text-align:left;border:none;color:inherit;display:flex;gap:12px;align-items:center"><span style="color:var(--accent)">${ICON.watch}</span><span class="grow"><b>Connect Apple Health</b><div class="sub">Bring in your steps, calories burned and workouts from your iPhone.</div></span></button>`}`;
-  bindPts("#toHouse");
+  bindPts("#toHouse"); bindWorkoutHistory(v); $("#addWT").onclick = workoutSheet;
   if ($("#lostX")) $("#lostX").onclick = () => { ls.set("forma.lostseen", t); $("#lostCard").remove(); };
   bindQuickAdd("qa"); $("#qMeal").onclick = snapMeal; $("#qScan").onclick = scanBarcode; $("#qWork").onclick = workoutSheet; $("#qWeight").onclick = weightSheet; $("#qBody").onclick = physiqueCheck;
   if ($("#toSync")) $("#toSync").onclick = () => { go("profile"); setTimeout(() => $("#health")?.scrollIntoView({behavior: "smooth"}), 50); };
@@ -859,13 +862,10 @@ function renderActivity(v) {
     <h2>Steps</h2>
     <div class="card"><div class="row between"><div><div class="eyebrow">Last 7 days</div><div class="bf num">${avg.toLocaleString()} <span class="sub">a day on average</span></div></div></div>
       ${barChart(steps, days.map(d => new Date(d + "T12:00:00").toLocaleDateString(undefined, {weekday: "narrow"})), tg.steps)}</div>
-    <h2>Workouts this week <button class="btn ghost small" id="addW">+ Add</button></h2>
-    <div class="card list">${wk.length ? wk.map(w => `<div class="li"><div class="ph">${ICON.activity}</div><div class="grow"><div class="t">${esc(w.type)}</div>
-      <div class="d">${niceDay(w.day)} · ${r0(w.minutes)} min${w.kcal ? " · " + r0(w.kcal) + " kcal" : ""}${w.sets ? " · " + w.sets + " sets" : ""}</div></div>
-      ${w.src === "watch" ? `<span class="pill blue">${ICON.watch}Health</span>` : `<button class="x" data-del="${w.id}" aria-label="Delete workout">×</button>`}</div>`).join("")
-      : `<div class="empty">No workouts yet this week. Tap + Add, or connect Apple Health in Me to bring them in automatically.</div>`}</div>
+    <h2>Workouts <button class="btn ghost small" id="addW">+ Add</button></h2>
+    ${workoutHistory()}
 `;
-  $("#addW").onclick = workoutSheet; bindCalories();
+  $("#addW").onclick = workoutSheet; bindCalories(); bindWorkoutHistory(v);
   v.querySelectorAll("[data-mach]").forEach(el => el.onclick = () => prSheet(el.dataset.mach));
   scrollYear();
   v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => confirmSheet("Delete this workout?", async () => { await DB.remove(b.dataset.del); render(); }));
@@ -957,6 +957,29 @@ function yearGrid(m) {
       return `<i class="l${lv}" title="${niceDay(d)}${min ? ": " + min + " min" : ""}"></i>`; }).join("")}</div>`;
   }
   return `<div class="yscroll" id="yscroll"><div class="ymonths" style="grid-template-columns:repeat(${weeks},14px)">${months}</div><div class="ygrid">${cols}</div></div>`;
+}
+/* every workout (logged + Apple Health), grouped by month; this month open, older months fold away */
+function workoutList() {
+  const wk = [];
+  of("health").forEach(h => (h.data.workouts || []).forEach(w => wk.push({...w, day: h.day, src: "watch"})));
+  of("workout").forEach(w => wk.push({...w.data, day: w.day, id: w.id, src: "manual"}));
+  return wk.filter(w => w.day <= dayStr()).sort((a, b) => a.day < b.day ? 1 : a.day > b.day ? -1 : 0);
+}
+function workoutHistory() {
+  const wk = workoutList();
+  if (!wk.length) return `<div class="card empty">No workouts yet. Tap + Add, or connect Apple Health in Me to bring them in automatically.</div>`;
+  const groups = new Map(); wk.forEach(w => { const k = w.day.slice(0, 7); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(w); });
+  const cur = dayStr().slice(0, 7), hm = m => m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? " " + (m % 60) + "m" : ""}` : `${m} min`;
+  return `<div class="stack" style="gap:10px">${[...groups].map(([k, list], i) => {
+    const mins = r0(list.reduce((a, w) => a + (+w.minutes || 0), 0)), days = new Set(list.map(w => w.day)).size;
+    const label = new Date(k + "-15T12:00:00").toLocaleDateString(undefined, {month: "long", year: k.slice(0, 4) === cur.slice(0, 4) ? undefined : "numeric"});
+    return `<details class="card mgroup" ${k === cur || i === 0 ? "open" : ""}><summary><span class="grow"><b>${label}</b><div class="sub num" style="font-size:12.5px">${list.length} workout${list.length > 1 ? "s" : ""} · ${days} day${days > 1 ? "s" : ""} · ${hm(mins)}</div></span><span class="chev">${ICON.right}</span></summary>
+      <div class="list" style="margin-top:8px">${list.map(w => `<div class="li"><div class="ph">${ICON.activity}</div><div class="grow"><div class="t">${esc(w.type || "Workout")}</div>
+      <div class="d">${niceDay(w.day)} · ${r0(w.minutes)} min${w.kcal ? " · " + r0(w.kcal) + " kcal" : ""}${w.sets ? " · " + w.sets + " sets" : ""}</div></div>
+      ${w.src === "watch" ? `<span class="pill blue">${ICON.watch}Health</span>` : `<button class="x" data-delw="${w.id}" aria-label="Delete workout">×</button>`}</div>`).join("")}</div></details>`; }).join("")}</div>`;
+}
+function bindWorkoutHistory(v) {
+  v.querySelectorAll("[data-delw]").forEach(b => b.onclick = e => { e.preventDefault(); confirmSheet("Delete this workout?", async () => { await DB.remove(b.dataset.delw); render(); }); });
 }
 function trainingSummary(full) {
   const T = trainingTotals();
