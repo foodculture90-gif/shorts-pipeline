@@ -33,8 +33,6 @@ CAST = {
     "pinky": "Pinky, a pink piglet with a round snout and a curly tail",
     "hoot": "Hoot, a little brown owl with big amber eyes and ear tufts",
     "buzzy": "Buzzy, a round yellow bumblebee with black stripes and see-through wings",
-    "kiki": "Kiki, a little girl with brown pigtails and a pink t-shirt",
-    "nino": "Nino, a little boy with curly black hair and a yellow t-shirt",
 }
 ALL_SETS = ["street", "park", "beach", "kitchen", "playground", "snow", "bedroom", "livingroom", "space", "pirate",
             "christmas", "farm", "camping", "castle", "underwater", "candy", "market", "desert", "jungle"]
@@ -134,7 +132,8 @@ SEG_SECONDS = 7.0  # each gag is a 7-second mini story
 def _segments(recent):
     for s in recent:
         for g in (s.get("segments") or [s]):
-            yield g
+            if g.get("gag") != "intro":
+                yield g
 
 
 # ---- turning a wish ("Lulu and Popo in the snow with a blue balloon", "different characters") into choices
@@ -324,7 +323,7 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
         order.sort(key=lambda g: g in recent_gags)  # ...but fresh gags always before recent ones
         wanted = list(w.get("gags") or [])
         if base and not wanted and not w.get("restyle"):  # a change request keeps the same funny moments
-            wanted = [s["gag"] for s in (base.get("segments") or [base])]
+            wanted = [s["gag"] for s in (base.get("segments") or [base]) if s.get("gag") != "intro"]
         place = w.get("set")
         if not place and not wanted and not base:  # pick the place first, so every place gets its turn
             import datetime
@@ -353,7 +352,7 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
     cast = [c for c in CAST if c not in avoid] or list(CAST)
     want_cast = [c for c in (w.get("cast") or []) if c in cast]
     if not want_cast and base and not avoid:
-        want_cast = [base.get("hero"), base.get("friend")]
+        want_cast = [c for c in (base.get("hero"), base.get("friend")) if c in cast]  # (kids were retired)
     duos = [(x, y) for i, x in enumerate(cast) for y in cast[i + 1:]]
     if len(want_cast) >= 2:
         a, b = want_cast[:2]
@@ -403,7 +402,10 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
             if k == "cap" and c in ("bubu", "mimi", "gogo", "tobi", "bolt", "trixie", "drako", "momo", "hoot", "buzzy"):
                 k = "bow"
             looks[c] = [k, rnd.choice(ACC_COLORS)]
-    spec = {"hero": a, "friend": b, "set": segs[0]["set"], "gag": segs[0]["gag"], "segments": segs,
+    # every short opens with an establishing shot: the camera swoops in from high over the place to the friends
+    segs.insert(0, {"gag": "intro", "set": segs[0]["set"], "hero": a, "friend": b, "prop": "", "color": segs[0]["color"],
+                    "seed": rnd.randint(1, 10 ** 6)})
+    spec = {"hero": a, "friend": b, "set": segs[1]["set"], "gag": segs[1]["gag"], "segments": segs,
             "theme": theme, "looks": looks, "seed": rnd.randint(1, 10 ** 6)}
     if moral:
         spec["moral"], spec["lesson"] = moral, MORALS[moral]["lesson"]
@@ -419,7 +421,7 @@ def describe_one(seg):
 
 
 def describe(spec):
-    s = " Then: ".join(describe_one(s) for s in (spec.get("segments") or [spec]))
+    s = " Then: ".join(describe_one(s) for s in (spec.get("segments") or [spec]) if s.get("gag") != "intro")
     place = {"snow": "in the snow", "playground": "at the playground", "kitchen": "in the kitchen",
              "beach": "at the beach", "park": "in the park", "street": "on their street", "bedroom": "in the bedroom",
              "livingroom": "in the living room", "space": "on the moon", "pirate": "on pirate island",
@@ -473,7 +475,7 @@ _ANY_TITLES = ["{H}'s Silliest Day Ever! 😂", "Watch What {H} Does! 😂", "Oo
 
 
 def _offline(spec, rnd):
-    first = (spec.get("segments") or [spec])[0]
+    first = next((g for g in (spec.get("segments") or [spec]) if g.get("gag") != "intro"), spec)
     prop = PROP_NAMES.get(first.get("prop"), str(first.get("prop") or "surprise")).title()
     t = rnd.choice(OFFLINE_TITLES.get(first.get("gag"), _ANY_TITLES)).format(P=prop, H=NAMES.get(first.get("hero"), "Pip"))
     desc = (f"{NAMES[spec['hero']]} and {NAMES[spec['friend']]} have the silliest day! 😂\n"

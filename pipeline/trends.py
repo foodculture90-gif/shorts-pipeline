@@ -58,7 +58,7 @@ def length_bucket(seconds):
 def features(spec, title, duration=None):
     """(kind, value, weight) for one short."""
     spec = spec or {}
-    segs = spec.get("segments") or [spec]
+    segs = [g for g in (spec.get("segments") or [spec]) if g.get("gag") != "intro"]
     out = []
     for i, s in enumerate(segs):
         if s.get("gag"):
