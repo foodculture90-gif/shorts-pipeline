@@ -432,7 +432,7 @@ def describe(spec):
     return s + (f" (It all happens {place}.)" if place else "") + (" " + ", ".join(wear) + "." if wear else "")
 
 
-SYSTEM = """You write the YouTube metadata for a wordless 3D cartoon short (20-40 seconds, a few funny moments in a row)
+SYSTEM = """You write the YouTube metadata for a wordless 3D cartoon short (20-60 seconds, a few funny moments in a row)
 for kids aged 2-6,
 in the style of hit channels like Morphle and Cocomelon. It has only music and cartoon sound effects, no talking.
 - Title: a curiosity hook that makes kids AND parents tap. Max 50 characters, Title Case, one fitting emoji at the end.
@@ -510,6 +510,9 @@ def meta(spec, past_titles=(), rnd=None, slot=None):
                       f"the story or name the lesson (e.g. \"{spec['lesson']}! \u2728\"). The takeaway is exactly the lesson.\n")
     prompt = (f"{wish_line}What happens: {describe(spec)}\nCharacters:\n{cast}\n"
               f"Recent titles on this channel (don't repeat them):\n{recent}")
+    notes = trends.writer_notes()  # learned from our own shorts: winning title styles + hashtags, and the flops
+    if notes:
+        prompt += "\n\nWhat our viewers respond to:\n" + notes
     try:
         m = llm.generate_json(SYSTEM.replace("FORMAT", fmt), prompt, temperature=1.0)
         if not (isinstance(m, dict) and m.get("title")):
@@ -522,8 +525,12 @@ def meta(spec, past_titles=(), rnd=None, slot=None):
         return _lesson(spec, _offline(spec, rnd))
 
 
+SUBSCRIBE = "🔔 Subscribe for a new cartoon every day!"
+
+
 def _lesson(spec, out):
-    """Moral stories: the lesson goes in the takeaway, the description and the hashtags."""
+    """Moral stories: the lesson goes in the takeaway, the description and the hashtags.
+    Every description ends with a friendly subscribe line (more subscribers = more reach)."""
     if spec.get("lesson"):
         out["takeaway"] = spec["lesson"] + "."
         if spec["lesson"].lower() not in str(out.get("description", "")).lower():
@@ -531,4 +538,6 @@ def _lesson(spec, out):
         tags = [t for t in out.get("hashtags") or [] if t not in ("moralstory", "kidslessons")]
         out["hashtags"] = ["moralstory", "kidslessons"] + tags[:3]
         out["tags"] = list(dict.fromkeys(["moral story for kids", "kids lesson", spec["lesson"].lower()] + list(out.get("tags") or [])))[:15]
+    if SUBSCRIBE not in str(out.get("description", "")):
+        out["description"] = f"{str(out.get('description', '')).rstrip()}\n{SUBSCRIBE}"
     return out

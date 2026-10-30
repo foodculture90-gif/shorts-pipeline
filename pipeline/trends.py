@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 K = 3.0              # shorts it takes before a feature's own result counts half
 CLAMP = 0.6          # strongest lean: e^0.6 = x1.8 (and x0.55 the other way)
 MIN_SHORTS = 8       # below this, no learning yet
-KINDS = {"story": "Stories", "type": "Funny vs lesson", "place": "Places", "char": "Characters",
+KINDS = {"tag": "Hashtags", "story": "Stories", "type": "Funny vs lesson", "place": "Places", "char": "Characters",
          "title": "Title styles", "length": "Length", "sky": "Time of day in the short"}
 TITLE_STYLES = ["how", "dont", "question", "name", "exclaim", "the", "challenge"]  # = plan3d.TITLE_FORMATS order
 TITLE_NAMES = {"how": "“How To …”", "dont": "“Don't …”", "question": "Questions", "name": "Name + action",
@@ -111,6 +111,8 @@ def learn(rows, now=None):
         if v is None:  # no early count: total views, gently discounted for age
             v = float(e.get("views") or 0) / max(1.0, ((now - pub).total_seconds() / 86400) ** 0.35)
         y = math.log1p(v)
+        likes = float(e.get("likes") or 0)  # liked = kids/parents loved it -> a small bonus (likes lead to subscribers)
+        y += 0.3 * math.log1p(likes)
         try:  # take out the publish-time effect
             lift, weight = schedule.learned()
             b = (pub.hour * 60 + pub.minute) // 30
@@ -122,12 +124,17 @@ def learn(rows, now=None):
         return {"n": len(pts), "at": now.isoformat(), "kinds": {}, "note": "not enough shorts with views yet"}
     ys = sorted(p[1] for p in pts)
     mid_all = ys[len(ys) // 2]
-    table = {}
+    table, scored = {}, []
     for pub, y, e in pts:
         near = sorted(q[1] for q in pts if abs((q[0] - pub).total_seconds()) <= 3 * 86400)
         base = near[len(near) // 2] if len(near) >= 5 else mid_all
         r = y - base
-        for kind, val, w in features((e.get("story") or {}).get("spec"), e.get("title"), e.get("duration")):
+        st = e.get("story") or {}
+        scored.append((r, e.get("title") or "", int(e.get("views") or 0), st.get("hashtags") or []))
+        feats = features(st.get("spec"), e.get("title"), e.get("duration"))
+        tags = [str(h).lower().lstrip("#") for h in (st.get("hashtags") or []) if h]
+        feats += [("tag", h, 1.0) for h in tags]
+        for kind, val, w in feats:
             t = table.setdefault(kind, {}).setdefault(val, [0.0, 0.0, 0, 0.0])
             t[0] += w * r
             t[1] += w
@@ -137,7 +144,56 @@ def learn(rows, now=None):
     for kind, vals in table.items():
         kinds[kind] = {val: {"effect": round(s / (wsum + K), 3), "n": n, "avg_views": round(tot / max(1, n))}
                        for val, (s, wsum, n, tot) in vals.items()}
-    return {"n": len(pts), "at": now.isoformat(), "kinds": kinds}
+    scored.sort(key=lambda x: -x[0])
+    best = [{"title": t, "views": v} for r, t, v, _h in scored[:8] if r > 0 and t]
+    worst = [{"title": t, "views": v} for r, t, v, _h in scored[::-1][:6] if r < 0 and t]
+    return {"n": len(pts), "at": now.isoformat(), "kinds": kinds, "best_titles": best, "worst_titles": worst}
+
+
+def writer_notes():
+    """What the title writer should copy and avoid, learned from this channel (empty until there is data)."""
+    t = current()
+    if not t.get("kinds"):
+        return ""
+    lines = []
+    if t.get("best_titles"):
+        lines.append("Titles that got the MOST views on this channel (write in a similar style, never copy them):")
+        lines += [f"- {b['title']}" for b in t["best_titles"][:6]]
+    if t.get("worst_titles"):
+        lines.append("Titles that got the FEWEST views (avoid this style):")
+        lines += [f"- {b['title']}" for b in t["worst_titles"][:4]]
+    tags = sorted(((v["effect"], k) for k, v in (t["kinds"].get("tag") or {}).items() if v["n"] >= 3), reverse=True)
+    good = [k for e, k in tags if e > 0.03][:8]
+    bad = [k for e, k in tags if e < -0.1][-5:]
+    if good:
+        lines.append("Hashtags that bring views here (use 2-3 of them when they fit): " + ", ".join(good))
+    if bad:
+        lines.append("Hashtags that did badly (avoid): " + ", ".join(bad))
+    return "\n".join(lines)
+
+
+LONG_BUCKET = "36-60 s"
+
+
+def long_plan(funny, test=10):
+    """How many of today's funny shorts should be LONG (45-58 s). Testing phase: `test` a day. Once enough long and
+    normal shorts have a day of views, it follows the result: clearly better -> more long ones, clearly worse -> just
+    a few (so it keeps checking), about the same -> a fair mix."""
+    t = current()
+    L = (t.get("kinds") or {}).get("length") or {}
+    lo = L.get(LONG_BUCKET)
+    others = [v for k, v in L.items() if k != LONG_BUCKET and v["n"] >= 5]
+    if not lo or lo["n"] < 15 or not others:
+        return min(funny, test), "testing long shorts"
+    base = sum(v["effect"] * v["n"] for v in others) / sum(v["n"] for v in others)
+    diff = lo["effect"] - base
+    if diff > 0.08:
+        n, why = round(funny * 0.75), f"long shorts win (+{round((math.exp(diff) - 1) * 100)}%)"
+    elif diff < -0.08:
+        n, why = min(funny, 3), f"long shorts do worse ({round((math.exp(diff) - 1) * 100)}%), keeping a few to re-check"
+    else:
+        n, why = min(funny, max(3, round(funny * 0.4))), "long and normal shorts do about the same"
+    return max(0, min(funny, n)), why
 
 
 def lean(kind, value):
@@ -193,7 +249,7 @@ def summary(t):
     if not t.get("kinds"):
         return f"📈 What's working: {t.get('note', 'not enough data yet')} ({t.get('n', 0)} shorts so far)"
     parts = []
-    for kind in ("story", "place", "char", "title", "type"):
+    for kind in ("story", "place", "char", "title", "type", "length", "tag"):
         vals = [(v["effect"], k) for k, v in (t["kinds"].get(kind) or {}).items() if v["n"] >= 2]
         if len(vals) < 2:
             continue
@@ -210,7 +266,7 @@ def update():
     global _CACHE
     from . import db
     since = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
-    rows = db.select("episodes", "select=publish_at,views,duration,title,story&status=eq.published"
+    rows = db.select("episodes", "select=publish_at,views,likes,duration,title,story&status=eq.published"
                                  f"&youtube_id=not.is.null&publish_at=gte.{since}&limit=2000")
     t = learn(rows)
     old = current()

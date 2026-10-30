@@ -118,7 +118,8 @@ def _generate_3d(payload, ch, ep_id, slot=None):
     choose = dict(payload.get("choose") or {})
     if payload.get("moral"):
         choose["moral"] = True
-    spec = plan3d.plan(recent, idea=idea, slot=slot, base=base, choose=choose)
+    span = dict(min_s=45, max_s=58) if payload.get("long") else {}   # long shorts: 7 funny moments (~52 s)
+    spec = plan3d.plan(recent, idea=idea, slot=slot, base=base, choose=choose, **span)
     if idea:
         note = (spec.get("wish") or {}).get("note") or plan3d.describe(spec)[:160]
         db.log(f"💡 Your idea “{idea[:80]}”: {note}"[:400])
@@ -580,8 +581,19 @@ def daily():
         except ValueError:
             share = 0.5
         morals = round(n * max(0.0, min(1.0, share)))
+        flags = [i * morals // max(1, n) != (i + 1) * morals // max(1, n) for i in range(n)]
+        # a share of the funny shorts are LONG (45-58 s): 10 a day while testing, then whatever the views say
+        try:
+            from . import trends
+            n_long, why = trends.long_plan(flags.count(False))
+        except Exception:  # noqa: BLE001
+            n_long, why = min(10, flags.count(False)), "testing long shorts"
+        funny = [i for i, m in enumerate(flags) if not m]
+        long_ids = set(funny[::max(1, len(funny) // max(1, n_long))][:n_long]) if n_long else set()
+        if n:
+            db.log(f"📏 Today: {n} shorts, {len(long_ids)} of them long (45-58 s) — {why}")
         batch += [{"type": "generate", "payload": {"channel_id": ch["id"], "auto": True, "silent": silent,
-                                                   "moral": i * morals // max(1, n) != (i + 1) * morals // max(1, n)}}
+                                                   "moral": flags[i], "long": i in long_ids}}
                   for i in range(n)]
     batch.append({"type": "stats", "payload": {}})
     try:  # daily research: today's best publish times (research + what our own shorts showed)

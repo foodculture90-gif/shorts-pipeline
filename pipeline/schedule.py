@@ -10,7 +10,8 @@ within 30 minutes of each other (bursts get less reach).
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-GAP = timedelta(minutes=30)          # minimum time between two shorts
+GAP = timedelta(minutes=30)          # usual time between two shorts
+MIN_GAP = timedelta(minutes=14)      # never closer than this (very full days squeeze to 15-25 min)
 LEAD = timedelta(minutes=20)         # a slot must be at least this far away when the short is uploaded
 HORIZON_DAYS = 4                     # never schedule further ahead than this
 
@@ -106,12 +107,15 @@ def day_slots(d: date, per_day=20):
         while k < per_day and acc >= (k + 0.5) / per_day * tot:
             out.append(t + timedelta(minutes=5))   # :05 / :10 ... never exactly on the hour
             k += 1
-    fixed = []
-    for t in out:                                     # keep them GAP apart
-        if fixed and t - fixed[-1] < GAP:
-            t = fixed[-1] + GAP
-        if t < start + timedelta(days=1):
-            fixed.append(t)
+    for gap in (GAP, timedelta(minutes=25), timedelta(minutes=20), timedelta(minutes=15)):
+        fixed = []
+        for t in out:                                 # keep them `gap` apart (30 min, a bit less on very full days)
+            if fixed and t - fixed[-1] < gap:
+                t = fixed[-1] + gap
+            if t < start + timedelta(days=1):
+                fixed.append(t)
+        if len(fixed) >= len(out):
+            break
     _DAY[key] = fixed
     return fixed
 
@@ -140,7 +144,7 @@ def next_slot(taken, after=None, per_day=20):
     d = after.date()
     for _ in range(HORIZON_DAYS + 1):
         for t in day_slots(d, per_day):
-            if t >= after and all(abs(t - x) >= GAP for x in taken):
+            if t >= after and all(abs(t - x) >= MIN_GAP for x in taken):
                 return t
         d += timedelta(days=1)
     return None
