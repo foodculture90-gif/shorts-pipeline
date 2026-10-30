@@ -243,7 +243,10 @@ const demo = (() => {
       ep("e6", "published", "Zuzu's Giant Bubble Surprise! 🫧", "zuzu", "leo", "underwater", 50, { views: 3100, likes: 140, youtube_url: "#", publish_at: new Date(now - 30 * h).toISOString(),
         yt: { privacy: "public", comments: 6, hist: [[new Date(now - 864e5).toISOString().slice(0, 10), 800], [new Date(now).toISOString().slice(0, 10), 3100]] } }),
       ep("e7", "published", "Who Won The Farm Race?! 🏁", "bobo", "dodo", "farm", 20, { views: 0, likes: 0, youtube_url: "#", publish_at: new Date(now - 6 * h).toISOString(), yt: { privacy: "private", comments: 0, hist: [] } })],
-    settings: { trends: { n: 46, at: new Date(now - 2 * h).toISOString(), kinds: {
+    settings: { publish_plan: { date: new Date().toISOString().slice(0, 10), note: "demo", tests: [new Date(Date.UTC(2026, 9, 30, 10, 35)).toISOString(), new Date(Date.UTC(2026, 9, 30, 22, 20)).toISOString()],
+      times: [6, 9, 12, 15, 16, 17, 18, 19, 20].map(x => new Date(Date.UTC(2026, 9, 30, x, 5)).toISOString()),
+      hours: Array.from({ length: 24 }, (_, i) => ({ h: i, x: +(1 + 0.9 * Math.exp(-((i - 18) ** 2) / 6) - 0.35 * Math.exp(-((i - 4) ** 2) / 6)).toFixed(2), sure: 0.6, research: 0.5 })) },
+      trends: { n: 46, at: new Date(now - 2 * h).toISOString(), kinds: {
       story: { slip_peel: { effect: 0.41, n: 9 }, race: { effect: 0.22, n: 7 }, sneeze: { effect: 0.12, n: 8 }, bubbles: { effect: -0.05, n: 6 }, sorry: { effect: -0.35, n: 5 } },
       place: { park: { effect: 0.37, n: 6 }, snow: { effect: 0.18, n: 4 }, kitchen: { effect: 0.02, n: 5 }, castle: { effect: -0.3, n: 4 } },
       char: { pip: { effect: 0.4, n: 6 }, tobi: { effect: 0.2, n: 5 }, bubu: { effect: 0.08, n: 5 }, ellie: { effect: -0.2, n: 4 } },
@@ -629,6 +632,7 @@ function viewStats() {
       <button class="btn" id="refreshStats" style="margin-left:6px;padding:5px 10px;font-size:12.5px">${ic("refresh", 14)} Update now</button></div>
     <div class="kpis">${kpi("eye", "Total views", fmtNum(total), today ? `+${fmtNum(today)} today` : "")}${kpi("heart", "Likes", fmtNum(likes))}${kpi("chat", "Comments", fmtNum(comments))}${kpi("yt", "Shorts on YouTube", vids.length)}</div>
     <div id="chanStats"></div>
+    <div id="times"></div>
     <div id="trends"></div>
     ${priv.length ? `<div class="card" style="margin-top:12px;border-color:var(--amber)"><b>${ic("lock", 15)} ${priv.length} of your shorts are still Private on YouTube</b>
       <div class="sub" style="margin-top:4px">Private shorts can't get views. YouTube keeps uploads from new apps private until Google approves the app (the “YouTube API audit” form). Until then: YouTube Studio → Content → select them → Edit → Visibility → Public.</div>
@@ -660,7 +664,24 @@ function viewStats() {
       <span class="pill">${ic("users", 12)} ${v.hidden_subs ? "hidden" : fmtNum(v.subs)} subscribers</span><span class="pill green">${ic("eye", 12)} ${fmtNum(v.views)}</span></div>`).join("")}</div>`;
     const tw = document.getElementById("trends");
     if (tw) tw.innerHTML = trendsCard(st.trends);
+    const tm = document.getElementById("times");
+    if (tm) tm.innerHTML = timesCard(st.publish_plan);
   }).catch(() => {});
+}
+
+// best publish times: learned per hour (pipeline/schedule.py) - green = better than average, orange = test times today
+function timesCard(p) {
+  if (!p || !p.hours) return "";
+  const hrs = p.hours, hourOf = iso => new Date(iso).toLocaleString("en-GB", { timeZone: "Europe/Dublin", hour: "2-digit", hourCycle: "h23" }) | 0;
+  const today = new Set((p.times || []).map(hourOf)), tests = new Set((p.tests || []).map(hourOf));
+  const sure = hrs.reduce((a, h) => a + h.sure, 0) / 24, mx = Math.max(1.2, ...hrs.map(h => h.x));
+  const best = [...hrs].sort((a, b) => b.x - a.x).slice(0, 3).filter(h => h.x > 1.05).map(h => String(h.h).padStart(2, "0") + ":00");
+  const fmt = iso => new Date(iso).toLocaleTimeString("en-GB", { timeZone: "Europe/Dublin", hour: "2-digit", minute: "2-digit" });
+  return `<h2>Best publish times</h2><div class="card">
+    <div class="sub" style="margin-bottom:8px">Day-1 views by publish hour (Irish time) compared with shorts from the same days. ${sure < 0.2 ? "Still learning – using research for now." : best.length ? `Best so far: <b>${best.join(", ")}</b>.` : "No clear winner yet."} ${Math.round(sure * 100)}% sure.</div>
+    <div class="chart" style="align-items:flex-end">${hrs.map(h => `<div style="height:${Math.max(4, h.x / mx * 100)}%;background:${tests.has(h.h) ? "var(--amber)" : h.x > 1.05 ? "var(--green)" : h.x < 0.95 ? "var(--red)" : ""};opacity:${today.has(h.h) || tests.has(h.h) ? 1 : 0.45}" title="${String(h.h).padStart(2, "0")}:00 · ×${h.x} views · ${Math.round(h.sure * 100)}% sure"></div>`).join("")}</div>
+    <div class="chart-l">${hrs.map(h => `<span>${h.h % 3 ? "" : String(h.h).padStart(2, "0")}</span>`).join("")}</div>
+    ${p.tests?.length ? `<div class="sub" style="margin-top:8px"><span class="pill amber">Testing today</span> ${p.tests.map(fmt).join(", ")} – hours we know little about. Bright bars = hours used today.</div>` : ""}</div>`;
 }
 
 // what's working: learned from our own shorts (pipeline/trends.py) - new shorts lean towards the winners
