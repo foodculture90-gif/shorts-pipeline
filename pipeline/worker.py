@@ -403,6 +403,8 @@ def cmd_stats(payload=None, cmd=None):
             cs = youtube.channel_stats(_token(ch_id))
             if cs:
                 db.upsert("settings", {"key": f"yt_{ch_id}", "value": dict(cs, at=now().isoformat())}, "key")
+                from . import notify
+                notify.snapshot(ch_id, cs)   # end-of-day totals -> subscribers gained per day
         except Exception as ex:  # noqa: BLE001
             print("channel stats skipped:", ex)
     for ch_id, items in by_ch.items():
@@ -458,8 +460,14 @@ def maybe_stats():
         traceback.print_exc()
 
 
+def cmd_notify_test(payload=None, cmd=None):
+    """The app's 'Send me today's report' button: the daily report, right now."""
+    from . import notify
+    notify.daily_report(force=True)
+
+
 HANDLERS = {"generate": cmd_generate, "animate": cmd_animate, "revise": cmd_revise, "publish": cmd_publish, "delete": cmd_delete,
-            "stats": cmd_stats, "connect_channel": cmd_connect}
+            "stats": cmd_stats, "connect_channel": cmd_connect, "notify_test": cmd_notify_test}
 
 
 def retry_failed_renders():
@@ -533,6 +541,8 @@ def process_queue():
         except Exception:  # noqa: BLE001
             traceback.print_exc()
         maybe_stats()
+        from . import notify
+        notify.maybe_report()    # morning push: yesterday's views + subscribers vs the day before
     stale = (now() - timedelta(minutes=50)).isoformat()
     db.update("commands", f"status=eq.running&created_at=lt.{stale}&finished_at=is.null",
               {"status": "queued", "note": "retrying after a stopped run"})
