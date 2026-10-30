@@ -1285,7 +1285,52 @@ def paint_splat(spec, cam, tgt):
     return 168, 74
 
 
-GAGS = {"steal_treat": steal_treat, "ball_bonk": ball_bonk, "balloon_float": balloon_float,
+# --------------------------------------------------------------------------- intro: the establishing shot
+def intro(spec, cam, tgt):
+    """Every short opens like a TV episode: the camera starts high and wide over the place (the town with its
+    skyline, the whole park, the beach, the room) and swoops down to the two friends, who wave hello."""
+    hero = T.make_character(spec["hero"], -0.45, 0.2)
+    fr = T.make_character(spec["friend"], 0.5, 0.3)
+    T.turn(hero, 1, 14, 1)
+    T.turn(fr, 1, -14, 1)
+    end = 74
+    indoor = spec.get("set") in ("kitchen", "bedroom", "livingroom")
+    if indoor:
+        keys = [(1, (1.2, -5.5, 1.6), (0.0, 2.0, 0.85), 40), (34, (0.5, -4.4, 1.3), (0.0, 1.0, 0.8), 38)]
+    elif spec.get("set") in ("space", "underwater"):
+        keys = [(1, (0.8, -11.0, 5.5), (0.0, 4.0, 1.8), 22), (32, (0.4, -6.5, 2.6), (0.0, 1.4, 1.0), 28)]
+    else:
+        keys = [(1, (0.9, -10.5, 10.5), (0.0, 4.5, 0.6), 22), (32, (0.4, -6.6, 4.2), (0.0, 1.6, 0.9), 28)]
+    keys += [(62, (0.03, -3.05, 0.86), (0.03, 0.25, 0.74), 36), (end, (0.03, -2.85, 0.84), (0.03, 0.25, 0.74), 37)]
+    # (rooms: a longer lens from the doorway, so the top of the walls stays out of the picture)
+    for f, p, t, lens in keys:
+        T.key(cam, "location", f, p)
+        T.key(tgt, "location", f, t)
+        T.key(cam.data, "lens", f, lens)
+    T.sfx(1, "whoosh")
+    T.sfx(30, "twinkle")
+    # the friends: chatting first, then they notice us and say hello
+    T.look(hero, 1, 0.04)
+    T.look(fr, 1, -0.04)
+    T.feel(hero, 8, "happy")
+    T.feel(fr, 12, "happy")
+    T.look(hero, 44, 0.0)
+    T.look(fr, 46, 0.0)
+    T.eyes_big(hero, 46, sound=None)
+    a = hero["arms"][1]
+    T.key(a, "rotation_euler", 48, (0, 0, 0))
+    for k in range(3):
+        T.key(a, "rotation_euler", 52 + k * 5, (0, -2.4, 0.3))
+        T.key(a, "rotation_euler", 55 + k * 5, (0, -2.0, -0.3))
+    T.key(a, "rotation_euler", 70, (0, 0, 0))
+    T.feel(hero, 52, "happy")
+    T.sfx(52, "giggle")
+    T.jump_joy(fr, 50, h=0.3, n=10, times=1, sound="ding")
+    T.feel(fr, 66, "happy")
+    return end, 66
+
+
+GAGS = {"intro": intro, "steal_treat": steal_treat, "ball_bonk": ball_bonk, "balloon_float": balloon_float,
         "gift_surprise": gift_surprise, "hide_seek": hide_seek, "slip_peel": slip_peel,
         "sneeze": sneeze, "dance_party": dance_party, "bubbles": bubbles, "wake_up": wake_up, "race": race,
         "magic_trick": magic_trick, "seesaw": seesaw, "paint_splat": paint_splat}

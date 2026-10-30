@@ -1194,6 +1194,42 @@ def _trees(xs, y, crown=None):
         sphere(f"crown{y}{i}top", 0.3, (tx + rr.uniform(-0.1, 0.1), y, 1.8), cm, sub=1)
 
 
+def _skyline(y0=10.0, rnd=None):
+    """A little town behind the street (seen in the wide intro shot): rows of buildings with lit window grids."""
+    rnd = rnd or random.Random(11)
+    walls = ["#FFD9A8", "#C9E4FF", "#FFC9DE", "#D9F2C9", "#E6D9FF", "#FFE9A8", "#F2C9A8"]
+    mats_ = {}
+    for c in walls:
+        m = bpy.data.materials.new("city" + c)
+        m.use_nodes = True
+        nt = m.node_tree
+        br = nt.nodes.new("ShaderNodeTexBrick")
+        br.offset = 0.0
+        br.inputs["Color1"].default_value = (*lin("#5D86C9"), 1)
+        br.inputs["Color2"].default_value = (*lin("#FFE7A0"), 1)
+        br.inputs["Mortar"].default_value = (*lin(c), 1)
+        br.inputs["Scale"].default_value = 3.0
+        br.inputs["Mortar Size"].default_value = 0.09
+        br.inputs["Brick Width"].default_value = 0.42
+        br.inputs["Row Height"].default_value = 0.4
+        tc = nt.nodes.new("ShaderNodeTexCoord")
+        nt.links.new(tc.outputs["Object"], br.inputs["Vector"])
+        b = nt.nodes["Principled BSDF"]
+        nt.links.new(br.outputs["Color"], b.inputs["Base Color"])
+        b.inputs["Roughness"].default_value = 0.6
+        mats_[c] = m
+    x = -17.0
+    i = 0
+    while x < 17:
+        w, h, d = rnd.uniform(1.6, 2.6), rnd.uniform(3.0, 8.5), rnd.uniform(1.6, 2.4)
+        y = y0 + rnd.uniform(0, 5.0) + (0 if abs(x) > 4 else 2.0)
+        c = rnd.choice(walls)
+        box(f"city{i}", (w, d, h), (x + w / 2, y, h / 2), mats_[c], bevel=0.05)
+        box(f"cityroof{i}", (w + 0.1, d + 0.1, 0.18), (x + w / 2, y, h + 0.09), mat(_shade(c, 0.8), 0.6), bevel=0.04)
+        x += w + rnd.uniform(0.1, 0.6)
+        i += 1
+
+
 def _crown(i):
     cols = SEASON_CROWNS.get(THEME.get("season", "summer"), SEASON_CROWNS["summer"])
     return cols[i % len(cols)]
@@ -1600,6 +1636,7 @@ def make_set(kind, rnd=None):
         sphere("lampbulb", 0.16, (-2.6, 1.9, 2.25), mat("#FFF2B3", 0.3, emit=1.5), sub=1)
         _trees((-4.5, -1.9, 1.0, 3.6, 6.2), 3.75)  # behind the little road (ambient.py: cars)
         _clouds()
+        _skyline(10.0, random.Random(THEME.get("pal", 1) * 3 + 1))  # the town behind (seen in the wide intro)
     elif kind == "park":
         box("ground", (40, 40, 0.2), (0, 6, -0.1), mat(grass, 0.85), bevel=0)
         hill = pal.choice(["#5DBE55", "#69C95E", "#7CC96A", "#58B88A"])
@@ -1607,6 +1644,7 @@ def make_set(kind, rnd=None):
             sphere(f"hill{i}", hr, (hx, 14, -hr * 0.55), mat(c, 0.9), scale=(1.6, 1, 1), sub=1)
         _trees((-3.8, -1.4, 2.4, 4.6), 3.6)
         _trees((-6.0, 0.6, 6.5), 6.5)
+        _trees((-9.5, -5.5, -2.0, 2.5, 7.0, 10.5), 10.5)  # a wood around the park (wide intro shot)
         pond = cyl("pond", 1.4, 0.02, (2.6, 2.6, 0.012), mat("#4FB3FF", 0.05, coat=1.0), scale=(1.6, 0.7, 1))
         for i in range(6):
             a = i / 6 * math.tau
@@ -2437,7 +2475,7 @@ def add_extras(set_kind, sky, end, rnd):
     hopping, playing with a ball - plus birds and butterflies outdoors. The set feels alive."""
     global FUR
     main = {c["name"] for c in CHARS}
-    pool = [n for n in CAST if n not in main and CAST[n]["kind"] != "robot"]
+    pool = [n for n in CAST if n not in main and CAST[n]["kind"] not in ("robot", "kid")]  # animals only
     rnd.shuffle(pool)
     outdoors = sky not in INDOOR
     spots = []

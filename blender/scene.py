@@ -92,7 +92,7 @@ sets = []
 stills = set()
 for i, seg in enumerate(segments):
     end, thumb = build(seg)
-    if thumb_g is None:
+    if thumb_g is None and seg.get("gag") != "intro":  # the thumbnail comes from the story, not the intro
         thumb_g = offset + thumb
     stills |= {offset + thumb, offset + end // 2}
     events += [[f + offset, kind] for f, kind in T.EVENTS]
