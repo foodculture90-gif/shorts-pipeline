@@ -4,10 +4,10 @@ description, hashtags and tags (Gemini writes them; offline templates if it is b
 The recurring cast (like Morphle's Mila & Morphle) builds a channel identity: same faces every day,
 new little stories.
 """
-import math
 import random
 
 from . import llm
+from . import trends  # leans every choice towards what our viewers watch most
 
 CAST = {
     "pip": "Pip, a round red fluffy creature with big blue eyes and little round ears",
@@ -306,22 +306,22 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
         moral = base["moral"]
     if not moral and choose.get("moral"):
         used = [s.get("moral") for s in recent[:len(MORALS) * 3]]
-        least = min(used.count(m) for m in MORALS)
-        opts = [m for m in MORALS if used.count(m) == least and m not in used[:2]] or list(MORALS)
+        opts = [m for m in MORALS if m not in used[:2]] or list(MORALS)
         if w.get("set"):
             opts = [m for m in opts if w["set"] in MORALS[m]["sets"]] or opts
-        moral = opts[slot % len(opts)] if slot is not None else rnd.choice(opts)
+        moral = trends.pick(rnd, opts, "story", extra=lambda m: 0.8 ** used.count(m))  # popular lessons more often
     if moral and w.get("set") and w["set"] not in MORALS[moral]["sets"]:
         w.pop("set")
     if moral:
         gags = [moral]
     else:
         lo, hi = max(3, int(-(-min_s // SEG_SECONDS))), min(len(GAGS), int(max_s // SEG_SECONDS))
-        n = rnd.choice([k for k in (3, 4, 4, 5) if lo <= k <= hi] or [lo])
+        sizes = [k for k in (3, 4, 4, 5) if lo <= k <= hi] or [lo]
+        n = trends.pick(rnd, sizes, "n", extra=lambda k: trends.lean("length", trends.length_bucket(k * SEG_SECONDS)))
         recent_gags = [g.get("gag") for g in list(_segments(recent))[:6]]
         order = [g for g in GAGS if g not in recent_gags] + [g for g in GAGS if g in recent_gags]
-        rnd.shuffle(order)
-        order.sort(key=lambda g: g in recent_gags)  # fresh gags first
+        order = trends.order(rnd, order, "story")  # popular gags tend to come first...
+        order.sort(key=lambda g: g in recent_gags)  # ...but fresh gags always before recent ones
         wanted = list(w.get("gags") or [])
         if base and not wanted and not w.get("restyle"):  # a change request keeps the same funny moments
             wanted = [s["gag"] for s in (base.get("segments") or [base])]
@@ -330,8 +330,8 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
             import datetime
             sets = [x for x in ALL_SETS if x != "christmas" or datetime.date.today().month in (11, 12, 1)]  # Christmas in season
             used = [s.get("set") for s in recent[:len(sets) * 2]]
-            least = min(used.count(x) for x in sets)
-            place = rnd.choice([x for x in sets if used.count(x) == least and x not in used[:3]] or sets)
+            place = trends.pick(rnd, [x for x in sets if x not in used[:3]] or sets, "place",
+                                extra=lambda x: 0.8 ** used.count(x))  # popular places more often, all get turns
             w = dict(w, set=place)
         if place:  # only gags that can happen there
             order = [g for g in order if place in GAGS[g]["sets"]]
@@ -341,7 +341,7 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
             n = max(min(len(wanted), hi), lo) if len(wanted) >= lo else n
             order = wanted + [g for g in order if g not in wanted]
         elif slot is not None:  # shorts planned at the same moment still get different lead gags
-            lead = list(GAGS)[slot % len(GAGS)]
+            lead = trends.pick(random.Random(slot), [g for g in order if g not in recent_gags[:2]] or order, "story")
             order = [lead] + [g for g in order if g != lead]
         gags = order[:n]
         if not wanted:
@@ -360,16 +360,13 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
     elif want_cast:
         a = want_cast[0]
         b = rnd.choice([c for c in cast if c != a])
-    elif slot is not None:  # a stride that never shares a factor with the number of duos -> all duos get a turn
-        stride = next(k for k in (7, 11, 13, 17, 19, 23) if math.gcd(k, len(duos)) == 1)
-        a, b = duos[(slot * stride) % len(duos)]
+    else:  # favourite characters more often, but nobody shows up in every short and duos change
+        seen = [c for s in recent[:10] for c in (s.get("hero"), s.get("friend"))]
+        fresh_duos = [d for d in duos if d not in pairs and d[::-1] not in pairs] or duos
+        a, b = trends.pick(rnd, fresh_duos, "duo", extra=lambda d: trends.lean("char", d[0]) * trends.lean("char", d[1])
+                           * 0.75 ** (seen.count(d[0]) + seen.count(d[1])))
         if rnd.random() < 0.5:
             a, b = b, a
-    else:
-        for _ in range(20):
-            a, b = rnd.sample(cast, 2)
-            if (a, b) not in pairs and (b, a) not in pairs:
-                break
     # one home set for the whole short when the gags allow it
     common = [x for x in ALL_SETS if all(x in ALLG[g]["sets"] for g in gags)]
     recent_sets = [s.get("set") for s in recent[:3]]
@@ -393,7 +390,7 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
                      "color": w.get("color") or rnd.choice(COLORS), "table_color": rnd.choice(TABLE_COLORS),
                      "seed": rnd.randint(1, 10 ** 6)})
     # colours of the day: sky/time of day, season and palette of the set, plus a little outfit for each friend
-    theme = {"sky": w.get("sky") or rnd.choice(["day", "day", "morning", "golden", "sunset"]),
+    theme = {"sky": w.get("sky") or trends.pick(rnd, ["day", "day", "morning", "golden", "sunset"], "sky"),
              "season": w.get("season") or rnd.choice(["summer", "summer", "spring", "autumn"]),
              "pal": rnd.randint(1, 10 ** 6)}
     looks = {}
@@ -500,7 +497,9 @@ TITLE_FORMATS = ["How To ... (e.g. \"How To Get A FREE Cake!!\")", "Don't ... (e
 
 def meta(spec, past_titles=(), rnd=None, slot=None):
     rnd = rnd or random.Random()
-    fmt = TITLE_FORMATS[slot % len(TITLE_FORMATS)] if slot is not None else rnd.choice(TITLE_FORMATS)
+    r2 = random.Random(slot) if slot is not None else rnd  # title styles that get clicked more, used more often
+    fmt = TITLE_FORMATS[trends.pick(r2, range(len(TITLE_FORMATS)), "title_i",
+                                    extra=lambda i: trends.lean("title", trends.TITLE_STYLES[i]))]
     cast = "\n".join(f"- {CAST[k]}" for k in (spec["hero"], spec["friend"]))
     recent = "\n".join(f"- {t}" for t in list(past_titles)[:40]) or "- (none yet)"
     wish_line = f"The parent asked for: {spec['wish']['text']}\n" if spec.get("wish") else ""

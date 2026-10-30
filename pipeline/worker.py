@@ -439,6 +439,11 @@ def cmd_stats(payload=None, cmd=None):
                 st["yt"]["v24"] = s["views"] if now() - pub <= timedelta(hours=36) else None
             db.update("episodes", f"id=eq.{e['id']}", v)
     db.upsert("settings", {"key": "stats_at", "value": now().isoformat()}, "key")
+    try:  # what's working: stories/places/characters/titles that get more views -> new shorts lean towards them
+        from . import trends
+        trends.update()
+    except Exception:  # noqa: BLE001
+        traceback.print_exc()
 
 
 def maybe_stats():
