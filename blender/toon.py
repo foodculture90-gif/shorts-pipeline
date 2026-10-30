@@ -792,6 +792,16 @@ KINDS = {"robot": _robot, "dino": _dino, "monster": _monster, "octo": _octo, "el
 
 
 def make_character(name, x=0.0, y=0.0, z=0.0):
+    ch = _make_character(name, x, y, z)
+    try:  # soft rig: a head that acts, floppy ears/tails (rig.py)
+        import rig
+        rig.build(ch)
+    except Exception as ex:  # noqa: BLE001 - the character still works without it
+        print("rig skipped:", ch["name"], ex)
+    return ch
+
+
+def _make_character(name, x=0.0, y=0.0, z=0.0):
     d = CAST[name]
     root = empty(name, (x, y, z))
     root.scale = (d["size"],) * 3
@@ -2138,6 +2148,11 @@ def feel(ch, f, mood="neutral", d=5):
         key(p_, "scale", f, (ps, 1, ps))
     smile_shape(ch, f, mc, mw, d)
     mouth_set(ch, f, mo)
+    try:  # the head acts too: droops when sad, lifts when proud, tilts when happy (rig.py)
+        import rig
+        rig.head_pose(ch, f, mood, d)
+    except Exception as ex:  # noqa: BLE001
+        print("head pose skipped:", ex)
 
 
 def brows(ch, f, up=0.0, d=4):

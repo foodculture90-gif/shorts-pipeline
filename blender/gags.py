@@ -1177,7 +1177,7 @@ def _splats(ch, f, cols, name):
     dx = abs(ex[0][0] - x0) or 0.15
     for i, (ox, oz, rr) in enumerate(((-1.5, -0.95, 0.07), (1.6, -0.8, 0.06), (0.1, 1.15, 0.065), (0.0, -1.7, 0.05))):
         sp = T.sphere(f"{name}{i}", rr, (x0 + ox * dx, y0 - 0.03, z0 + oz * dx), T.mat(cols[i % len(cols)], 0.3, coat=0.6),
-                      ch["piv"], scale=(1, 0.35, 0.9), sub=1, seg=20)
+                      ch["eyes"][0].parent or ch["piv"], scale=(1, 0.35, 0.9), sub=1, seg=20)  # on the face (moves with the head)
         T.show(sp, 1, False)
         T.show(sp, f + i, True)
         T.key(sp, "scale", f + i, (0.2, 0.1, 0.2))

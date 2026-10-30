@@ -177,6 +177,35 @@ def sculpt(ch, shape, paint, face=(), res=0.012, fuzz=0.6, rough=0.55, coat=0.0,
     C = (w[:, :, None] * np.array(cols)[:, None, :]).sum(0)
     FD = (w * np.array([i[3] for i in info])[:, None]).sum(0)   # fur density per part (0 = bare skin)
     FL = (w * np.array([i[4] for i in info])[:, None]).sum(0)   # fur length per part
+    # ---- floppy parts (ears, tails, tufts): a vertex group each + the point where they join the body,
+    # so rig.py can make them bounce and flop (follow-through)
+    groups = {}
+    for i, o in enumerate(shape):
+        nm = o.name.split(".")[0]
+        tail = nm[len(ch["name"]) + 1:] if nm.startswith(ch["name"] + "_") else nm
+        kind = next((k for k in ("ear", "tail", "tuft") if tail.startswith(k)), None)
+        if kind is None or tail.startswith("earin"):
+            continue
+        key_ = tail.split("_")[0].rstrip("0123456789") if kind == "tuft" else tail.split("_")[0]
+        groups.setdefault(key_, (kind, []))[1].append(i)
+    flex = []
+    for gname, (kind, idx) in groups.items():
+        g = w[idx].sum(0)
+        g = np.clip((g - 0.3) / 0.55, 0.0, 1.0)
+        g = g * g * (3 - 2 * g)
+        if g.max() < 0.5:
+            continue
+        ring = (g > 0.2) & (g < 0.6)
+        piv_pt = V[ring].mean(0) if ring.sum() >= 6 else V[g > 0.5].mean(0)
+        vg = body.vertex_groups.new(name="flex_" + gname)
+        q = np.round(g * 32).astype(int)   # 33 weight levels: one call per level (fast)
+        for lv in np.unique(q[q > 0]):
+            vg.add(np.nonzero(q == lv)[0].tolist(), float(lv) / 32.0, "REPLACE")
+        flex.append({"group": vg.name, "kind": kind, "pivot": [float(c) for c in piv_pt],
+                     "tip": [float(c) for c in V[g > 0.9].mean(0)] if (g > 0.9).sum() else [float(c) for c in piv_pt]})
+    if flex:
+        import json as _json
+        body["flex"] = _json.dumps(flex)
     for o in paint:
         A = np.array(_unit(o, inv))
         s = np.linalg.norm((Vh @ A.T)[:, :3], axis=1)

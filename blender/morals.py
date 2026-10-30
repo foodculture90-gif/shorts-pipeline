@@ -50,7 +50,7 @@ def _tears(ch, f0, f1, name):
     for f in range(f0, f1, 12):
         for k, e in enumerate(ch["eyes"]):
             ex, ey, ez = e.location
-            dr = T.sphere(f"{name}{n}", 0.03, (ex * 1.05, ey - 0.03, ez - 0.12), m, ch["piv"], scale=(0.8, 0.8, 1.25),
+            dr = T.sphere(f"{name}{n}", 0.03, (ex * 1.05, ey - 0.03, ez - 0.12), m, e.parent or ch["piv"], scale=(0.8, 0.8, 1.25),
                           sub=0, seg=16)
             n += 1
             T.show(dr, 1, False)
