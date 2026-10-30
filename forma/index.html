@@ -702,10 +702,10 @@ function renderToday(v) {
     <div style="margin-top:12px">${quickAddBox("qa")}</div>
     <div class="quick" style="margin-top:12px;grid-template-columns:repeat(5,1fr);gap:6px">
       <button id="qMeal">${ICON.camera}Snap meal</button><button id="qScan">${ICON.barcode}Barcode</button><button id="qWork">${ICON.train}Workout</button><button id="qWeight">${ICON.scale}Weight</button><button id="qBody">${ICON.body}Body check</button></div>
-    <h2>Training</h2>${trainingSummary(false)}
+    <h2>Training</h2>${trainingSummary(true)}
     <h2>Workouts <button class="btn ghost small" id="addWT">+ Add</button></h2>${workoutHistory()}
     ${h ? "" : `<button class="card" id="toSync" style="margin-top:14px;width:100%;text-align:left;border:none;color:inherit;display:flex;gap:12px;align-items:center"><span style="color:var(--accent)">${ICON.watch}</span><span class="grow"><b>Connect Apple Health</b><div class="sub">Bring in your steps, calories burned and workouts from your iPhone.</div></span></button>`}`;
-  bindPts("#toHouse"); bindWorkoutHistory(v); $("#addWT").onclick = workoutSheet;
+  bindPts("#toHouse"); bindWorkoutHistory(v); scrollYear(); $("#addWT").onclick = workoutSheet;
   if ($("#lostX")) $("#lostX").onclick = () => { ls.set("forma.lostseen", t); $("#lostCard").remove(); };
   bindQuickAdd("qa"); $("#qMeal").onclick = snapMeal; $("#qScan").onclick = scanBarcode; $("#qWork").onclick = workoutSheet; $("#qWeight").onclick = weightSheet; $("#qBody").onclick = physiqueCheck;
   if ($("#toSync")) $("#toSync").onclick = () => { go("profile"); setTimeout(() => $("#health")?.scrollIntoView({behavior: "smooth"}), 50); };
@@ -2077,22 +2077,48 @@ const LOCAL_FOODS = [
   [/^(ice cream)$/, "Ice cream (scoop)", 70, 140, 2.5, 16, 7.5], [/^(water)$/, "Water", 250, 0, 0, 0, 0], [/^(tea)$/, "Tea with milk", 250, 20, 1, 2, 1],
 ];
 const NUMW = {a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, half: .5, couple: 2};
+/* typo fixing: every word is checked against a food/unit vocabulary and corrected when it's 1-2 letters off */
+const FOOD_WORDS = ("egg eggs boiled fried scrambled banana bananas apple apples orange oranges avocado avocados slice slices toast bread white brown wholemeal " +
+  "rice pasta spaghetti penne oats porridge oatmeal chicken breast steak beef salmon tuna greek yogurt yoghurt skyr protein shake whey milk glass coffee latte cappuccino " +
+  "flat cola coke diet zero pepsi energy drink redbull monster juice beer wine pizza burger cheeseburger fries chips croissant chocolate snickers crisps almonds nuts " +
+  "peanut butter cheese cheddar potato potatoes sweet salad broccoli wrap sandwich granola bagel pancake pancakes sushi cream water tea bar ham " +
+  "calories calorie kcal grams protein carbs").split(" ");
+function lev(a, b) { const m = a.length, n = b.length; if (Math.abs(m - n) > 2) return 9; let prev = [...Array(n + 1).keys()];
+  for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; } return prev[n]; }
+function fixTypos(text) {
+  return text.toLowerCase().replace(/[a-z]{4,}/g, w => { if (FOOD_WORDS.includes(w)) return w; let best = w, bd = w.length >= 7 ? 2 : 1;
+    for (const v of FOOD_WORDS) { const d = lev(w, v); if (d <= bd && !(d === bd && best !== w)) { best = v; bd = d; } if (d === 0) break; } return best; });
+}
+/* "150 calories coffee", "coffee 150kcal", "shake 200 cal 30g protein": the person already counted, so use their numbers */
+const KCAL_RE = /(\d+(?:\.\d+)?)\s*(?:k?cals?|kcals?|calories|calorie|kc)\b/;
+const PROT_RE = /(\d+(?:\.\d+)?)\s*g?\s*(?:of\s+)?protein\b/;
+const statedKcal = t => (fixTypos(t).match(new RegExp(KCAL_RE.source, "g")) || []).reduce((a, x) => a + parseFloat(x), 0);
 function localFood(text) {
-  const parts = text.toLowerCase().replace(/[.!]/g, "").split(/\s*(?:,|\+| and | with | & )\s*/).filter(Boolean), items = [];
+  const parts = fixTypos(text).replace(/[.!]/g, "").split(/\s*(?:,|\+| and | with | & )\s*/).filter(Boolean), items = [];
   for (let raw of parts) {
-    let n = 1, grams = null; raw = raw.trim();
-    let m = raw.match(/^(\d+(?:\.\d+)?)\s*(g|gr|grams?|ml|kg|oz)\b\s*(?:of\s+)?(.*)$/); if (m) { grams = +m[1] * ({kg: 1000, oz: 28.35}[m[2]] || 1); raw = m[3]; }
+    let n = 1, grams = null, kc = null, pr = null; raw = raw.trim();
+    let m = raw.match(KCAL_RE); if (m) { kc = +m[1]; raw = raw.replace(m[0], " ").replace(/\s+/g, " ").trim(); }
+    m = raw.match(PROT_RE); if (m) { pr = +m[1]; raw = raw.replace(m[0], " ").replace(/\s+/g, " ").trim(); }
+    raw = raw.replace(/^(of|for|a|an)\s+/, "").replace(/\s+(of|for)$/, "").trim();
+    m = raw.match(/^(\d+(?:\.\d+)?)\s*(g|gr|grams?|ml|kg|oz)\b\s*(?:of\s+)?(.*)$/); if (m) { grams = +m[1] * ({kg: 1000, oz: 28.35}[m[2]] || 1); raw = m[3]; }
     else if ((m = raw.match(/^(\d+(?:\.\d+)?|a|an|one|two|three|four|five|six|half|couple)\s+(?:of\s+)?(.*)$/))) { n = NUMW[m[1]] ?? +m[1]; raw = m[2]; }
     raw = raw.replace(/^(a |an |some |large |big |small )/, "").trim();
-    const f = LOCAL_FOODS.find(([re]) => re.test(raw)); if (!f) return null;
-    const [, name, g0, k, P, C, F] = f, mult = grams ? grams / g0 : n;
-    items.push({name: (grams ? "" : n !== 1 ? n + " × " : "") + name, grams: r0(g0 * mult), kcal: r0(k * mult), p: r1(P * mult), c: r1(C * mult), f: r1(F * mult)});
+    const f = LOCAL_FOODS.find(([re]) => re.test(raw));
+    if (!f) { if (kc === null) return null; // unknown food but they gave the calories: trust them
+      const nm = raw ? raw[0].toUpperCase() + raw.slice(1) : "Food"; items.push({name: nm.slice(0, 60), grams: grams ? r0(grams) : 0, kcal: r0(kc), p: pr ?? 0, c: 0, f: 0, own: true}); continue; }
+    const [, name, g0, k, P, C, F] = f; let mult = grams ? grams / g0 : n;
+    const it = {name: (grams ? "" : n !== 1 ? n + " × " : "") + name, grams: r0(g0 * mult), kcal: r0(k * mult), p: r1(P * mult), c: r1(C * mult), f: r1(F * mult)};
+    if (kc !== null) { const sc = it.kcal ? kc / it.kcal : 0; it.kcal = r0(kc); it.own = true;
+      if (sc >= .4 && sc <= 2.5) ["p", "c", "f"].forEach(q => it[q] = r1(it[q] * sc)); // close to a normal portion: keep the macro split
+      else { it.name = raw[0].toUpperCase() + raw.slice(1); it.grams = grams ? r0(grams) : 0; it.p = it.c = it.f = 0; } }
+    if (pr !== null) it.p = pr;
+    items.push(it);
   }
-  return items.length ? {name: items.length === 1 ? items[0].name : text.slice(0, 60), meal: guessMeal(), items} : null;
+  return items.length ? {name: items.length === 1 ? items[0].name : text.slice(0, 60), meal: guessMeal(), items, local: true} : null;
 }
-const foodKey = t => t.toLowerCase().replace(/\s+/g, " ").trim();
+const foodKey = t => fixTypos(t).replace(/\s+/g, " ").trim();
 /* extra guidance sent with every food request, so answers are better even before the server prompt is updated */
-const FOOD_RULES = "Be precise: split dishes into their real ingredients (incl. cooking oil, butter, sauces, dressings, sugar in drinks). " +
+const FOOD_RULES = "The text may have spelling mistakes or slang: work out what they meant. If they state calories or protein for an item (e.g. '150 calories coffee'), use exactly their numbers for that item. Be precise: split dishes into their real ingredients (incl. cooking oil, butter, sauces, dressings, sugar in drinks). " +
   "Respect any amount or unit given (g, ml, kg, oz, cups, tbsp, tsp, slices, pieces, cans, bottles, bowls, plates, small/medium/large). " +
   "Know restaurant and supermarket items (McDonald's, Burger King, Subway, Starbucks, Costa, Supermac's, Nando's, Tesco, Lidl, Aldi, Dunnes, Centra, Spar, Pingo Doce, Continente) and use their published values. " +
   "Know Irish and Portuguese foods (full Irish breakfast, chicken fillet roll, breakfast roll, coddle, bacalhau, francesinha, pastel de nata, bifana, caldo verde, arroz de pato). " +
@@ -2120,10 +2146,13 @@ function bindQuickAdd(id = "qa", day) {
     if (!r) { b.disabled = true; inp.disabled = true; b.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px"></span>'; }
     try {
       if (!r) { r = await ai("text", {context: foodContext({text})}); }
-      const items = r.learned ? r.items.map(i => ({...i})) : cleanItems(r.items);
+      let items = r.learned || r.local ? r.items.map(i => ({...i})) : cleanItems(r.items);
+      const want = !r.learned && !r.local ? statedKcal(text) : 0, got = items.reduce((a, i) => a + i.kcal, 0);
+      if (want > 0 && got > 0 && Math.abs(want - got) > 2) { const sc = want / got; items = items.map(i => ({...i, kcal: r0(i.kcal * sc), p: r1(i.p * sc), c: r1(i.c * sc), f: r1(i.f * sc)})); }
+      items = items.map(({own, ...i}) => i);
       if (!items.length) throw new Error(r.error || "Couldn't work that one out, try adding more detail");
       const name = String(r.name || text).slice(0, 60);
-      if (!r.learned) cache[key] = {name, items}; const keys = Object.keys(cache); if (keys.length > 200) delete cache[keys[0]]; ls.set("forma.foodcache", cache);
+      if (!r.learned && !r.local) cache[key] = {name, items}; const keys = Object.keys(cache); if (keys.length > 200) delete cache[keys[0]]; ls.set("forma.foodcache", cache);
       const total = items.reduce((s, i) => s + i.kcal, 0);
       const ent = await DB.add("meal", day || dayStr(), {name, meal: guessMeal(), items, typed: text});
       render(); toast(`Added ${name} · ${total} kcal`, {label: "Edit", fn: () => editMeal(ent.id)});
