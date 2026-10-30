@@ -14,10 +14,10 @@ jobs:
       matrix:
         include:
           - {gag: steal_treat, set: park, hero: pip, friend: leo, prop: cake, sky: day, season: summer, acc: party_hat, acc2: crown, every: 40}
-          - {gag: dance_party, set: livingroom, hero: momo, friend: kiki, prop: confetti, sky: day, season: summer, acc: none, acc2: bow, every: 40}
+          - {gag: dance_party, set: livingroom, hero: momo, friend: tobi, prop: confetti, sky: day, season: summer, acc: none, acc2: bow, every: 40}
           - {gag: ball_bonk, set: beach, hero: ocki, friend: ellie, prop: ball, sky: golden, season: summer, acc: flower, acc2: none, every: 40}
           - {gag: seesaw, set: playground, hero: rexy, friend: hoot, prop: seesaw, sky: morning, season: summer, acc: cap, acc2: none, every: 40}
-          - {gag: sharing, set: kitchen, hero: bubu, friend: nino, prop: cupcake, sky: day, season: summer, acc: bow, acc2: cap, every: 38}
+          - {gag: sharing, set: kitchen, hero: bubu, friend: teo, prop: cupcake, sky: day, season: summer, acc: bow, acc2: cap, every: 38}
           - {gag: patience, set: park, hero: zuzu, friend: chiko, prop: seed, sky: day, season: summer, acc: none, acc2: bow, every: 44}
           - {gag: helping, set: street, hero: drako, friend: pinky, prop: boxes, sky: morning, season: summer, acc: none, acc2: flower, every: 40}
           - {gag: magic_trick, set: jungle, hero: gogo, friend: buzzy, prop: hat, sky: day, season: summer, acc: party_hat, acc2: none, every: 40}
@@ -106,7 +106,7 @@ jobs:
         env: {ASSETS: "${{ github.workspace }}/assets"}
         run: |
           i=0
-          for row in pip,bubu,mimi,gogo,lulu tobi,teo,bobo,zuzu,leo pinky,buzzy,chiko,popo,dodo hoot,bolt,rexy,trixie,drako momo,ocki,ellie,kiki,nino; do
+          for row in pip,bubu,mimi,gogo,lulu tobi,teo,bobo,zuzu,leo pinky,buzzy,chiko,popo,dodo hoot,bolt,rexy,trixie,drako momo,ocki,ellie; do
             i=$((i+1))
             timeout 8m ./bl/blender -b --python blender/cast_sheet.py -- "$row" "$PWD/cast_$i.png" 16 1600 720 2>&1 | grep -E "built|render|Error|Traceback|rror|line [0-9]+" | head -20
             ffmpeg -y -loglevel error -i "cast_$i.png" -q:v 3 "sheet_cast_$i.jpg" || true
