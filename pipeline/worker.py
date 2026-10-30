@@ -486,6 +486,25 @@ def retry_failed_renders():
     slots.kick()
 
 
+def clear_stale_failed():
+    """Failed shorts that already had their retry and are 2+ days old just clutter the app: tidy them away."""
+    old = (now() - timedelta(days=2)).isoformat()
+    rows = db.select("episodes", f"select=id,title,thumb_path,story&status=eq.failed&updated_at=lt.{old}&limit=50")
+    gone = 0
+    for e in rows:
+        if not (e.get("story") or {}).get("retries") and (e.get("story") or {}).get("engine") == "3d":
+            continue  # not retried yet: retry_failed_renders gets it first
+        if e.get("thumb_path"):
+            try:
+                db.remove([e["thumb_path"]])
+            except Exception:  # noqa: BLE001
+                pass
+        if db.update("episodes", f"id=eq.{e['id']}&status=eq.failed", {"status": "deleted", "thumb_path": None}):
+            gone += 1
+    if gone:
+        db.log(f"🧹 Cleared {gone} old failed short{'s' if gone > 1 else ''} (they had already been retried)")
+
+
 def retry_failed_plans():
     """A short that failed before it was even planned (e.g. a planner bug) is made again once."""
     since = (now() - timedelta(hours=36)).isoformat()
@@ -502,7 +521,7 @@ def retry_failed_plans():
 
 def process_queue():
     if WORKER_ID == "1":
-        for job in (retry_failed_plans, retry_failed_renders):
+        for job in (retry_failed_plans, retry_failed_renders, clear_stale_failed):
             try:
                 job()
             except Exception:  # noqa: BLE001
