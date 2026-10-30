@@ -244,7 +244,13 @@ const demo = (() => {
       ep("e6", "published", "Zuzu's Giant Bubble Surprise! 🫧", "zuzu", "leo", "underwater", 50, { views: 3100, likes: 140, youtube_url: "#", publish_at: new Date(now - 30 * h).toISOString(),
         yt: { privacy: "public", comments: 6, hist: [[new Date(now - 864e5).toISOString().slice(0, 10), 800], [new Date(now).toISOString().slice(0, 10), 3100]] } }),
       ep("e7", "published", "Who Won The Farm Race?! 🏁", "bobo", "dodo", "farm", 20, { views: 0, likes: 0, youtube_url: "#", publish_at: new Date(now - 6 * h).toISOString(), yt: { privacy: "private", comments: 0, hist: [] } })],
-    settings: { gpu_render: false, yt_c1: { title: "Story Time Kids", subs: 412, views: 27900, videos: 14 } },
+    settings: { trends: { n: 46, at: new Date(now - 2 * h).toISOString(), kinds: {
+      story: { slip_peel: { effect: 0.41, n: 9 }, race: { effect: 0.22, n: 7 }, sneeze: { effect: 0.12, n: 8 }, bubbles: { effect: -0.05, n: 6 }, sorry: { effect: -0.35, n: 5 } },
+      place: { park: { effect: 0.37, n: 6 }, snow: { effect: 0.18, n: 4 }, kitchen: { effect: 0.02, n: 5 }, castle: { effect: -0.3, n: 4 } },
+      char: { pip: { effect: 0.4, n: 6 }, kiki: { effect: 0.2, n: 5 }, bubu: { effect: 0.08, n: 5 }, ellie: { effect: -0.2, n: 4 } },
+      title: { how: { effect: 0.28, n: 9 }, question: { effect: 0.1, n: 8 }, name: { effect: -0.15, n: 7 } },
+      type: { funny: { effect: 0.09, n: 23 }, lesson: { effect: -0.08, n: 23 } } } },
+    gpu_render: false, yt_c1: { title: "Story Time Kids", subs: 412, views: 27900, videos: 14 } },
     activity: [{ id: 1, kind: "success", message: "🎬 Ready: Watch Popo Steal Lulu's Snow Donut! 🍩", created_at: new Date(now - 1 * h).toISOString() }],
   };
 })();
@@ -624,6 +630,7 @@ function viewStats() {
       <button class="btn" id="refreshStats" style="margin-left:6px;padding:5px 10px;font-size:12.5px">${ic("refresh", 14)} Update now</button></div>
     <div class="kpis">${kpi("eye", "Total views", fmtNum(total), today ? `+${fmtNum(today)} today` : "")}${kpi("heart", "Likes", fmtNum(likes))}${kpi("chat", "Comments", fmtNum(comments))}${kpi("yt", "Shorts on YouTube", vids.length)}</div>
     <div id="chanStats"></div>
+    <div id="trends"></div>
     ${priv.length ? `<div class="card" style="margin-top:12px;border-color:var(--amber)"><b>${ic("lock", 15)} ${priv.length} of your shorts are still Private on YouTube</b>
       <div class="sub" style="margin-top:4px">Private shorts can't get views. YouTube keeps uploads from new apps private until Google approves the app (the “YouTube API audit” form). Until then: YouTube Studio → Content → select them → Edit → Visibility → Public.</div>
       <a class="btn" style="margin-top:10px" href="https://studio.youtube.com/" target="_blank" rel="noopener">${ic("ext", 15)} Open YouTube Studio</a></div>` : ""}
@@ -652,7 +659,29 @@ function viewStats() {
     if (el && cs.length) el.innerHTML = `<h2>Channels</h2><div class="grid">${cs.map(([c, v]) => `<div class="card" style="display:flex;gap:12px;align-items:center;padding:12px 14px">
       <div style="flex:1;min-width:0"><b>${esc(v.title || c.name)}</b><div class="sub">${fmtNum(v.videos)} videos</div></div>
       <span class="pill">${ic("users", 12)} ${v.hidden_subs ? "hidden" : fmtNum(v.subs)} subscribers</span><span class="pill green">${ic("eye", 12)} ${fmtNum(v.views)}</span></div>`).join("")}</div>`;
+    const tw = document.getElementById("trends");
+    if (tw) tw.innerHTML = trendsCard(st.trends);
   }).catch(() => {});
+}
+
+// what's working: learned from our own shorts (pipeline/trends.py) - new shorts lean towards the winners
+function trendsCard(t) {
+  if (!t) return "";
+  if (!t.kinds || !Object.keys(t.kinds).length) return `<h2>What's working</h2><div class="card sub">${ic("chart", 14)} Learning from your shorts once ${8} or more have a day of views (${t.n || 0} so far). New shorts then lean towards what kids watch most.</div>`;
+  const TITLES = { how: "“How To …”", dont: "“Don't …”", question: "Questions", name: "Name + action", exclaim: "Exclamations", the: "“The …”", challenge: "Challenges", other: "Other" };
+  const name = (k, v) => k === "char" ? (CAST[v] ? CAST[v][1] + " " + CAST[v][0] : v) : k === "place" ? (PLACES[v] ? PLACES[v][1] + " " + PLACES[v][0] : v)
+    : k === "story" ? (ALLS[v] ? ALLS[v][1] + " " + ALLS[v][0] : v) : k === "title" ? (TITLES[v] || v) : k === "type" ? (v === "lesson" ? "💛 Lesson stories" : "😂 Funny stories") : v;
+  const rows = [["story", "Stories"], ["place", "Places"], ["char", "Characters"], ["title", "Title styles"], ["type", "Funny vs lesson"], ["length", "Length"]];
+  const pct = e => { const p = Math.round((Math.exp(e) - 1) * 100); return (p > 0 ? "+" : "") + p + "%"; };
+  const blocks = rows.map(([k, label]) => {
+    const vals = Object.entries(t.kinds[k] || {}).filter(([, v]) => v.n >= 2).sort((a, b) => b[1].effect - a[1].effect);
+    if (vals.length < 2) return "";
+    const pick = vals.length > 4 ? [...vals.slice(0, 3), vals[vals.length - 1]] : vals;
+    return `<div class="card" style="padding:12px 14px"><b>${label}</b>${pick.map(([v, x], i) => `<div style="display:flex;gap:8px;align-items:center;margin-top:7px">
+      <span style="flex:1;min-width:0">${esc(name(k, v))}${vals.length > 4 && i === 3 ? ` <span class="sub">(weakest)</span>` : ""}</span>
+      <span class="sub">${x.n} shorts</span><span class="pill ${x.effect > 0.05 ? "green" : x.effect < -0.05 ? "red" : ""}">${pct(x.effect)}</span></div>`).join("")}</div>`;
+  }).join("");
+  return `<h2>What's working</h2><div class="sub" style="margin:-4px 0 8px">Views on day 1 compared with similar shorts, after taking out the effect of publish time. Based on ${t.n} shorts, updated ${ago(t.at) === "now" ? "just now" : ago(t.at) + " ago"}. New shorts use the winners more often, and everything still gets a turn.</div><div class="grid">${blocks}</div>`;
 }
 
 // ---------------------------------------------------------------- Channels
