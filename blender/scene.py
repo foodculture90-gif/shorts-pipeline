@@ -27,8 +27,13 @@ COLORS = {"red": "#FF3B6E", "blue": "#4DA6FF", "yellow": "#FFD23F", "green": "#5
           "orange": "#FF8A3D", "pink": "#FF8FC8"}
 
 
+STYLE = os.environ.get("STYLE") or spec.get("style") or "plush"  # art style (style.py): plush, clay, toon, storybook, dreamy
+
+
 def build(seg):
     T.reset()
+    import style
+    style.before_build(STYLE)
     T.THEME.clear()
     T.THEME.update(spec.get("theme") or {}, set=seg.get("set", "street"))
     T.LOOKS.clear()
@@ -54,6 +59,11 @@ def build(seg):
     T.add_life(end)  # breathing, sway, blinks - nobody stands frozen
     T.sc.frame_start, T.sc.frame_end = 1, end
     T.setup_render(samples, res)
+    try:  # the look of this short: materials, lights, camera and the finishing (compositor) pass
+        style.apply(STYLE)
+    except Exception:  # noqa: BLE001 - the plush look still works
+        import traceback
+        traceback.print_exc()
     return end, thumb
 
 
@@ -92,7 +102,7 @@ for i, seg in enumerate(segments):
         if mode == "none" or not wanted(g, stills):
             continue
         t0 = time.time()
-        T.sc.frame_set(f)
+        T.sc.frame_set(f - (f - 1) % 2 if STYLE == "clay" else f)  # clay = stop-motion: each pose held 2 frames
         T.sc.render.filepath = f"{out}/frames/f_{g:04d}.png"
         T.bpy.ops.render.render(write_still=True)
         done += 1
