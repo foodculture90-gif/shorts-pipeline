@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 K = 3.0              # shorts it takes before a feature's own result counts half
 CLAMP = 0.6          # strongest lean: e^0.6 = x1.8 (and x0.55 the other way)
 MIN_SHORTS = 8       # below this, no learning yet
-KINDS = {"style": "Art styles", "story": "Stories", "type": "Funny vs lesson", "place": "Places", "char": "Characters",
+KINDS = {"story": "Stories", "type": "Funny vs lesson", "place": "Places", "char": "Characters",
          "title": "Title styles", "length": "Length", "sky": "Time of day in the short"}
 TITLE_STYLES = ["how", "dont", "question", "name", "exclaim", "the", "challenge"]  # = plan3d.TITLE_FORMATS order
 TITLE_NAMES = {"how": "“How To …”", "dont": "“Don't …”", "question": "Questions", "name": "Name + action",
@@ -72,7 +72,6 @@ def features(spec, title, duration=None):
     d = duration or (len(segs) * 7 if not spec.get("moral") else None)
     if d:
         out.append(("length", length_bucket(d), 1.0))
-    out.append(("style", spec.get("style") or "plush", 1.0))
     sky = (spec.get("theme") or {}).get("sky")
     if sky:
         out.append(("sky", sky, 1.0))
@@ -194,7 +193,7 @@ def summary(t):
     if not t.get("kinds"):
         return f"📈 What's working: {t.get('note', 'not enough data yet')} ({t.get('n', 0)} shorts so far)"
     parts = []
-    for kind in ("style", "story", "place", "char", "title", "type"):
+    for kind in ("story", "place", "char", "title", "type"):
         vals = [(v["effect"], k) for k, v in (t["kinds"].get(kind) or {}).items() if v["n"] >= 2]
         if len(vals) < 2:
             continue
