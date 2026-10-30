@@ -9,6 +9,7 @@ within 30 minutes of each other (bursts get less reach).
 """
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
+import math
 
 GAP = timedelta(minutes=30)          # usual time between two shorts
 MIN_GAP = timedelta(minutes=14)      # never closer than this (very full days squeeze to 15-25 min)
@@ -54,23 +55,38 @@ def learned():
     try:
         from . import db
         since = (datetime.now(timezone.utc) - timedelta(days=35)).isoformat()
-        rows = db.select("episodes", f"select=publish_at,story&status=eq.published&publish_at=gte.{since}&limit=1000")
+        rows = db.select("episodes", f"select=publish_at,story&status=eq.published&publish_at=gte.{since}&limit=2000")
         pts, when = [], [_parse(e.get("publish_at")) for e in rows]
+        now = datetime.now(timezone.utc)
         for e, t in zip(rows, when):
-            v = ((e.get("story") or {}).get("yt") or {}).get("v24")
-            if not t or v is None:
+            yt = (e.get("story") or {}).get("yt") or {}
+            if not t or yt.get("privacy", "public") != "public":
+                continue
+            v = yt.get("v24")
+            if v is None and now - t > timedelta(hours=30):  # missed the day-1 count: read it off the daily history
+                try:
+                    from .trends import _day1_views
+                    v = _day1_views(e, t)
+                except Exception:  # noqa: BLE001
+                    v = None
+            if v is None:
                 continue
             if sum(1 for u in when if u and abs(u - t) <= GAP) > 3:
                 continue  # part of a burst (many at once) - says nothing about the time of day
-            pts.append(((t.hour * 60 + t.minute) / 30.0, math.log1p(float(v))))
+            pts.append(((t.hour * 60 + t.minute) / 30.0, math.log1p(float(v)), t))
         if len(pts) >= 10:
-            mid = sorted(p[1] for p in pts)[len(pts) // 2]
+            # compare each short with the shorts published around the same days (the channel grows, so a
+            # plain average would just reward whatever times we happened to use most recently)
+            res = []
+            for x, y, t in pts:
+                near = sorted(y2 for _x, y2, t2 in pts if abs(t2 - t) <= timedelta(days=3))
+                res.append((x, y - near[len(near) // 2]))
             for b in range(48):  # smooth over neighbouring times (circular, ~1.5 h wide)
                 num = den = 0.0
-                for x, y in pts:
+                for x, y in res:
                     dx = min(abs(x - b - 0.5), 48 - abs(x - b - 0.5))
                     k = math.exp(-0.5 * (dx / 3.0) ** 2)
-                    num += k * (y - mid)
+                    num += k * y
                     den += k
                 lift[b], weight[b] = (num / den if den else 0.0), den
     except Exception as ex:  # noqa: BLE001 - no data yet: research only
@@ -89,6 +105,34 @@ def score(t):
 
 
 _DAY = {}
+_TESTS = {}
+
+
+TEST_SHARE = 0.15                    # ~1 in 6 slots tests a time we know little about (then the data decides)
+
+
+def _test_times(d, start, k):
+    """k test times for day d: plausible viewing times (research) where our own data is thinnest."""
+    import random
+    if k <= 0:
+        return []
+    lift, weight = learned()
+    rnd = random.Random(d.toordinal() * 7 + 3)
+    bins = []
+    for b in range(48):
+        t = start + timedelta(minutes=30 * b + 5)
+        r = _research(t)
+        if r < 0.2:      # not in the middle of the night
+            continue
+        bins.append((weight[b] + rnd.random() * 0.3, t))
+    bins.sort(key=lambda x: x[0])
+    picked = []
+    for _w, t in bins:
+        if all(abs(t - p) >= timedelta(minutes=90) for p in picked):
+            picked.append(t)
+        if len(picked) >= k:
+            break
+    return picked
 
 
 def day_slots(d: date, per_day=20):
@@ -101,22 +145,27 @@ def day_slots(d: date, per_day=20):
     start = datetime.combine(d, time(0), timezone.utc)
     mins = [start + timedelta(minutes=5 * i) for i in range(288)]
     w = [score(t) ** 1.3 for t in mins]
+    tests = _test_times(d, start, round(per_day * TEST_SHARE)) if per_day >= 6 else []
+    main = per_day - len(tests)
     tot, acc, out, k = sum(w), 0.0, [], 0
     for t, x in zip(mins, w):
         acc += x
-        while k < per_day and acc >= (k + 0.5) / per_day * tot:
+        while k < main and acc >= (k + 0.5) / main * tot:
             out.append(t + timedelta(minutes=5))   # :05 / :10 ... never exactly on the hour
             k += 1
+    out = sorted([(t, False) for t in out] + [(t, True) for t in tests])
     for gap in (GAP, timedelta(minutes=25), timedelta(minutes=20), timedelta(minutes=15)):
-        fixed = []
-        for t in out:                                 # keep them `gap` apart (30 min, a bit less on very full days)
+        fixed, flags = [], []
+        for t, is_test in out:                        # keep them `gap` apart (30 min, a bit less on very full days)
             if fixed and t - fixed[-1] < gap:
                 t = fixed[-1] + gap
             if t < start + timedelta(days=1):
                 fixed.append(t)
+                flags.append(is_test)
         if len(fixed) >= len(out):
             break
     _DAY[key] = fixed
+    _TESTS[d] = [t for t, f in zip(fixed, flags) if f]
     return fixed
 
 
@@ -128,13 +177,27 @@ def plan_today():
     d = datetime.now(timezone.utc).date()
     slots = day_slots(d, per_day())
     dub = ZoneInfo("Europe/Dublin")
-    best = sorted(range(48), key=lambda b: lift[b] * weight[b] / (weight[b] + PRIOR_N), reverse=True)[:3]
-    learned_txt = ("own data: best around " + ", ".join(f"{b // 2:02d}:{30 * (b % 2):02d}" for b in best) + " UTC"
+    trust = [weight[b] / (weight[b] + PRIOR_N) for b in range(48)]
+    best = sorted(range(48), key=lambda b: lift[b] * trust[b], reverse=True)[:3]
+    start = datetime.combine(d, time(0), timezone.utc)
+    hm = lambda b: (start + timedelta(minutes=30 * b)).astimezone(dub).strftime("%H:%M")  # noqa: E731
+    learned_txt = ("own data: best around " + ", ".join(hm(b) for b in best) + " Irish time"
                    if n else "own data: not enough yet, using research")
     times = ", ".join(t.astimezone(dub).strftime("%H:%M") for t in slots)
-    db.upsert("settings", {"key": "publish_plan", "value": {"date": d.isoformat(), "times": [t.isoformat() for t in slots],
-                                                            "note": learned_txt}}, "key")
-    db.log(f"📊 Publish times today (Irish time): {times} — {learned_txt}")
+    tests = _TESTS.get(d) or []
+    test_txt = (" · testing " + ", ".join(t.astimezone(dub).strftime("%H:%M") for t in tests)) if tests else ""
+    # per Irish hour: how much better/worse our own shorts did there (x1.0 = average), and how sure we are
+    hours = []
+    for h in range(24):
+        bs = [b for b in range(48) if (start + timedelta(minutes=30 * b)).astimezone(dub).hour == h]
+        lf = sum(lift[b] * trust[b] for b in bs) / max(1, len(bs))
+        hours.append({"h": h, "x": round(math.exp(max(-1.5, min(1.5, lf))), 2),
+                      "sure": round(sum(trust[b] for b in bs) / max(1, len(bs)), 2),
+                      "research": round(sum(_research(start + timedelta(minutes=30 * b)) for b in bs) / max(1, len(bs)), 2)})
+    db.upsert("settings", {"key": "publish_plan", "value": {
+        "date": d.isoformat(), "times": [t.isoformat() for t in slots], "tests": [t.isoformat() for t in tests],
+        "note": learned_txt, "hours": hours}}, "key")
+    db.log(f"📊 Publish times today (Irish time): {times} — {learned_txt}{test_txt}")
     return slots
 
 
