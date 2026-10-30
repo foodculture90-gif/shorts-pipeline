@@ -1598,7 +1598,7 @@ def make_set(kind, rnd=None):
         box("rail", (12, 0.04, 0.07), (0, 2.58, 0.35), fence, bevel=0.015)
         cyl("lamp", 0.05, 2.2, (-2.6, 1.9, 1.1), mat("#2E3A59", 0.4))
         sphere("lampbulb", 0.16, (-2.6, 1.9, 2.25), mat("#FFF2B3", 0.3, emit=1.5), sub=1)
-        _trees((-4.5, -1.9, 1.0, 3.6, 6.2), 3.2)
+        _trees((-4.5, -1.9, 1.0, 3.6, 6.2), 3.75)  # behind the little road (ambient.py: cars)
         _clouds()
     elif kind == "park":
         box("ground", (40, 40, 0.2), (0, 6, -0.1), mat(grass, 0.85), bevel=0)
@@ -2127,7 +2127,7 @@ def feel(ch, f, mood="neutral", d=5):
     moods: neutral, happy, sad, angry, surprised, scared, sleepy, sly, proud"""
     M = {  # brows up, brow tilt, lid close, lid tilt, eye scale, pupil, mouth curve, width, open
         "neutral":   (0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0),
-        "happy":     (0.025, -0.1, 0.15, -0.1, 1.0, 1.08, 1.3, 1.25, 0.0),
+        "happy":     (0.03, 0.08, 0.15, -0.1, 1.0, 1.08, 1.3, 1.25, 0.0),
         "sad":       (0.01, -0.45, 0.38, -0.35, 0.98, 1.1, -0.9, 0.9, 0.0),
         "angry":     (-0.03, 0.5, 0.35, 0.4, 1.0, 0.85, -0.6, 1.0, 0.0),
         "surprised": (0.05, -0.15, 0.0, 0.0, 1.12, 0.8, 0.0, 1.0, 0.55),

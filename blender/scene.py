@@ -51,6 +51,12 @@ def build(seg):
         import traceback
         traceback.print_exc()
         print("details skipped:", e)
+    try:  # background life: traffic, ducks, planes, boats, snow, fish, swaying trees (ambient.py)
+        import ambient
+        ambient.add(seg.get("set", "street"), sky, end, random.Random(seg.get("seed", 1) * 19 + 7))
+    except Exception:  # noqa: BLE001
+        import traceback
+        traceback.print_exc()
     T.add_life(end)  # breathing, sway, blinks - nobody stands frozen
     try:  # head acting, floppy ears/tails, follow-through (rig.py)
         import rig

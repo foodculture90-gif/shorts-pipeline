@@ -177,9 +177,54 @@ def _idle_acting(rnd, n):
     return P, R, Y
 
 
+def _eye_darts(ch, others, end, rnd):
+    """Real actors' eyes never freeze: quick darts to the friend, back to the camera, a glance away - held in
+    between. Only where the story isn't already moving the eyes (look() keys win)."""
+    import toon as T
+    pups = ch.get("pupils") or []
+    if not pups:
+        return
+    busy = set()
+    for p in pups:
+        ad = p.animation_data
+        fc = ad.action.fcurves.find("location", index=0) if ad and ad.action else None
+        if fc:
+            busy |= {int(round(k.co[0])) for k in fc.keyframe_points}
+    x0 = ch["root"].location.x
+    friend = min(others, key=lambda o: abs(o["root"].location.x - x0), default=None)
+    toward = (1 if friend["root"].location.x > x0 else -1) if friend else 0
+    f = rnd.randint(12, 30)
+    while f < end - 6:
+        hold = rnd.randint(18, 55)
+        if any(abs(b - f) < 14 or f <= b <= f + hold for b in busy):
+            f += 10
+            continue
+        r = rnd.random()
+        if r < 0.5 and toward:
+            dx, dz = toward * rnd.uniform(0.03, 0.045), rnd.uniform(-0.006, 0.008)
+        elif r < 0.8:
+            dx, dz = rnd.uniform(-0.008, 0.008), rnd.uniform(-0.004, 0.006)
+        else:
+            dx, dz = rnd.choice((-1, 1)) * rnd.uniform(0.025, 0.045), rnd.uniform(-0.015, 0.02)
+        for p in pups:   # hold the current spot until the dart (a quick 2-frame move)
+            ad = p.animation_data
+            for i in (0, 2):
+                fc = ad.action.fcurves.find("location", index=i) if ad and ad.action else None
+                p.location[i] = fc.evaluate(f - 2) if fc else p.location[i]
+            p.keyframe_insert("location", frame=f - 2)
+        T.look(ch, f, dx, dz)
+        f += hold
+
+
 def animate(end):
     import toon as T
     n = end + 2
+    for i, ch in enumerate(T.CHARS):
+        try:
+            _eye_darts(ch, [o for o in T.CHARS if o is not ch and o.get("pupils")], end,
+                       random.Random(sum(map(ord, ch["name"])) * 5 + i))
+        except Exception as ex:  # noqa: BLE001
+            print("eye darts skipped:", ch["name"], ex)
     for i, ch in enumerate(T.CHARS):
         if ch.get("hd") is None:
             continue
