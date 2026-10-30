@@ -282,6 +282,33 @@ def wish(text, base=None):
     return {k: v for k, v in out.items() if v not in ([], {}, None, "")}
 
 
+STYLES = {"plush": "soft plush 3D with fur", "clay": "stop-motion clay", "toon": "flat cartoon with outlines",
+          "storybook": "painted picture-book", "dreamy": "pastel dream glow"}
+STYLE_WORDS = {"clay": ("clay", "plasticine", "stop motion", "stop-motion", "claymation"),
+               "toon": ("cartoon style", "outline", "2d", "cel ", "comic"),
+               "storybook": ("storybook", "painted", "painting", "watercolor", "watercolour", "picture book", "picture-book"),
+               "dreamy": ("dreamy", "pastel"),
+               "plush": ("plush", "fluffy", "teddy")}
+
+
+def _style(w, choose, base, recent, rnd):
+    """The art style: asked for (picker or words) > kept when changing a short > a fresh, popular one."""
+    if choose.get("style") in STYLES:
+        return choose["style"]
+    text = str(w.get("_idea") or "").lower()
+    for k, words in STYLE_WORDS.items():
+        if any(x in text for x in words):
+            return k
+    new_look = "style" in text or "look" in text or "art" in text.split()
+    if base and base.get("style") in STYLES and not new_look:
+        return base["style"]
+    used = [s.get("style") or "plush" for s in recent[:6]]
+    if base and new_look:
+        used = [base.get("style") or "plush"] + used
+    opts = [k for k in STYLES if k not in used[:1]] or list(STYLES)  # never the same look twice in a row
+    return trends.pick(rnd, opts, "style", extra=lambda k: 0.6 ** used.count(k) * (1.4 if k == "plush" else 1.0))
+
+
 def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, base=None, choose=None):
     """One short = 3-5 gags in a row with the same two friends (21-35 s, never under 20 or over 60):
     longer watch time, a recurring duo, and a fresh mix every day.
@@ -289,6 +316,8 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
     rnd = rnd or random.Random()
     recent = [s for s in recent_specs if isinstance(s, dict)]
     w = wish(idea, base) if idea else {}
+    if idea:
+        w = dict(w, _idea=idea)
     choose = choose or {}  # picked in the app: these always win over the typed idea
     if [c for c in choose.get("cast") or [] if c in CAST]:
         w["cast"] = [c for c in choose["cast"] if c in CAST][:2]
@@ -404,7 +433,7 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
                 k = "bow"
             looks[c] = [k, rnd.choice(ACC_COLORS)]
     spec = {"hero": a, "friend": b, "set": segs[0]["set"], "gag": segs[0]["gag"], "segments": segs,
-            "theme": theme, "looks": looks, "seed": rnd.randint(1, 10 ** 6)}
+            "theme": theme, "looks": looks, "seed": rnd.randint(1, 10 ** 6), "style": _style(w, choose, base, recent, rnd)}
     if moral:
         spec["moral"], spec["lesson"] = moral, MORALS[moral]["lesson"]
     if idea:
