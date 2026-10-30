@@ -669,8 +669,8 @@ function trendsCard(t) {
   if (!t.kinds || !Object.keys(t.kinds).length) return `<h2>What's working</h2><div class="card sub">${ic("chart", 14)} Learning from your shorts once ${8} or more have a day of views (${t.n || 0} so far). New shorts then lean towards what kids watch most.</div>`;
   const TITLES = { how: "“How To …”", dont: "“Don't …”", question: "Questions", name: "Name + action", exclaim: "Exclamations", the: "“The …”", challenge: "Challenges", other: "Other" };
   const name = (k, v) => k === "char" ? (CAST[v] ? CAST[v][1] + " " + CAST[v][0] : v) : k === "place" ? (PLACES[v] ? PLACES[v][1] + " " + PLACES[v][0] : v)
-    : k === "story" ? (ALLS[v] ? ALLS[v][1] + " " + ALLS[v][0] : v) : k === "title" ? (TITLES[v] || v) : k === "type" ? (v === "lesson" ? "💛 Lesson stories" : "😂 Funny stories") : v;
-  const rows = [["story", "Stories"], ["place", "Places"], ["char", "Characters"], ["title", "Title styles"], ["type", "Funny vs lesson"], ["length", "Length"]];
+    : k === "story" ? (ALLS[v] ? ALLS[v][1] + " " + ALLS[v][0] : v) : k === "title" ? (TITLES[v] || v) : k === "type" ? (v === "lesson" ? "💛 Lesson stories" : "😂 Funny stories") : k === "tag" ? "#" + v : k === "length" && v === "36-60 s" ? "Long (36-60 s)" : v;
+  const rows = [["story", "Stories"], ["place", "Places"], ["char", "Characters"], ["title", "Title styles"], ["type", "Funny vs lesson"], ["length", "Length"], ["tag", "Hashtags"]];
   const pct = e => { const p = Math.round((Math.exp(e) - 1) * 100); return (p > 0 ? "+" : "") + p + "%"; };
   const blocks = rows.map(([k, label]) => {
     const vals = Object.entries(t.kinds[k] || {}).filter(([, v]) => v.n >= 2).sort((a, b) => b[1].effect - a[1].effect);
