@@ -22,6 +22,11 @@ FUR = os.environ.get("FUR", "1") != "0"  # real fur strands on the furry friends
 def reset():
     global sc
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    try:  # no undo history while building (it only eats memory in a render job)
+        bpy.context.preferences.edit.undo_steps = 0
+        bpy.context.preferences.edit.use_global_undo = False
+    except Exception:  # noqa: BLE001
+        pass
     sc = bpy.context.scene
     sc.render.fps = FPS
     MATS.clear()
@@ -173,6 +178,7 @@ def _finish(o, name, m, parent, loc, scale, rot, subsurf=1):
     if subsurf:
         s = o.modifiers.new("s", "SUBSURF")
         s.levels, s.render_levels = 1, subsurf
+        s.use_limit_surface = False  # same look, ~5x less memory (limit patches on round poles are huge)
     return o
 
 
@@ -275,9 +281,14 @@ def key(o, path, f, val, interp=None):
 def show(o, f, visible=True):
     """Key visibility (render) on o and all its children. The first key also pins the state before it, so
     show(x, 200, False) alone means "visible until 200" (not hidden from the start)."""
+    ad0 = o.animation_data
+    fc0 = ad0.action.fcurves.find("hide_render") if ad0 and ad0.action else None
+    before = fc0.evaluate(f - 1) > 0.5 if fc0 else None  # parts added after an early hide inherit it
     for x in [o] + list(o.children_recursive):
         ad = x.animation_data
         if f > 1 and not (ad and ad.action and ad.action.fcurves.find("hide_render")):
+            if before is not None:
+                x.hide_render = before
             x.keyframe_insert(data_path="hide_render", frame=f - 1)
         x.hide_render = not visible
         x.keyframe_insert(data_path="hide_render", frame=f)
@@ -1140,18 +1151,37 @@ PASTELS = ["#FF9EC4", "#8FD3FF", "#FFE27A", "#B7A6FF", "#9EF0C0", "#FFC09F", "#A
 
 
 def _clouds(z0=5.5, y=14):
+    """Puffy clouds made of many round puffs (detail.py makes them soft and lumpy), drifting slowly."""
     cloud = mat("#FFFFFF", 0.9)
-    for i, (cx, cz) in enumerate(((-3.5, z0), (1.5, z0 + 0.9), (5.5, z0 - 0.3))):
-        for j, (ox, oz, rr) in enumerate(((0, 0, 0.7), (0.7, -0.15, 0.5), (-0.7, -0.15, 0.5), (0.3, 0.35, 0.5))):
-            sphere(f"cloud{i}{j}", rr, (cx + ox, y, cz + oz), cloud, scale=(1.2, 0.6, 1), sub=1)
+    for i, (cx, cz) in enumerate(((-3.5, z0), (1.5, z0 + 0.9), (5.5, z0 - 0.3), (-6.5, z0 + 1.4))):
+        g = empty(f"cloudg{i}", (cx, y, cz))
+        rr = random.Random(i * 31 + int(z0 * 10))
+        puffs = [(0, 0, 0.7), (0.7, -0.15, 0.5), (-0.7, -0.15, 0.5), (0.3, 0.35, 0.5)]
+        puffs += [(rr.uniform(-1.1, 1.1), rr.uniform(-0.2, 0.3), rr.uniform(0.3, 0.45)) for _ in range(4)]
+        for j, (ox, oz, r_) in enumerate(puffs):
+            sphere(f"cloud{i}{j}", r_, (ox, 0, oz), cloud, g, scale=(1.2, 0.6, 1), sub=1)
+        key(g, "location", 1, (cx, y, cz), "LINEAR")
+        key(g, "location", 900, (cx + rr.uniform(0.8, 1.6), y, cz), "LINEAR")
 
 
 def _trees(xs, y, crown=None):
+    """Trees with a tapered trunk, two branches and a big clumpy crown (detail.py makes it leafy)."""
     for i, tx in enumerate(xs):
         c = crown or _crown(i)
-        cyl(f"trunk{y}{i}", 0.09, 0.9, (tx, y, 0.45), mat("#9A6A43", 0.7))
-        sphere(f"crown{y}{i}", 0.55, (tx, y, 1.25), mat(c, 0.7), sub=1)
-        sphere(f"crownb{y}{i}", 0.38, (tx + 0.3, y + 0.1, 1.05), mat(c, 0.7), sub=1)
+        rr = random.Random(int(tx * 100) + int(y * 10) + i)
+        bark = mat("#9A6A43", 0.7)
+        cone(f"trunk{y}{i}", 0.12, 0.07, 1.05, (tx, y, 0.52), bark)
+        cone(f"trunkroot{y}{i}", 0.2, 0.1, 0.18, (tx, y, 0.09), bark)
+        for k, side in enumerate((-1, 1)):
+            cyl(f"trunkbr{y}{i}{k}", 0.035, 0.45, (tx + side * 0.14, y, 1.0 + k * 0.1), bark, rot=(0, side * 0.7, 0))
+        cm = mat(c, 0.7)
+        sphere(f"crown{y}{i}", 0.5, (tx, y, 1.35), cm, sub=1)
+        for k in range(rr.randint(5, 7)):  # clumps around the main crown
+            a = k / 6 * math.tau + rr.uniform(-0.3, 0.3)
+            r_ = rr.uniform(0.26, 0.38)
+            sphere(f"crown{y}{i}c{k}", r_, (tx + math.cos(a) * 0.42, y + math.sin(a) * 0.25, 1.3 + rr.uniform(-0.25, 0.3)), cm,
+                   sub=1)
+        sphere(f"crown{y}{i}top", 0.3, (tx + rr.uniform(-0.1, 0.1), y, 1.8), cm, sub=1)
 
 
 def _crown(i):
@@ -2607,6 +2637,10 @@ GPU_DEVICES = None
 
 def setup_render(samples=20, res=100):
     global GPU_DEVICES
+    for o in bpy.data.objects:  # every subdivision (gags and props too): no limit-surface patches
+        for md in o.modifiers:
+            if md.type == "SUBSURF":
+                md.use_limit_surface = False
     R = sc.render
     R.engine = "CYCLES"
     if GPU_DEVICES is None:

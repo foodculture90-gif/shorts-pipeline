@@ -44,6 +44,13 @@ def build(seg):
         T.add_extras(seg.get("set", "street"), sky, end, random.Random(seg.get("seed", 1) * 13 + 5))
     except Exception as e:  # noqa: BLE001 - the short still works without them
         print("extras skipped:", e)
+    try:  # richer set: textures, leafy trees, grass, far hills, a balloon or kite
+        import detail
+        detail.enrich(seg.get("set", "street"), sky, end, random.Random(seg.get("seed", 1) * 17 + 3))
+    except Exception as e:  # noqa: BLE001
+        import traceback
+        traceback.print_exc()
+        print("details skipped:", e)
     T.add_life(end)  # breathing, sway, blinks - nobody stands frozen
     T.sc.frame_start, T.sc.frame_end = 1, end
     T.setup_render(samples, res)
