@@ -194,10 +194,8 @@ const MORALS = {
   helping: ["Help a friend", "🤝", ALLP], sorry: ["Say sorry", "🌸", ALLP],
   teamwork: ["Together we can", "💪", [...OUTDOOR, "space"]], try_again: ["Never give up", "⭐", ALLP] };
 const ALLS = { ...STORIES, ...MORALS };
-// art styles (blender/style.py): the same story drawn in different looks
-const ART = { plush: ["Plush 3D", "🧸"], clay: ["Clay stop-motion", "🟠"], toon: ["Cartoon outlines", "✏️"], storybook: ["Storybook painting", "🎨"], dreamy: ["Pastel dream", "🌈"] };
 const IDEAS = ["Who stole the donut?", "Balloon floats away… POP!", "Hide and seek – BOO!", "Banana peel slip", "Surprise gift box", "Ball bonk in the park", "Snow day fun", "Birthday cake mix-up", "Silly day on the moon", "Pirate island party", "Toys in the bedroom", "Christmas presents", "Bubbles under the sea", "Race on the farm", "Dance party at the castle", "Big sneeze in Candy Land"];
-const CHANGES = ["Different characters", "Different place", "Funnier moments", "Snow day", "Beach day", "On the moon", "Pirate island", "Sunset colours", "Party hats on", "Start with the banana slip", "Different art style"];
+const CHANGES = ["Different characters", "Different place", "Funnier moments", "Snow day", "Beach day", "On the moon", "Pirate island", "Sunset colours", "Party hats on", "Start with the banana slip"];
 
 // ---------------------------------------------------------------- icons + helpers
 const I = {
@@ -276,7 +274,7 @@ const api = {
   async episodes() {
     if (DEMO) return demo.episodes;
     const [eps, cmds] = await Promise.all([
-      q(sb.from("episodes").select(EP_COLS).not("status", "in", "(replaced,deleted)").order("created_at", { ascending: false }).limit(150)),
+      q(sb.from("episodes").select(EP_COLS).not("status", "in", "(replaced,deleted)").order("created_at", { ascending: false }).limit(1000)),  // all of them: totals (live, views) must count every short
       q(sb.from("commands").select("id,payload,created_at").eq("type", "generate").in("status", ["queued", "running"]).order("created_at", { ascending: false }).limit(40)),
     ]);
     // shorts you just asked for show up straight away, before a worker picks them up
@@ -534,7 +532,7 @@ function scheduleAllSheet(list) {
 function newShortSheet(pre = {}) {
   const channels = state.channels;
   if (!channels.length) return toast("Add a channel first (Channels)");
-  const story = pre.story ? [pre.story] : [], cast = [], placeSel = { v: pre.place || "" }, artSel = { v: "" };
+  const story = pre.story ? [pre.story] : [], cast = [], placeSel = { v: pre.place || "" };
   sheet(`<h3>New short</h3><div class="sub">Pick the story, the stars and the place – or leave any of them on “Surprise me”. About 30 seconds, music + sound effects, no words.</div>
     ${channels.length > 1 ? `<label class="f">Channel</label><select class="input" id="ch">${channels.map(c => `<option value="${c.id}" ${c.id === state.channel ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select>` : ""}
     <label class="f">What happens? <span class="sub" style="font-weight:500">(tap up to 5, in the order you want them)</span></label>
@@ -545,8 +543,6 @@ function newShortSheet(pre = {}) {
     ${chips(Object.entries(CAST).map(([k, [n, e]]) => [k, `${e} ${n}`]), "cast")}
     <label class="f">Where?</label>
     ${chips([["", "🎲 Surprise me"], ...Object.entries(PLACES).map(([k, [n, e]]) => [k, `${e} ${n}`])], "place", [placeSel.v])}
-    <label class="f">Art style</label>
-    ${chips([["", "🎲 Surprise me"], ...Object.entries(ART).map(([k, [n, e]]) => [k, `${e} ${n}`])], "art", [""])}
     <label class="f">Anything else? <span class="sub" style="font-weight:500">(optional)</span></label>
     <textarea class="input" id="idea" placeholder="e.g. Lulu wears a crown, sunset colours">${esc(pre.idea || "")}</textarea>
     <div class="reel" style="gap:7px;margin-top:8px">${IDEAS.map(t => `<button type="button" class="chip" style="flex:none" data-ex="${esc(t)}">${esc(t)}</button>`).join("")}</div>
@@ -573,11 +569,9 @@ function newShortSheet(pre = {}) {
           b.classList.toggle("off", !!v && story.some(k => !ALLS[k][2].includes(v)));
         });
         el.querySelectorAll("[data-chips=cast] .chip").forEach(b => b.classList.toggle("on", cast.includes(b.dataset.v)));
-        el.querySelectorAll("[data-chips=art] .chip").forEach(b => b.classList.toggle("on", b.dataset.v === artSel.v));
         const parts = [story.length ? story.map(k => ALLS[k][1] + " " + ALLS[k][0]).join(" → ") : "🎲 surprise story",
           cast.length ? cast.map(k => CAST[k][1] + " " + CAST[k][0]).join(" & ") : "🎲 surprise stars",
-          placeSel.v ? PLACES[placeSel.v][1] + " " + PLACES[placeSel.v][0] : "🎲 surprise place",
-          artSel.v ? ART[artSel.v][1] + " " + ART[artSel.v][0] : "🎲 surprise style"];
+          placeSel.v ? PLACES[placeSel.v][1] + " " + PLACES[placeSel.v][0] : "🎲 surprise place"];
         el.querySelector("#picked").innerHTML = `<b>Your short:</b> ${parts.map(esc).join(" · ")}`;
       };
       el.querySelectorAll("[data-chips=story] .chip").forEach(b => b.onclick = () => {
@@ -598,13 +592,12 @@ function newShortSheet(pre = {}) {
         paint();
       });
       el.querySelectorAll("[data-chips=place] .chip").forEach(b => b.onclick = () => { placeSel.v = b.dataset.v; paint(); });
-      el.querySelectorAll("[data-chips=art] .chip").forEach(b => b.onclick = () => { artSel.v = b.dataset.v; paint(); });
       el.querySelectorAll("[data-ex]").forEach(b => b.onclick = () => { el.querySelector("#idea").value = b.dataset.ex; });
       el.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { n = +b.dataset.n; el.querySelectorAll("[data-n]").forEach(x => x.classList.toggle("on", x === b)); });
       paint();
       el.querySelector("#go").onclick = ev => guard(ev.currentTarget, async () => {
         const text = el.querySelector("#idea").value.trim();
-        const choose = { gags: [...story], cast: [...cast], set: placeSel.v || undefined, style: artSel.v || undefined };
+        const choose = { gags: [...story], cast: [...cast], set: placeSel.v || undefined };
         const label = [story.length ? story.map(k => ALLS[k][0]).join(", ") : "", cast.length ? `with ${cast.map(k => CAST[k][0]).join(" & ")}` : "",
           placeSel.v ? `at the ${PLACES[placeSel.v][0].toLowerCase()}` : "", text].filter(Boolean).join(" ");
         const channel_id = el.querySelector("#ch")?.value || channels[0].id;
@@ -677,8 +670,8 @@ function trendsCard(t) {
   if (!t.kinds || !Object.keys(t.kinds).length) return `<h2>What's working</h2><div class="card sub">${ic("chart", 14)} Learning from your shorts once ${8} or more have a day of views (${t.n || 0} so far). New shorts then lean towards what kids watch most.</div>`;
   const TITLES = { how: "“How To …”", dont: "“Don't …”", question: "Questions", name: "Name + action", exclaim: "Exclamations", the: "“The …”", challenge: "Challenges", other: "Other" };
   const name = (k, v) => k === "char" ? (CAST[v] ? CAST[v][1] + " " + CAST[v][0] : v) : k === "place" ? (PLACES[v] ? PLACES[v][1] + " " + PLACES[v][0] : v)
-    : k === "story" ? (ALLS[v] ? ALLS[v][1] + " " + ALLS[v][0] : v) : k === "title" ? (TITLES[v] || v) : k === "style" ? (ART[v] ? ART[v][1] + " " + ART[v][0] : v) : k === "type" ? (v === "lesson" ? "💛 Lesson stories" : "😂 Funny stories") : v;
-  const rows = [["style", "Art styles"], ["story", "Stories"], ["place", "Places"], ["char", "Characters"], ["title", "Title styles"], ["type", "Funny vs lesson"], ["length", "Length"]];
+    : k === "story" ? (ALLS[v] ? ALLS[v][1] + " " + ALLS[v][0] : v) : k === "title" ? (TITLES[v] || v) : k === "type" ? (v === "lesson" ? "💛 Lesson stories" : "😂 Funny stories") : v;
+  const rows = [["story", "Stories"], ["place", "Places"], ["char", "Characters"], ["title", "Title styles"], ["type", "Funny vs lesson"], ["length", "Length"]];
   const pct = e => { const p = Math.round((Math.exp(e) - 1) * 100); return (p > 0 ? "+" : "") + p + "%"; };
   const blocks = rows.map(([k, label]) => {
     const vals = Object.entries(t.kinds[k] || {}).filter(([, v]) => v.n >= 2).sort((a, b) => b[1].effect - a[1].effect);
