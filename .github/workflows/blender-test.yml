@@ -14,13 +14,13 @@ jobs:
       matrix:
         include:
           - {gag: steal_treat, set: park, hero: pip, friend: leo, prop: cake, sky: day, season: summer, acc: party_hat, acc2: crown, every: 40}
-          - {gag: dance_party, set: livingroom, hero: momo, friend: kiki, prop: confetti, sky: day, season: summer, acc: none, acc2: bow, every: 40}
-          - {gag: ball_bonk, set: beach, hero: ocki, friend: ellie, prop: ball, sky: golden, season: summer, acc: flower, acc2: none, every: 40}
+          - {gag: dance_party, set: livingroom, hero: momo, friend: kiki, prop: confetti, sky: day, season: summer, acc: none, acc2: bow, every: 40, style: toon}
+          - {gag: ball_bonk, set: beach, hero: ocki, friend: ellie, prop: ball, sky: golden, season: summer, acc: flower, acc2: none, every: 40, style: clay}
           - {gag: seesaw, set: playground, hero: rexy, friend: hoot, prop: seesaw, sky: morning, season: summer, acc: cap, acc2: none, every: 40}
-          - {gag: sharing, set: kitchen, hero: bubu, friend: nino, prop: cupcake, sky: day, season: summer, acc: bow, acc2: cap, every: 38}
+          - {gag: sharing, set: kitchen, hero: bubu, friend: nino, prop: cupcake, sky: day, season: summer, acc: bow, acc2: cap, every: 38, style: storybook}
           - {gag: patience, set: park, hero: zuzu, friend: chiko, prop: seed, sky: day, season: summer, acc: none, acc2: bow, every: 44}
           - {gag: helping, set: street, hero: drako, friend: pinky, prop: boxes, sky: morning, season: summer, acc: none, acc2: flower, every: 40}
-          - {gag: magic_trick, set: jungle, hero: gogo, friend: buzzy, prop: hat, sky: day, season: summer, acc: party_hat, acc2: none, every: 40}
+          - {gag: magic_trick, set: jungle, hero: gogo, friend: buzzy, prop: hat, sky: day, season: summer, acc: party_hat, acc2: none, every: 40, style: dreamy}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -44,7 +44,7 @@ jobs:
       - name: Render preview frames
         env: {SAMPLES: "12", RES: "30", ASSETS: "${{ github.workspace }}/assets"}
         run: |
-          echo '{"gag":"${{ matrix.gag }}","set":"${{ matrix.set }}","hero":"${{ matrix.hero }}","friend":"${{ matrix.friend }}","prop":"${{ matrix.prop }}","seed":7,"color":"blue","theme":{"sky":"${{ matrix.sky }}","season":"${{ matrix.season }}","pal":1${{ strategy.job-index }}7},"looks":{"${{ matrix.hero }}":["${{ matrix.acc }}","#FF4D6D"],"${{ matrix.friend }}":["${{ matrix.acc2 }}","#FFD23F"]}}' > spec.json
+          echo '{"gag":"${{ matrix.gag }}","set":"${{ matrix.set }}","hero":"${{ matrix.hero }}","friend":"${{ matrix.friend }}","prop":"${{ matrix.prop }}","seed":7,"color":"blue","style":"${{ matrix.style }}","theme":{"sky":"${{ matrix.sky }}","season":"${{ matrix.season }}","pal":1${{ strategy.job-index }}7},"looks":{"${{ matrix.hero }}":["${{ matrix.acc }}","#FF4D6D"],"${{ matrix.friend }}":["${{ matrix.acc2 }}","#FFD23F"]}}' > spec.json
           timeout 25m ./bl/blender -b --python blender/scene.py -- spec.json out every:${{ matrix.every }} 2>&1 | grep -E "^frame|done|Error|Traceback|rror|line [0-9]+|kenney|dressing|pets|devices" | head -80
           ls out/frames | wc -l
           bash pipeline/setup_tools.sh fluidsynth; pip install -q numpy
