@@ -794,6 +794,8 @@ async function viewSettings() {
     <div class="card">
       <div class="row"><div><div class="t">Install Shorts Studio</div><div class="d">${standalone() ? "Installed ✓" : ios ? "On iPhone: Share → Add to Home Screen" : "On computer or Android: Install button, or browser menu → Install app"}</div></div>
         ${installEvt && !standalone() ? `<button class="btn primary" id="install2">${ic("dl", 16)} Install</button>` : ""}</div>
+      <div class="row"><div><div class="t">Daily views report 📈</div><div class="d">${pushState === "on" ? "On – every morning around 8:40: yesterday's views and subscribers vs the day before" : !canPush() ? (ios && !standalone() ? "On iPhone: add Shorts Studio to your Home Screen first, then open it from there" : "This browser can't get notifications") : "A notification every morning: yesterday's views and subscribers vs the day before"}</div></div>
+        ${pushState === "on" ? `<button class="btn ghost" id="pushTest">Send now</button><button class="btn ghost" id="pushOff">Turn off</button>` : canPush() ? `<button class="btn primary" id="pushOn">Turn on</button>` : ""}</div>
       <div class="row"><div><div class="t">Notifications</div><div class="d">${canNotify() ? "On – you'll hear when shorts are ready" : "Get told when shorts are ready to approve"}</div></div>
         ${canNotify() ? "" : `<button class="btn" id="notif">Turn on</button>`}</div>
       ${window.missionDesktop ? "" : `<div class="row"><div><div class="t">Windows app</div><div class="d">Tray icon, starts with Windows, desktop notifications</div></div>
@@ -807,6 +809,10 @@ async function viewSettings() {
   root.querySelector("#gpu").onchange = e => guard(null, async () => { await api.setSetting("gpu_render", e.target.checked); toast(e.target.checked ? "GPU rendering on" : "GPU rendering off"); });
   root.querySelector("#autopub").onchange = e => guard(null, async () => { await api.setSetting("auto_publish", e.target.checked); toast(e.target.checked ? "Auto-publish on — shorts go out at the best times" : "Auto-publish off — shorts wait for your OK"); viewSettings(); });
   root.querySelector("#notif")?.addEventListener("click", async () => { if (!("Notification" in window)) return toast("This browser doesn't support notifications"); const r = await Notification.requestPermission(); toast(r === "granted" ? "Notifications on" : "Notifications blocked – allow them in browser settings"); viewSettings(); });
+  root.querySelector("#pushOn")?.addEventListener("click", ev => guard(ev.currentTarget, async () => { await enablePush(); toast("Daily report on – first one tomorrow morning"); viewSettings(); }));
+  root.querySelector("#pushOff")?.addEventListener("click", ev => guard(ev.currentTarget, async () => { await disablePush(); toast("Daily report off"); viewSettings(); }));
+  root.querySelector("#pushTest")?.addEventListener("click", ev => guard(ev.currentTarget, async () => { await api.command("notify_test", {}); toast("Sending – arrives in about a minute"); }));
+  if (pushState === "?") checkPush().then(v => { if (v !== "?" && location.hash.startsWith("#/settings")) viewSettings(); });
   root.querySelector("#logout").onclick = () => api.logout();
   root.querySelector("#install2")?.addEventListener("click", () => document.getElementById("install")?.click());
   bindCommon();
@@ -844,6 +850,43 @@ let rt;
 function refresh() { clearTimeout(rt); rt = setTimeout(() => load().catch(e => console.warn(e)), 350); }
 
 // ---------------------------------------------------------------- notifications
+// daily report = real push notifications (arrive even when the app is closed). The keys are made here, once,
+// and kept with the phone's subscription in settings; the worker (pipeline/notify.py) sends the report.
+let pushState = "?";
+const canPush = () => !DEMO && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const b64u = v => Uint8Array.from(atob((v + "=".repeat((4 - v.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+const u64 = b => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+async function checkPush() {
+  if (!canPush()) return pushState = "off";
+  try {
+    const reg = await navigator.serviceWorker.getRegistration(), sub = await reg?.pushManager.getSubscription();
+    if (!sub || Notification.permission !== "granted") return pushState = "off";
+    const st = await api.settings();
+    return pushState = (st.push_subs || []).some(x => x.endpoint === sub.endpoint) ? "on" : "off";
+  } catch { return pushState = "off"; }
+}
+async function enablePush() {
+  if ((await Notification.requestPermission()) !== "granted") throw new Error("Notifications are blocked – allow them for Shorts Studio in your phone's settings");
+  const reg = await navigator.serviceWorker.register("sw.js"); await navigator.serviceWorker.ready;
+  const st = await api.settings();
+  let keys = st.push_vapid;
+  if (!keys?.pub || !keys?.priv) {
+    const kp = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign"]);
+    keys = { pub: u64(await crypto.subtle.exportKey("raw", kp.publicKey)), priv: (await crypto.subtle.exportKey("jwk", kp.privateKey)).d };
+    await api.setSetting("push_vapid", keys);
+  }
+  let sub = await reg.pushManager.getSubscription();
+  if (sub && u64(sub.options?.applicationServerKey || new ArrayBuffer(0)) !== keys.pub) { await sub.unsubscribe().catch(() => {}); sub = null; }
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(keys.pub) });
+  const j = sub.toJSON(), subs = ((await api.settings()).push_subs || []).filter(x => x.endpoint !== j.endpoint);
+  await api.setSetting("push_subs", [...subs, { endpoint: j.endpoint, keys: j.keys, at: new Date().toISOString(), ua: navigator.userAgent.slice(0, 80) }]);
+  pushState = "on";
+}
+async function disablePush() {
+  const reg = await navigator.serviceWorker.getRegistration(), sub = await reg?.pushManager.getSubscription();
+  if (sub) { await api.setSetting("push_subs", ((await api.settings()).push_subs || []).filter(x => x.endpoint !== sub.endpoint)); await sub.unsubscribe().catch(() => {}); }
+  pushState = "off";
+}
 const notified = new Set(); let pendingReady = [], notifyTimer;
 function canNotify() { return "Notification" in window && Notification.permission === "granted"; }
 function onEpisodeChange(payload) {
