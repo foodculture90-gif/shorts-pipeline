@@ -172,8 +172,7 @@ if ("serviceWorker" in navigator && !DEMO) navigator.serviceWorker.register("sw.
 const CAST = { pip: ["Pip", "🔴"], bubu: ["Bubu", "🐰"], mimi: ["Mimi", "🐱"], gogo: ["Gogo", "🐸"], chiko: ["Chiko", "🐤"],
   lulu: ["Lulu", "🐻"], tobi: ["Tobi", "🦊"], teo: ["Teo", "🐶"], popo: ["Popo", "🐧"], bobo: ["Bobo", "🐼"], zuzu: ["Zuzu", "🦄"],
   leo: ["Leo", "🦁"], dodo: ["Dodo", "🦆"], bolt: ["Bolt", "🤖"], rexy: ["Rexy", "🦖"], trixie: ["Trixie", "🦕"], drako: ["Drako", "🐉"],
-  momo: ["Momo", "👾"], ocki: ["Ocki", "🐙"], ellie: ["Ellie", "🐘"], pinky: ["Pinky", "🐷"], hoot: ["Hoot", "🦉"], buzzy: ["Buzzy", "🐝"],
-  kiki: ["Kiki", "👧"], nino: ["Nino", "👦"] };
+  momo: ["Momo", "👾"], ocki: ["Ocki", "🐙"], ellie: ["Ellie", "🐘"], pinky: ["Pinky", "🐷"], hoot: ["Hoot", "🦉"], buzzy: ["Buzzy", "🐝"] };
 const PLACES = { street: ["Street", "🏡"], park: ["Park", "🌳"], beach: ["Beach", "🏖️"], kitchen: ["Kitchen", "🍳"], playground: ["Playground", "🛝"], snow: ["Snow", "⛄"], bedroom: ["Bedroom", "🧸"], livingroom: ["Living room", "🛋️"], space: ["Moon", "🚀"], pirate: ["Pirate island", "🏴‍☠️"], christmas: ["Christmas", "🎄"],
   farm: ["Farm", "🚜"], camping: ["Camping", "🏕️"], castle: ["Castle", "🏰"], underwater: ["Under the sea", "🐠"], candy: ["Candy Land", "🍭"],
   market: ["Village market", "⛲"], desert: ["Desert", "🌵"], jungle: ["Jungle", "🌴"] };
@@ -247,7 +246,7 @@ const demo = (() => {
     settings: { trends: { n: 46, at: new Date(now - 2 * h).toISOString(), kinds: {
       story: { slip_peel: { effect: 0.41, n: 9 }, race: { effect: 0.22, n: 7 }, sneeze: { effect: 0.12, n: 8 }, bubbles: { effect: -0.05, n: 6 }, sorry: { effect: -0.35, n: 5 } },
       place: { park: { effect: 0.37, n: 6 }, snow: { effect: 0.18, n: 4 }, kitchen: { effect: 0.02, n: 5 }, castle: { effect: -0.3, n: 4 } },
-      char: { pip: { effect: 0.4, n: 6 }, kiki: { effect: 0.2, n: 5 }, bubu: { effect: 0.08, n: 5 }, ellie: { effect: -0.2, n: 4 } },
+      char: { pip: { effect: 0.4, n: 6 }, tobi: { effect: 0.2, n: 5 }, bubu: { effect: 0.08, n: 5 }, ellie: { effect: -0.2, n: 4 } },
       title: { how: { effect: 0.28, n: 9 }, question: { effect: 0.1, n: 8 }, name: { effect: -0.15, n: 7 } },
       type: { funny: { effect: 0.09, n: 23 }, lesson: { effect: -0.08, n: 23 } } } },
     gpu_render: false, yt_c1: { title: "Story Time Kids", subs: 412, views: 27900, videos: 14 } },
