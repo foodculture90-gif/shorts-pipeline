@@ -392,6 +392,8 @@ input,select,textarea,input.in,select.in,textarea.in{font-size:16px}
 .prcell{background:var(--card);border:none;border-radius:18px;padding:13px 14px;display:grid;gap:2px;text-align:left;color:var(--ink)}
 .prcell b{font-family:var(--disp);font-weight:800;font-size:24px}
 .prcell.none b{color:var(--ink3)}
+.lastadd{display:flex;align-items:center;gap:8px;margin-top:8px;background:var(--card);border-radius:16px;padding:8px 8px 8px 14px;font-size:14px}
+.lastadd .qbtn{width:34px;height:34px;font-size:20px;font-weight:700;flex:none}.lastadd .qv{min-width:30px;text-align:center;font-family:var(--disp);font-size:18px}
 .mgroup{padding:14px 16px}.mgroup summary{list-style:none;display:flex;align-items:center;gap:10px;cursor:pointer}.mgroup summary::-webkit-details-marker{display:none}
 .mgroup .chev{color:var(--ink3);transition:transform .2s;display:grid}.mgroup[open] .chev{transform:rotate(90deg)}.mgroup .list .li{padding-left:0;padding-right:0}
 </style>
@@ -470,7 +472,7 @@ function targets(p) {
 const CFG = window.FORMA_CONFIG || {};
 const LIVE = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && window.supabase);
 const sb = LIVE ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
-const S = { user: null, profile: null, entries: [], tab: ls.get("forma.tab", "today"), foodDay: dayStr(), demo: !LIVE };
+const S = { user: null, profile: null, entries: [], tab: ["today", "food", "body", "activity", "profile"].includes(ls.get("forma.tab", "today")) ? ls.get("forma.tab", "today") : "today", foodDay: dayStr(), demo: !LIVE };
 
 function demoSeed() {
   const t = dayStr(), E = [];
@@ -617,7 +619,7 @@ function ring(eaten, target) {
 }
 
 /* ---------------- screens ---------------- */
-const TABS = [["today", "Today"], ["food", "Food"], ["body", "Body"], ["gym", "House"], ["activity", "Train"], ["profile", "Me"]];
+const TABS = [["today", "Today"], ["food", "Food"], ["body", "Body"], ["activity", "Train"], ["profile", "Me"]];
 const TAB_ICON = {activity: "train"};
 function nav() {
   const n = $("#tabs"); n.hidden = false;
@@ -691,8 +693,8 @@ function renderToday(v) {
   const macro = (l, val, goal, col) => `<div class="macro"><div class="lbl"><span>${l}</span><span class="num">${r0(val)} / ${goal} g</span></div><div class="bar"><i style="width:${Math.min(100, val / goal * 100)}%;background:${col}"></i></div></div>`;
   const tile = (l, n, unit = "") => `<div class="tile"><div class="l">${l}</div><div class="n num">${n}<span class="sub"> ${unit}</span></div></div>`;
   v.innerHTML = `${demoBanner()}
-    <div class="vrow3" style="margin-top:8px"><div class="vmini"><span class="sub">Streak</span><b class="num" style="${stk && !of("meal", t).length ? "color:var(--amber)" : ""}">${stk}d</b></div><div class="vmini"><span class="sub">Level</span><b class="num">${levelOf(avatarPoints().xp).L}</b></div>
-      <button class="vmini" id="toHouse" style="border:none;color:inherit"><span class="sub">Pts</span><b class="num" style="color:var(--accent)">${shortNum(wallet())}</b></button></div>
+    <div class="vrow" style="margin-top:8px"><div class="vmini"><span class="sub">Streak</span><b class="num" style="${stk && !of("meal", t).length ? "color:var(--amber)" : ""}">${stk}d</b></div><div class="vmini"><span class="sub">Level</span><b class="num">${levelOf(avatarPoints().xp).L}</b></div>
+      </div>
     <div class="card vhero" style="margin-top:14px">${stepRing(tot.kcal, tg.kcal)}<div><div class="eyebrow">Calories</div><div class="vbig num">${r0(tot.kcal).toLocaleString()}</div>
       <div class="sub num">of ${tg.kcal.toLocaleString()} kcal · ${tot.kcal > tg.kcal ? r0(tot.kcal - tg.kcal).toLocaleString() + " over" : r0(tg.kcal - tot.kcal).toLocaleString() + " left"}</div></div></div>
     <div class="vtiles">${vtile("Protein", r0(tot.p) + "g", tot.p / tg.protein)}${vtile("Burn", h && h.active_kcal != null ? r0(h.active_kcal) : "–", (h?.active_kcal || 0) / 600)}${vtile("Steps", steps.toLocaleString(), steps / (tg.steps || 1))}</div>
@@ -705,7 +707,7 @@ function renderToday(v) {
     <h2>Training</h2>${trainingSummary(true)}
     <h2>Workouts <button class="btn ghost small" id="addWT">+ Add</button></h2>${workoutHistory()}
     ${h ? "" : `<button class="card" id="toSync" style="margin-top:14px;width:100%;text-align:left;border:none;color:inherit;display:flex;gap:12px;align-items:center"><span style="color:var(--accent)">${ICON.watch}</span><span class="grow"><b>Connect Apple Health</b><div class="sub">Bring in your steps, calories burned and workouts from your iPhone.</div></span></button>`}`;
-  bindPts("#toHouse"); bindWorkoutHistory(v); scrollYear(); $("#addWT").onclick = workoutSheet;
+  bindWorkoutHistory(v); scrollYear(); $("#addWT").onclick = workoutSheet;
   if ($("#lostX")) $("#lostX").onclick = () => { ls.set("forma.lostseen", t); $("#lostCard").remove(); };
   bindQuickAdd("qa"); $("#qMeal").onclick = snapMeal; $("#qScan").onclick = scanBarcode; $("#qWork").onclick = workoutSheet; $("#qWeight").onclick = weightSheet; $("#qBody").onclick = physiqueCheck;
   if ($("#toSync")) $("#toSync").onclick = () => { go("profile"); setTimeout(() => $("#health")?.scrollIntoView({behavior: "smooth"}), 50); };
@@ -789,7 +791,8 @@ function mealSheet(m, img, editId) {
     $("#mCancel").onclick = closeSheet;
     $("#mSave").onclick = async () => { const items = m.items.filter(i => i.name && (+i.kcal || 0) >= 0);
       if (!items.length) return toast("Add at least one food");
-      const data = {...(m.keep || {}), name: $("#mName").value || items[0].name, meal: $("#mMeal").value, items, thumb: m.thumb || null};
+      const {base, nameBase, ...keep0} = m.keep || {};
+      const data = {...keep0, qty: 1, name: $("#mName").value || items[0].name, meal: $("#mMeal").value, items, thumb: m.thumb || null};
       if (editId && data.typed) { const c = ls.get("forma.foodcache", {}); c[foodKey(data.typed)] = {name: data.name, items: items.map(i => ({...i})), learned: true}; ls.set("forma.foodcache", c); }
       try { if (editId) await DB.update(editId, data); else await DB.add("meal", S.foodDay || dayStr(), data);
         closeSheet(); toast(editId ? "Updated" : "Meal saved"); render(); } catch (e) { toast(e.message); } };
@@ -810,11 +813,12 @@ function renderBody(v) {
       <div class="grow"><div class="eyebrow">Weight</div><div class="num" style="font-family:var(--disp);font-weight:800;font-size:28px;line-height:1.1">${r1(now)} <span class="sub" style="font-size:13px">kg</span></div>
         ${ch !== null ? `<div class="num" style="font-size:12px;color:${(S.profile.goal === "gain" ? ch >= 0 : ch <= 0) ? "var(--green)" : "var(--amber)"}">${ch > 0 ? "+" : ""}${ch} kg in 30 days</div>` : `<div class="sub" style="font-size:12px">Log a few weigh-ins to see your trend</div>`}</div>
       ${spark}<button class="btn small" id="logW" aria-label="Log today's weight">${ICON.scale}</button></div>`;
-  v.innerHTML = `${demoBanner()}<h1>Body</h1>${avatarSection(wCard)}
+  v.innerHTML = `${demoBanner()}<h1>Body</h1>${avatarSection(wCard + prGrid())}
     <h2>Physique check-ins <button class="btn small" id="newScan">${ICON.camera}New check-in</button></h2>
     <div class="sub" style="margin:-4px 2px 10px">Take a front photo in good light, same spot each time. Every 2-4 weeks is ideal. Photos stay private to your account.</div>
     ${scans.length ? `<div class="stack">${scans.map(scanCard).join("")}</div>` : `<div class="card empty">No check-ins yet. Your first one becomes the baseline for tracking progress.</div>`}`;
   $("#logW").onclick = weightSheet; $("#newScan").onclick = physiqueCheck; bindAvatar();
+  v.querySelectorAll("[data-mach]").forEach(el => el.onclick = () => prSheet(el.dataset.mach));
   v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => confirmSheet("Delete this check-in?", async () => { await DB.remove(b.dataset.del); render(); }));
 }
 const scanCard = s => `<div class="card"><div class="row">${s.data.thumb ? `<img src="${s.data.thumb}" alt="" style="width:64px;height:84px;object-fit:cover;border-radius:12px">` : ""}
@@ -857,7 +861,6 @@ function renderActivity(v) {
   const url = LIVE ? CFG.SUPABASE_URL + "/functions/v1/health-sync" : "https://your-project.supabase.co/functions/v1/health-sync";
   v.innerHTML = `${demoBanner()}<h1>Train</h1>
     ${trainingSummary(true)}
-    ${prGrid()}
     ${caloriesCard()}
     <h2>Steps</h2>
     <div class="card"><div class="row between"><div><div class="eyebrow">Last 7 days</div><div class="bf num">${avg.toLocaleString()} <span class="sub">a day on average</span></div></div></div>
@@ -877,7 +880,7 @@ function prGrid() {
   return `<h2>All machines · your PRs <span class="sub" style="text-transform:none;letter-spacing:0">${n} of ${ids.length} logged</span></h2>
     <div class="prgrid">${ids.map(id => { const m = MACH[id], b = bestPR(id, g);
       return `<button class="prcell ${b ? "" : "none"}" data-mach="${id}"><span class="sub">${esc(m.name)}</span><b class="num">${b ? esc(prText(m.type, b)) : "Log PR"}</b></button>`; }).join("")}</div>
-    <div class="sub" style="margin-top:8px">Every machine is free. Each new PR earns +50 points and puts that machine in your house's gym room.</div>`;
+    <div class="sub" style="margin-top:8px">Tap a machine to log a new best.</div>`;
 }
 function workoutSheet() {
   sheet(`<h3>Add a workout</h3><form id="wkf" class="stack" style="margin-top:12px">
@@ -1535,24 +1538,16 @@ function avatarSection(after = "") {
       <div class="streakline ${stk >= 5 ? "hot" : ""}">${ICON.flame}<span>${flameNote}</span></div>
       <div class="avinfo">
         <div class="row between"><div><div class="avlvl">Level ${lv.L}</div><div class="sub">${TIERS[tier]} body${tier < 4 ? `, next body at level ${nextTier}` : ", max body"}</div></div>
-          <div class="coins"><b class="num">${P.coins.toLocaleString()}</b><span>points to spend</span></div></div>
+          </div>
         <div class="bar" style="margin-top:12px;height:8px"><i style="width:${lv.pct}%;background:var(--ink)"></i></div>
         <div class="sub num" style="margin-top:6px">${(P.xp - lv.lo).toLocaleString()} / ${(lv.hi - lv.lo).toLocaleString()} to level ${lv.L + 1}</div>
       </div></div>
-    <h2>Last 14 days</h2>
-    <div class="card"><div class="pchart">${hist.map(([d, p], i) => `<div class="pc ${i === 13 ? "now" : ""}" title="${d}: ${p}"><i style="height:${Math.max(3, p / hmax * 100)}%"></i><span>${i % 2 === 1 ? new Date(d + "T12:00").getDate() : ""}</span></div>`).join("")}</div>
-      <div class="row between sub" style="margin-top:8px;font-size:12px"><span>Best day: <b class="num">${Math.max(...hist.map(x => x[1]))}</b></span><span>14-day total: <b class="num">${hist.reduce((s, x) => s + x[1], 0).toLocaleString()}</b></span></div></div>
     ${after}
     <h2>This week's challenges <span class="sub">${wkLeft ? `${wkLeft} day${wkLeft > 1 ? "s" : ""} left` : "last day"}</span></h2>
     <div class="card"><div class="earn">${wk.map(([l, have, need, pts, unit]) => `<div class="erow2 ${have >= need ? "done" : ""}">
-      <div class="row between"><span class="el">${have >= need ? "&#10003; " : ""}${l}</span><span class="num ep">${have >= need ? "+" : ""}${pts}</span></div>
+      <div class="row between"><span class="el">${have >= need ? "&#10003; " : ""}${l}</span>${have >= need ? `<span class="num ep">Done</span>` : ""}</div>
       <div class="bar" style="height:5px;margin-top:6px"><i style="width:${Math.min(100, have / need * 100)}%;background:var(--ink)"></i></div>
       <div class="sub" style="font-size:12px;margin-top:4px">${unit === "steps" ? `${r0(have).toLocaleString()} of ${need.toLocaleString()} steps` : `${have} of ${need} ${unit}`}</div></div>`).join("")}</div></div>
-    <h2>Today's points <span class="sub num">+${todayPts}</span></h2>
-    <div class="card"><div class="earn">${today.map(([l, det, p, max]) => `<div class="erow2">
-      <div class="row between"><span class="el">${l}</span><span class="num ep">+${p}</span></div>
-      <div class="bar" style="height:5px;margin-top:6px"><i style="width:${Math.min(100, p / max * 100)}%;background:var(--ink)"></i></div>
-      <div class="sub" style="font-size:12px;margin-top:4px">${esc(det)}</div></div>`).join("")}</div></div>
     `;
 }
 function bindAvatar() {
@@ -2047,14 +2042,32 @@ function prSheet(id) {
     if (!Object.values(e).some(x => x > 0) || (m.type === "lift" && !e.w)) return toast("Enter your result first");
     e.d = dayStr(); const isPR = !b || prScore(m.type, e) > prScore(m.type, b);
     const g2 = gym(); S.profile.gym = {...g2, prs: {...g2.prs, [id]: [...(g2.prs[id] || []), e]}};
-    closeSheet(); render(); toast(isPR ? "New PR! +50 points" : "Saved. Not a PR this time, keep going");
+    closeSheet(); render(); toast(isPR ? "New PR!" : "Saved. Not a PR this time, keep going");
     try { await DB.saveProfile({gym: S.profile.gym}); } catch (err) { toast(err.message); } };
 }
 
 /* ---------------- type what you ate: AI works out calories ---------------- */
+function lastAddedStrip() {
+  const la = ls.get("forma.lastadd", null), e = la && S.entries.find(x => x.id === la.id);
+  if (!e || Date.now() - la.t > 3 * 3600e3) return "";
+  const q = +e.data.qty || 1, k = r0((e.data.items || []).reduce((a, i) => a + (+i.kcal || 0), 0));
+  return `<div class="lastadd"><span class="grow"><b>${esc(e.data.nameBase || e.data.name)}</b><span class="sub num"> · ${k} kcal</span></span>
+    <button class="icon-btn qbtn" data-qty="-1" aria-label="Less">−</button><b class="num qv">${q % 1 ? q : q}×</b><button class="icon-btn qbtn" data-qty="1" aria-label="More">+</button>
+    <button class="btn ghost small" data-ladit="${e.id}">Edit</button></div>`;
+}
+function bindLastAdded() {
+  const la = ls.get("forma.lastadd", null); if (!la) return;
+  document.querySelectorAll("[data-qty]").forEach(b => b.onclick = async () => { const e = S.entries.find(x => x.id === la.id); if (!e) return;
+    const q = +e.data.qty || 1, up = +b.dataset.qty > 0, nq = up ? (q >= 1 ? q + 1 : q * 2) : (q > 1 ? q - 1 : Math.max(.25, q / 2));
+    const base = e.data.base || e.data.items.map(i => ({...i}));
+    const items = base.map(i => ({...i, grams: r0(i.grams * nq), kcal: r0(i.kcal * nq), p: r1(i.p * nq), c: r1(i.c * nq), f: r1(i.f * nq)}));
+    const nameBase = e.data.nameBase || e.data.name, name = nq === 1 ? nameBase : `${nq} × ${nameBase}`;
+    try { await DB.update(e.id, {...e.data, base, qty: nq, items, nameBase, name}); render(); } catch (err) { toast(err.message); } });
+  document.querySelectorAll("[data-ladit]").forEach(b => b.onclick = () => editMeal(b.dataset.ladit));
+}
 function quickAddBox(id = "qa") {
   return `<form class="qa" id="${id}"><input class="in" id="${id}In" maxlength="120" autocomplete="off" placeholder="Type what you had, e.g. energy drink" aria-label="Type what you ate or drank">
-    <button class="btn" aria-label="Add">Add</button></form>`;
+    <button class="btn" aria-label="Add">Add</button></form>${lastAddedStrip()}`;
 }
 /* instant answers for common foods; everything else goes to the AI and is remembered for next time */
 const LOCAL_FOODS = [
@@ -2075,6 +2088,28 @@ const LOCAL_FOODS = [
   [/^(sandwich|ham sandwich)$/, "Sandwich", 200, 400, 20, 42, 15], [/^(granola)$/, "Granola", 60, 270, 6, 38, 10], [/^(protein bar)$/, "Protein bar", 60, 210, 20, 22, 7],
   [/^(bagel)$/, "Bagel", 95, 260, 10, 50, 1.5], [/^(pancakes?)$/, "Pancakes (3)", 150, 350, 9, 50, 12], [/^(sushi)$/, "Sushi (8 pieces)", 240, 380, 14, 70, 5],
   [/^(ice cream)$/, "Ice cream (scoop)", 70, 140, 2.5, 16, 7.5], [/^(water)$/, "Water", 250, 0, 0, 0, 0], [/^(tea)$/, "Tea with milk", 250, 20, 1, 2, 1],
+  [/^(tangerines?|mandarins?|clementines?|satsumas?)$/, "Tangerine", 75, 40, .6, 10, .2], [/^(kiwis?|kiwi fruits?)$/, "Kiwi", 75, 46, .9, 11, .4], [/^(pears?)$/, "Pear", 180, 100, .6, 27, .2],
+  [/^(peach(es)?|nectarines?)$/, "Peach", 150, 59, 1.4, 14, .4], [/^(plums?)$/, "Plum", 66, 30, .5, 7.5, .2], [/^(mangos?|mangoes)$/, "Mango", 200, 120, 1.6, 30, .8],
+  [/^(grapes)$/, "Grapes (handful)", 80, 55, .6, 14, .1], [/^(strawberr(y|ies))$/, "Strawberries (bowl)", 150, 48, 1, 11.5, .5], [/^(blueberr(y|ies))$/, "Blueberries (bowl)", 100, 57, .7, 14.5, .3],
+  [/^(raspberr(y|ies))$/, "Raspberries (bowl)", 100, 52, 1.2, 12, .7], [/^(pineapple)$/, "Pineapple (slice)", 85, 42, .5, 11, .1], [/^(watermelon)$/, "Watermelon (slice)", 280, 85, 1.7, 21, .4],
+  [/^(melon)$/, "Melon (slice)", 160, 54, 1.3, 13, .3], [/^(dates?)$/, "Date", 24, 66, .4, 18, 0], [/^(figs?)$/, "Fig", 50, 37, .4, 9.6, .2], [/^(cherr(y|ies))$/, "Cherries (handful)", 80, 50, .8, 12.8, .2],
+  [/^(raisins)$/, "Raisins (box)", 40, 120, 1.2, 32, .2], [/^(carrots?)$/, "Carrot", 61, 25, .6, 6, .1], [/^(cucumber)$/, "Cucumber", 150, 23, 1, 5, .2], [/^(tomato(es)?)$/, "Tomato", 123, 22, 1.1, 4.8, .2],
+  [/^(corn|sweetcorn)$/, "Sweetcorn", 80, 70, 2.5, 15, 1], [/^(peas)$/, "Peas", 80, 65, 4.3, 11, .3], [/^(spinach)$/, "Spinach", 30, 7, .9, 1.1, .1], [/^(mushrooms?)$/, "Mushrooms", 70, 15, 2.2, 2.3, .2],
+  [/^(onions?)$/, "Onion", 110, 44, 1.2, 10, .1], [/^(peppers?|bell peppers?)$/, "Pepper", 120, 31, 1, 7, .4], [/^(hummus)$/, "Hummus (2 tbsp)", 30, 80, 2.4, 4, 6],
+  [/^(bacon|rashers?)$/, "Bacon rasher", 25, 90, 6, 0, 7], [/^(sausages?)$/, "Sausage", 50, 150, 7, 3, 12], [/^(ham)$/, "Ham (slice)", 30, 33, 5.5, .5, 1], [/^(turkey)$/, "Turkey breast", 150, 200, 44, 0, 2],
+  [/^(mince|beef mince)$/, "Beef mince (cooked)", 150, 380, 38, 0, 25], [/^(prawns?|shrimp)$/, "Prawns", 100, 99, 24, 0, .3], [/^(cod|white fish|hake)$/, "White fish", 150, 135, 30, 0, 1.2],
+  [/^(tofu)$/, "Tofu", 150, 115, 12, 3, 7], [/^(lentils)$/, "Lentils (cooked)", 200, 230, 18, 40, .8], [/^(beans|baked beans)$/, "Baked beans (½ can)", 200, 160, 9.4, 28, .6],
+  [/^(quinoa)$/, "Quinoa (cooked)", 185, 222, 8, 39, 3.6], [/^(noodles)$/, "Noodles (cooked)", 200, 276, 9, 50, 4], [/^(butter)$/, "Butter (pat)", 10, 72, .1, 0, 8.1],
+  [/^(olive oil|oil)$/, "Olive oil (tbsp)", 14, 120, 0, 0, 14], [/^(honey)$/, "Honey (tbsp)", 21, 64, .1, 17, 0], [/^(jam)$/, "Jam (tbsp)", 20, 50, 0, 13, 0], [/^(nutella)$/, "Nutella (tbsp)", 19, 100, 1, 11, 6],
+  [/^(mozzarella)$/, "Mozzarella", 60, 170, 13, 1, 13], [/^(feta)$/, "Feta", 40, 105, 5.7, 1.6, 8.5], [/^(cottage cheese)$/, "Cottage cheese", 150, 150, 17, 5, 6.5],
+  [/^(cereal|cornflakes)$/, "Cereal with milk", 230, 240, 8, 42, 4], [/^(muesli)$/, "Muesli", 50, 180, 5, 32, 3], [/^(rice cakes?)$/, "Rice cake", 9, 35, .7, 7.3, .3],
+  [/^(biscuits?|cookies?)$/, "Biscuit", 15, 70, 1, 10, 3], [/^(muffin)$/, "Muffin", 110, 420, 6, 52, 21], [/^(donut|doughnut)$/, "Doughnut", 60, 250, 3, 30, 13], [/^(cake)$/, "Cake (slice)", 90, 350, 4, 45, 17],
+  [/^(pastel de nata|nata)$/, "Pastel de nata", 60, 200, 3, 22, 11], [/^(chicken fillet roll)$/, "Chicken fillet roll", 280, 650, 38, 60, 27], [/^(breakfast roll)$/, "Breakfast roll", 330, 850, 35, 70, 45],
+  [/^(full irish|full irish breakfast)$/, "Full Irish breakfast", 450, 950, 50, 45, 62], [/^(bifana)$/, "Bifana", 220, 480, 30, 45, 18], [/^(francesinha)$/, "Francesinha", 600, 1300, 70, 80, 75],
+  [/^(kebab)$/, "Kebab", 400, 900, 45, 70, 48], [/^(burrito)$/, "Burrito", 350, 700, 35, 85, 24], [/^(curry|chicken curry)$/, "Chicken curry with rice", 450, 700, 40, 80, 22],
+  [/^(lasagne|lasagna)$/, "Lasagne", 350, 560, 32, 40, 30], [/^(soup)$/, "Soup (bowl)", 300, 180, 6, 22, 7], [/^(omelette|omelet)$/, "Omelette (2 eggs)", 120, 190, 13, 1, 15],
+  [/^(smoothie)$/, "Smoothie", 300, 180, 3, 40, 1], [/^(hot chocolate)$/, "Hot chocolate", 300, 220, 9, 30, 8], [/^(sprite|fanta|7up|lemonade)$/, "Fizzy drink (can)", 330, 140, 0, 35, 0],
+  [/^(cider)$/, "Cider (pint)", 568, 260, 0, 30, 0], [/^(vodka|gin|rum|whiskey|whisky|shot)$/, "Spirit (shot)", 35, 78, 0, 0, 0], [/^(popcorn)$/, "Popcorn (bag)", 30, 150, 2.5, 18, 8],
 ];
 const NUMW = {a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, half: .5, couple: 2};
 /* typo fixing: every word is checked against a food/unit vocabulary and corrected when it's 1-2 letters off */
@@ -2082,6 +2117,10 @@ const FOOD_WORDS = ("egg eggs boiled fried scrambled banana bananas apple apples
   "rice pasta spaghetti penne oats porridge oatmeal chicken breast steak beef salmon tuna greek yogurt yoghurt skyr protein shake whey milk glass coffee latte cappuccino " +
   "flat cola coke diet zero pepsi energy drink redbull monster juice beer wine pizza burger cheeseburger fries chips croissant chocolate snickers crisps almonds nuts " +
   "peanut butter cheese cheddar potato potatoes sweet salad broccoli wrap sandwich granola bagel pancake pancakes sushi cream water tea bar ham " +
+  "tangerine tangerines mandarin clementine satsuma kiwi pear peach nectarine plum mango grapes strawberries strawberry blueberries raspberries pineapple watermelon melon dates cherries raisins " +
+  "carrot cucumber tomato tomatoes sweetcorn spinach mushrooms onion pepper hummus bacon sausage sausages turkey mince prawns shrimp tofu lentils beans quinoa noodles honey nutella " +
+  "mozzarella feta cottage cereal cornflakes muesli biscuit biscuits cookie cookies muffin donut doughnut cake fillet breakfast kebab burrito curry lasagne lasagna soup omelette smoothie " +
+  "sprite fanta lemonade cider vodka whiskey popcorn " +
   "calories calorie kcal grams protein carbs").split(" ");
 function lev(a, b) { const m = a.length, n = b.length; if (Math.abs(m - n) > 2) return 9; let prev = [...Array(n + 1).keys()];
   for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; } return prev[n]; }
@@ -2138,7 +2177,7 @@ function cleanItems(items) {
     return it; });
 }
 function bindQuickAdd(id = "qa", day) {
-  const f = $("#" + id); if (!f) return;
+  const f = $("#" + id); if (!f) return; bindLastAdded();
   f.onsubmit = async e => { e.preventDefault(); const inp = $("#" + id + "In"), text = inp.value.trim(), b = f.querySelector("button");
     if (text.length < 2) return toast("Type a food or drink first");
     const cache = ls.get("forma.foodcache", {}), key = foodKey(text);
@@ -2154,8 +2193,8 @@ function bindQuickAdd(id = "qa", day) {
       const name = String(r.name || text).slice(0, 60);
       if (!r.learned && !r.local) cache[key] = {name, items}; const keys = Object.keys(cache); if (keys.length > 200) delete cache[keys[0]]; ls.set("forma.foodcache", cache);
       const total = items.reduce((s, i) => s + i.kcal, 0);
-      const ent = await DB.add("meal", day || dayStr(), {name, meal: guessMeal(), items, typed: text});
-      render(); toast(`Added ${name} · ${total} kcal`, {label: "Edit", fn: () => editMeal(ent.id)});
+      const ent = await DB.add("meal", day || dayStr(), {name, meal: guessMeal(), items, typed: text, qty: 1});
+      ls.set("forma.lastadd", {id: ent.id, t: Date.now()}); render(); toast(`Added ${name} · ${total} kcal`);
     } catch (err) { b.disabled = false; inp.disabled = false; b.textContent = "Add"; toast(err.message); }
   };
 }
