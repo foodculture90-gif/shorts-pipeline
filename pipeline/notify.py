@@ -151,6 +151,23 @@ def _n(x):
     return f"{x:,}"
 
 
+def monetisation(st=None):
+    """(views in the last 90 days, subscribers, views goal, subscriber goal) for the YouTube Partner Program:
+    1,000 subscribers + 10M Shorts views in 90 days (20M from 1 Feb 2027)."""
+    st = st or db.settings()
+    cut = (datetime.now(DUB).date() - timedelta(days=90)).isoformat()
+    v90 = subs = 0
+    for k, cur in st.items():
+        if not (k.startswith("yt_") and not k.startswith("yt_days_") and isinstance(cur, dict) and "views" in cur):
+            continue
+        days = st.get("yt_days_" + k[3:]) or {}
+        old = [x.get("views") or 0 for d, x in sorted(days.items()) if d <= cut]
+        v90 += (cur.get("views") or 0) - (old[-1] if old else 0)   # a channel younger than 90 days: all views count
+        subs += cur.get("subs") or 0
+    goal = 20_000_000 if datetime.now(timezone.utc) >= datetime(2027, 2, 1, tzinfo=timezone.utc) else 10_000_000
+    return v90, subs, goal, 1000
+
+
 def daily_report(force=False):
     """Once a day (morning): yesterday's views and subscribers, compared with the day before."""
     st = db.settings()
@@ -176,7 +193,9 @@ def daily_report(force=False):
     if total is not None:
         stxt += f" · {_n(total)} total"
     title = f"📈 Yesterday: {_n(v1)} views"
-    body = f"{vtxt}\n👥 {stxt}"
+    v90, nsubs, gv, gs = monetisation(st)
+    mtxt = f"💰 {_n(v90)} / {gv // 1_000_000}M views (90 days) · {_n(nsubs)} / {_n(gs)} subs"
+    body = f"{vtxt}\n👥 {stxt}\n{mtxt}"
     n = push(title, body)
     db.upsert("settings", {"key": "report_sent", "value": today.isoformat()}, "key")
     db.log(f"📲 Daily report{' sent to ' + str(n) + ' phone(s)' if n else ''}: {title} — {vtxt} · {stxt}")
