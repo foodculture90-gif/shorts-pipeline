@@ -198,6 +198,7 @@ const CHANGES = ["Different characters", "Different place", "Funnier moments", "
 
 // ---------------------------------------------------------------- icons + helpers
 const I = {
+  chev: '<path d="M9 6l6 6-6 6"/>',
   home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
   play:'<path d="M7 4l13 8-13 8z" fill="currentColor" stroke="none"/>',
   yt:'<rect x="2.5" y="5" width="19" height="14" rx="4"/><path d="M10 9l5 3-5 3z" fill="currentColor"/>',
@@ -243,7 +244,9 @@ const demo = (() => {
       ep("e6", "published", "Zuzu's Giant Bubble Surprise! 🫧", "zuzu", "leo", "underwater", 50, { views: 3100, likes: 140, youtube_url: "#", publish_at: new Date(now - 30 * h).toISOString(),
         yt: { privacy: "public", comments: 6, hist: [[new Date(now - 864e5).toISOString().slice(0, 10), 800], [new Date(now).toISOString().slice(0, 10), 3100]] } }),
       ep("e7", "published", "Who Won The Farm Race?! 🏁", "bobo", "dodo", "farm", 20, { views: 0, likes: 0, youtube_url: "#", publish_at: new Date(now - 6 * h).toISOString(), yt: { privacy: "private", comments: 0, hist: [] } })],
-    settings: { publish_plan: { date: new Date().toISOString().slice(0, 10), note: "demo", tests: [new Date(Date.UTC(2026, 9, 30, 10, 35)).toISOString(), new Date(Date.UTC(2026, 9, 30, 22, 20)).toISOString()],
+    settings: { yt_c1: { title: "Story Time Kids", subs: 1, views: 299, videos: 512 },
+      yt_days_c1: Object.fromEntries([...Array(12)].map((_, i) => [new Date(Date.now() - (11 - i) * 864e5).toISOString().slice(0, 10), { subs: 1, views: 51 + i * 22 }])),
+      publish_plan: { date: new Date().toISOString().slice(0, 10), note: "demo", tests: [new Date(Date.UTC(2026, 9, 30, 10, 35)).toISOString(), new Date(Date.UTC(2026, 9, 30, 22, 20)).toISOString()],
       times: [6, 9, 12, 15, 16, 17, 18, 19, 20].map(x => new Date(Date.UTC(2026, 9, 30, x, 5)).toISOString()),
       hours: Array.from({ length: 24 }, (_, i) => ({ h: i, x: +(1 + 0.9 * Math.exp(-((i - 18) ** 2) / 6) - 0.35 * Math.exp(-((i - 4) ** 2) / 6)).toFixed(2), sure: 0.6, research: 0.5 })) },
       trends: { n: 46, at: new Date(now - 2 * h).toISOString(), kinds: {
@@ -377,6 +380,7 @@ function viewHome() {
     <div class="sub" style="margin-bottom:14px">${ready.length ? `<b>${ready.length}</b> short${ready.length > 1 ? "s are" : " is"} ready for your OK.` : making.length ? `${making.length} short${making.length > 1 ? "s" : ""} rendering now.` : "All caught up."}${perDay ? ` · ${perDay} new shorts arrive every morning.` : ""}</div>
     <div class="pipe">${stat(ready.length, "Ready", "approve", ready.length)}${stat(making.length, "Rendering", "progress")}${stat(sched.length, "Scheduled", "scheduled")}${stat(live.length, "Live", "published")}</div>
     ${live.length ? `<div class="sub" style="margin-top:8px;cursor:pointer" data-go="#/views">${ic("eye", 14)} <b>${fmtNum(views)}</b> views on your live shorts · <a>See views</a></div>` : ""}
+    <div id="homeMoney"></div>
     ${failed.length ? `<div class="card" style="margin-top:12px;display:flex;align-items:center;gap:10px;padding:12px" data-go="#/shorts" data-tab="progress"><span class="pill red">${failed.length} failed</span><span class="sub" style="flex:1">They retry once by themselves. Tap to see them.</span></div>` : ""}
     <h2>Ready for you ${ready.length ? `<a href="#/shorts">See all</a>` : ""}</h2>
     ${ready.length ? `<div class="reel">${ready.slice(0, 12).map(e => `<button class="tile" data-video="${e.id}">${thumb(e)}<b>${esc(e.title || "New short")}</b><span class="sub">${castLine(e)} ${esc(PLACES[e.place]?.[0] || "")}</span></button>`).join("")}</div>`
@@ -390,6 +394,16 @@ function viewHome() {
       <div><h2>Activity</h2><div class="card feed" id="feed"><div class="sk" style="height:120px"></div></div></div>
     </div>`);
   bindCommon();
+  api.settings().then(st => {   // compact road-to-monetisation line
+    const y = ypp(st), el = document.getElementById("homeMoney");
+    if (!y || !el) return;
+    const p = Math.min(100, y.v90 / y.goalV * 100);
+    el.innerHTML = `<div class="card money" data-go="#/views" style="margin-top:12px;padding:12px 14px;cursor:pointer">
+      <div style="display:flex;gap:8px;align-items:baseline"><b style="flex:1">💰 Road to monetisation</b><span class="sub">${ic("chev", 14)}</span></div>
+      <div class="sub" style="margin-top:3px"><b style="color:var(--ink)">${fmtNum(y.v90)}</b> / ${goalTxt(y.goalV)} views (90 days) · <b style="color:var(--ink)">${fmtNum(y.subs)}</b> / ${goalTxt(y.goalS)} subs</div>
+      <div class="bar" style="margin-top:8px"><i style="width:${Math.max(1, p)}%"></i></div></div>`;
+    el.firstElementChild.onclick = () => { location.hash = "#/views"; };
+  }).catch(() => {});
   fillThumbs(ready.slice(0, 12));
   api.activity().then(act => { const f = document.getElementById("feed"); if (f) f.innerHTML = act.length ? act.slice(0, 8).map(a => `<div class="item"><span class="dot ${a.kind}"></span><span>${esc(a.message)}</span><span class="time">${ago(a.created_at)}</span></div>`).join("") : '<div class="empty">No activity yet.</div>'; }).catch(() => {});
 }
@@ -631,6 +645,7 @@ function viewStats() {
     <h1>Views</h1><div class="sub" style="margin-bottom:12px">${updated ? `Updated ${ago(updated)} ago · refreshes by itself every 2 hours.` : "Views appear here once your shorts are on YouTube."}
       <button class="btn" id="refreshStats" style="margin-left:6px;padding:5px 10px;font-size:12.5px">${ic("refresh", 14)} Update now</button></div>
     <div class="kpis">${kpi("eye", "Total views", fmtNum(total), today ? `+${fmtNum(today)} today` : "")}${kpi("heart", "Likes", fmtNum(likes))}${kpi("chat", "Comments", fmtNum(comments))}${kpi("yt", "Shorts on YouTube", vids.length)}</div>
+    <div id="money"></div>
     <div id="chanStats"></div>
     <div id="times"></div>
     <div id="trends"></div>
@@ -662,11 +677,50 @@ function viewStats() {
     if (el && cs.length) el.innerHTML = `<h2>Channels</h2><div class="grid">${cs.map(([c, v]) => `<div class="card" style="display:flex;gap:12px;align-items:center;padding:12px 14px">
       <div style="flex:1;min-width:0"><b>${esc(v.title || c.name)}</b><div class="sub">${fmtNum(v.videos)} videos</div></div>
       <span class="pill">${ic("users", 12)} ${v.hidden_subs ? "hidden" : fmtNum(v.subs)} subscribers</span><span class="pill green">${ic("eye", 12)} ${fmtNum(v.views)}</span></div>`).join("")}</div>`;
+    const mo = document.getElementById("money");
+    if (mo) mo.innerHTML = monetizeCard(st);
     const tw = document.getElementById("trends");
     if (tw) tw.innerHTML = trendsCard(st.trends);
     const tm = document.getElementById("times");
     if (tm) tm.innerHTML = timesCard(st.publish_plan);
   }).catch(() => {});
+}
+
+// road to monetisation: YouTube Partner Program (Shorts): 1,000 subscribers + 10M Shorts views in the last 90 days
+// (20M from 1 Feb 2027). 90-day views come from the daily channel snapshots (pipeline/notify.py).
+function ypp(st) {
+  let subs = 0, views = 0, v90 = 0, v7 = null, any = false;
+  const now = Date.now(), dkey = t => new Date(t).toISOString().slice(0, 10);
+  for (const c of state.channels) {
+    const cur = st["yt_" + c.id]; if (!cur) continue;
+    any = true; subs += cur.subs || 0; views += cur.views || 0;
+    const days = Object.entries(st["yt_days_" + c.id] || {}).sort();
+    const before = d => { let v = null; for (const [k, x] of days) if (k <= d) v = x.views; return v; };
+    const old = before(dkey(now - 90 * 864e5));
+    v90 += (cur.views || 0) - (old || 0);              // channel younger than 90 days: every view counts
+    const ref = days.filter(([k]) => k <= dkey(now - 864e5)).filter(([k]) => k >= dkey(now - 8 * 864e5))[0];  // ~a week ago
+    if (ref) v7 = (v7 || 0) + ((cur.views || 0) - (ref[1].views || 0)) / Math.max(1, (now - Date.parse(ref[0] + "T23:00:00Z")) / 864e5);
+  }
+  const goalV = Date.now() >= Date.UTC(2027, 1, 1) ? 20e6 : 10e6;
+  return any ? { subs, views, v90, perDay: v7, goalV, goalS: 1000 } : null;
+}
+const goalTxt = n => n >= 1e6 ? n / 1e6 + "M" : n.toLocaleString("en");
+function monetizeCard(st) {
+  const y = ypp(st); if (!y) return "";
+  const pct = (a, b) => Math.min(100, a / b * 100);
+  const show = p => p >= 1 ? Math.round(p) + "%" : p >= 0.01 ? p.toFixed(2) + "%" : "<0.01%";
+  const left = Math.max(0, y.goalV - y.v90), days = y.perDay > 0 ? left / y.perDay : null;
+  const pace = days == null ? "No new views this week yet." : days > 3650 ? `At this week's pace (${fmtNum(Math.round(y.perDay))} a day) it would take over 10 years – views per short need to go up a lot.`
+    : `At this week's pace (${fmtNum(Math.round(y.perDay))} views a day): about ${days > 730 ? Math.round(days / 365) + " years" : days > 60 ? Math.round(days / 30) + " months" : Math.round(days) + " days"}.`;
+  const row = (icon, label, a, b, note) => `<div style="margin-top:12px"><div style="display:flex;align-items:baseline;gap:8px">
+      <span style="flex:1">${ic(icon, 14)} ${label}</span><b>${fmtNum(a)}</b><span class="sub">/ ${goalTxt(b)}</span></div>
+    <div class="bar" style="margin-top:6px"><i style="width:${Math.max(1, pct(a, b))}%"></i></div>
+    <div class="sub" style="margin-top:4px">${show(pct(a, b))} there${note ? " · " + note : ""}</div></div>`;
+  return `<h2>Road to monetisation</h2><div class="card">
+    <div class="sub">YouTube pays Shorts creators once the channel has both of these.</div>
+    ${row("eye", "Shorts views, last 90 days", y.v90, y.goalV, Date.now() < Date.UTC(2027, 1, 1) ? "goal becomes 20M on 1 Feb 2027" : "")}
+    ${row("users", "Subscribers", y.subs, y.goalS)}
+    <div class="sub" style="margin-top:10px">${pace}</div></div>`;
 }
 
 // best publish times: learned per hour (pipeline/schedule.py) - green = better than average, orange = test times today
