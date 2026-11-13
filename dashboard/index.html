@@ -768,7 +768,7 @@ function viewStats() {
         <span class="pill">${ic("users", 12)} ${v.hidden_subs ? "hidden" : fmtNum(v.subs)} subscribers</span><span class="pill green">${ic("eye", 12)} ${fmtNum(v.views)}</span></div>`).join("")}</div>`;
     }
     const lw = document.getElementById("learn");
-    if (lw) lw.innerHTML = learnSummary(st.trends, st.publish_plan) + longCard(st.trends) + timesCard(st.publish_plan) + trendsCard(st.trends);
+    if (lw) lw.innerHTML = learnSummary(st.trends, st.publish_plan) + longCard(st.trends, st.render_health) + timesCard(st.publish_plan) + trendsCard(st.trends);
   }).catch(() => {});
 }
 
@@ -833,8 +833,14 @@ function learnSummary(t, p) {
       : `${ic("spark", 14)} It compares each short with others from the same days, puts an error bar on every result, and only acts on what is clearly bigger than luck. Everything else keeps getting a fair test.`}
       Based on ${t.n || 0} shorts, updated ${ago(t.at) === "now" ? "just now" : ago(t.at) + " ago"}.</div></div>`;
 }
-function longCard(t) {
-  const L = t?.kinds?.length; if (!L) return "";
+function renderNote(h) {   // what renderlearn found: the longest lengths that render safely
+  if (!h?.caps) return "";
+  const a = h.arms || {}, m = h.minutes || {}, f = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  return `<div class="sub" style="margin-top:10px">${ic("spark", 14)} Render check: long up to <b>${h.caps.long} s</b>, extra long up to <b>${f(h.caps.xl)}</b>${m.xl ? ` (~${m.xl} min to render)` : ""}.
+    ${(a.long?.fails || 0) + (a.xl?.fails || 0) ? `${(a.long?.fails || 0) + (a.xl?.fails || 0)} failed for time/size lately – lengths that fail get shorter by themselves.` : "No time/size failures since the fixes."}</div>`;
+}
+function longCard(t, h) {
+  const L = t?.kinds?.length; if (!L) return h ? `<h2>Length test</h2><div class="card">${renderNote(h)}</div>` : "";
   const norm = Object.entries(L).filter(([k, v]) => !["36-60 s", "61-90 s"].includes(k) && v.n >= 5).map(([, v]) => v);
   const base = norm.length ? norm.reduce((a, v) => a + v.effect * v.n, 0) / norm.reduce((a, v) => a + v.n, 0) : 0;
   const row = (key, label, test) => {
@@ -846,7 +852,7 @@ function longCard(t) {
   };
   return `<h2>Length test</h2><div class="card">
     <div class="sub">Compared with normal shorts (20-35 s). The winner gets most funny shorts once it's proven; the others keep a few.</div>
-    ${row("36-60 s", "Long · 45-58 s", 8)}${row("61-90 s", "Extra long · up to 1:30", 4)}</div>`;
+    ${row("36-60 s", "Long · 45-58 s", 8)}${row("61-90 s", "Extra long · up to 1:30", 4)}${renderNote(h)}</div>`;
 }
 // a small "result ± error bar" strip: centre line = average, dot = this result, band = could-be-luck range
 function ciBar(e, se) {
