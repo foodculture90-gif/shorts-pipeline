@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Shorts Studio</title>
-<meta name="theme-color" content="#fff8f5">
+<meta name="theme-color" content="#0F1B2D">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Shorts Studio">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
@@ -15,7 +15,7 @@
 <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="config.js"></script>
 <style>
 :root{
@@ -168,6 +168,67 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .split{display:grid;gap:12px}
 @media(min-width:700px){.split{grid-template-columns:1fr 1fr}}
 .wishnote{background:var(--bg2);border-radius:12px;padding:8px 10px;font-size:12.5px;color:var(--ink2);margin-top:8px}
+
+/* ---------------- "Toybox night" theme: chunky toy shapes (thick edges, hard offset shadows, Poppins)
+   in the night-shift palette (navy, mint for good, amber for tests, rose for problems). Always dark. */
+:root:not(#_){
+  --bg:#0F1B2D; --bg2:#1C2E47; --card:#16263D; --ink:#E8EEF7; --ink2:#A9B7CB; --ink3:#71829B; --line:#2A3D58;
+  --accent:#4FE3C1; --accent2:#2EC4A3; --accentSoft:rgba(79,227,193,.14); --onAccent:#0B1A2B;
+  --green:#4FE3C1; --greenSoft:rgba(79,227,193,.14); --red:#FF6B81; --redSoft:rgba(255,107,129,.15);
+  --blue:#6FA8FF; --blueSoft:rgba(111,168,255,.15); --amber:#FFB547; --amberSoft:rgba(255,181,71,.15);
+  --edge:#060D18; --shadow:4px 4px 0 var(--edge); --r:22px; color-scheme:dark;
+}
+html,body{font-family:Poppins,system-ui,-apple-system,sans-serif}
+body{background:radial-gradient(900px 420px at 100% -10%,rgba(79,227,193,.10),transparent 60%),radial-gradient(700px 380px at -10% 110%,rgba(111,168,255,.08),transparent 60%),var(--bg)}
+h1{font-size:30px;line-height:1.08;letter-spacing:-.03em}
+h2{font-size:17px}
+.brand{font-weight:800}
+.brand img{border:2.5px solid var(--edge);box-shadow:3px 3px 0 var(--edge);border-radius:12px}
+.card{border:2.5px solid var(--edge);box-shadow:var(--shadow)}
+.btn{border:2.5px solid var(--edge);box-shadow:0 3px 0 var(--edge);border-radius:14px;font-weight:700;transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--edge)}
+.btn.primary{background:var(--accent);border-color:var(--edge);color:var(--onAccent)}
+.btn.dark{background:var(--ink);border-color:var(--edge);color:var(--bg)}
+.btn.ghost{background:var(--card)}
+.btn.danger{color:var(--red)}
+.tab,.chip{border:2.5px solid var(--edge);box-shadow:0 3px 0 var(--edge)}
+.tab.on{background:var(--accent);color:var(--onAccent);border-color:var(--edge)}
+.chip.on{background:var(--accent);color:var(--onAccent);border-color:var(--edge)}
+.pill{border:1.5px solid rgba(6,13,24,.6)}
+.th{border-radius:16px;border:2.5px solid var(--edge)}
+.reel .tile .th{box-shadow:4px 4px 0 var(--edge)}
+.ep .th,.rank .th{box-shadow:3px 3px 0 var(--edge)}
+.th .dur{background:var(--edge);border-radius:99px;padding:2px 8px}
+.input,select.input,textarea.input{border:2.5px solid var(--edge);background:var(--bg2);border-radius:14px}
+.input:focus{border-color:var(--accent)}
+.sheet{border:2.5px solid var(--edge);border-bottom:0}
+.seg{border:2.5px solid var(--edge)}.seg button.on{background:var(--accent);color:var(--onAccent);box-shadow:none}
+.switch span{border:2px solid var(--edge)}.switch input:checked+span{background:var(--accent)}
+.bar{height:10px;border:2px solid var(--edge);background:var(--bg2)}.bar i{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.chart div{background:var(--line)}.chart div.v{background:var(--accent)}
+.toast{background:var(--accent);color:var(--onAccent);border:2.5px solid var(--edge);box-shadow:0 4px 0 var(--edge)}
+.learnhead .lh{border:2px solid var(--edge)}
+.pipe .card.hot{background:var(--accent);color:var(--onAccent);border:2.5px solid var(--edge)}
+.pipe .card.hot .l{color:var(--onAccent)}
+/* floating toy tab bar with the big + in the middle */
+nav.bottom{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto;background:var(--card);border:2.5px solid var(--edge);border-radius:26px;box-shadow:0 5px 0 var(--edge);padding:8px 6px;backdrop-filter:none;-webkit-backdrop-filter:none;align-items:center}
+nav.bottom a{font-size:10.5px;font-weight:600}
+nav.bottom a svg{padding:3px;width:30px;height:30px;border-radius:10px;border:2px solid transparent}
+nav.bottom a.on{color:var(--ink)}
+nav.bottom a.on svg{background:var(--amber);color:var(--onAccent);border-color:var(--edge)}
+nav.bottom .badge{background:var(--red);border:2px solid var(--edge);top:-4px}
+nav.bottom .plus{flex:none;width:58px;height:58px;margin:-30px 4px 0;border-radius:20px;background:var(--accent);color:var(--onAccent);border:2.5px solid var(--edge);box-shadow:0 4px 0 var(--edge);display:grid;place-items:center;cursor:pointer}
+nav.bottom .plus:active{transform:translateY(3px);box-shadow:0 1px 0 var(--edge)}
+.app{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
+.fab{display:none}
+/* home: today's shorts as a sheet of dots */
+.dots{display:grid;grid-template-columns:repeat(10,1fr);gap:7px;margin:12px 0 10px}
+.dots i{aspect-ratio:1;border-radius:50%;border:2.5px solid var(--edge);background:var(--bg2)}
+.dots i.live{background:var(--accent)}.dots i.booked{background:var(--blue)}.dots i.ready{background:var(--amber)}.dots i.making{background:transparent;border-color:var(--ink3);border-style:dashed}
+.dots i.fail{background:var(--red)}
+.dleg{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;font-weight:600;color:var(--ink2)}
+.dleg button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.dleg i{width:11px;height:11px;border-radius:50%;border:2px solid var(--edge);display:inline-block}
 </style>
 </head>
 <body>
@@ -348,14 +409,13 @@ const readyCount = () => state.episodes.filter(e => e.status === "awaiting_appro
 
 function shell(active, inner, { fab = true } = {}) {
   const b = readyCount();
-  const tab = (id, href, icon, label, n) => `<a href="${href}" class="${active === id ? "on" : ""}">${ic(icon, 22)}${label}${n ? `<span class="badge">${n > 99 ? "99+" : n}</span>` : ""}</a>`;
+  const tab = (id, href, icon, label, n) => `<a href="${href}" class="${active === id || (id === "settings" && active === "channels") ? "on" : ""}">${ic(icon, 22)}${label}${n ? `<span class="badge">${n > 99 ? "99+" : n}</span>` : ""}</a>`;
   return `<div class="app">
     <header class="top"><div class="brand"><img src="icon.svg" alt="">Shorts Studio</div>
       <span class="sub" style="display:flex;gap:8px;align-items:center">${DEMO ? '<span class="pill amber">Demo</span>' : ""}
       <button class="btn" id="install" ${installEvt && !standalone() ? "" : "hidden"}>${ic("dl", 16)} Install</button></span></header>
     ${inner}</div>
-    ${fab ? `<button class="fab" id="fab">${ic("plus")} New short</button>` : ""}
-    <nav class="bottom">${tab("home", "#/", "home", "Studio")}${tab("shorts", "#/shorts", "yt", "Shorts", b)}${tab("views", "#/views", "chart", "Views")}${tab("channels", "#/channels", "tv", "Channels")}${tab("settings", "#/settings", "cog", "Settings")}</nav>`;
+    <nav class="bottom">${tab("home", "#/", "home", "Studio")}${tab("shorts", "#/shorts", "yt", "Shorts", b)}<button class="plus" id="fab" aria-label="New short">${ic("plus", 28)}</button>${tab("views", "#/views", "chart", "Views")}${tab("settings", "#/settings", "cog", "More")}</nav>`;
 }
 function bindCommon() {
   document.getElementById("fab")?.addEventListener("click", () => newShortSheet());
@@ -387,11 +447,20 @@ function viewHome() {
   const days = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); return d; });
   const goingLive = days.map(d => eps.filter(e => e.publish_at && ["published", "scheduled"].includes(e.status) && new Date(e.publish_at).toDateString() === d.toDateString()).length);
   const mx = Math.max(1, ...goingLive);
-  const stat = (n, l, tab, hot) => `<div class="card ${hot ? "hot" : ""}" data-go="#/shorts" data-tab="${tab}"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+  // today's shorts as a sheet of dots: live today, booked for later today, ready, being made
+  const isToday = t => t && new Date(t).toDateString() === new Date().toDateString();
+  const liveToday = live.filter(e => isToday(e.publish_at)).length, bookedToday = sched.filter(e => isToday(e.publish_at)).length;
+  const kinds = [["live", liveToday, "live today", "published"], ["booked", bookedToday, "booked for today", "scheduled"], ["ready", ready.length, "ready", "approve"], ["making", making.length, "being made", "progress"], ["fail", failed.length, "failed", "progress"]];
+  const total = Math.max(perDay, kinds.reduce((a, k) => a + k[1], 0));
+  const dots = kinds.flatMap(([c, n]) => Array(n).fill(c));
+  const nextUp = sched.map(e => e.publish_at).filter(t => t && new Date(t) > new Date()).sort()[0];
+  const head = ready.length ? `${ready.length} short${ready.length > 1 ? "s" : ""} ready for you 🎬` : making.length ? `${making.length} short${making.length > 1 ? "s are" : " is"} being made 🎨` : "All caught up ✨";
   root.innerHTML = shell("home", `
-    <h1>${hi}</h1>
-    <div class="sub" style="margin-bottom:14px">${ready.length ? `<b>${ready.length}</b> short${ready.length > 1 ? "s are" : " is"} ready for your OK.` : making.length ? `${making.length} short${making.length > 1 ? "s" : ""} rendering now.` : "All caught up."}${perDay ? ` · ${perDay} new shorts arrive every morning.` : ""}</div>
-    <div class="pipe">${stat(ready.length, "Ready", "approve", ready.length)}${stat(making.length, "Rendering", "progress")}${stat(sched.length, "Scheduled", "scheduled")}${stat(live.length, "Live", "published")}</div>
+    <h1>${head}</h1>
+    <div class="sub" style="margin:6px 0 14px">${hi}.${nextUp ? ` Next short goes live at ${new Date(nextUp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.` : ""}${perDay ? ` ${perDay} new shorts a day.` : ""}</div>
+    <div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><b>Today's shorts</b><span class="sub">${perDay ? perDay + " a day" : ""}</span></div>
+      <div class="dots">${[...Array(Math.min(60, total))].map((_, i) => `<i class="${dots[i] || ""}"></i>`).join("")}</div>
+      <div class="dleg">${kinds.filter(k => k[1]).map(([c, n, l, tab]) => `<button data-go="#/shorts" data-tab="${tab}"><i class="dots-${c}" style="background:${{ live: "var(--accent)", booked: "var(--blue)", ready: "var(--amber)", making: "transparent", fail: "var(--red)" }[c]};${c === "making" ? "border-style:dashed;border-color:var(--ink3)" : ""}"></i>${n} ${l}</button>`).join("") || "Nothing yet today"}</div></div>
     ${live.length ? `<div class="sub" style="margin-top:8px;cursor:pointer" data-go="#/views">${ic("eye", 14)} <b>${fmtNum(views)}</b> views on your live shorts · <a>See views</a></div>` : ""}
     <div id="homeMoney"></div>
     ${failed.length ? `<div class="card" style="margin-top:12px;display:flex;align-items:center;gap:10px;padding:12px" data-go="#/shorts" data-tab="progress"><span class="pill red">${failed.length} failed</span><span class="sub" style="flex:1">They retry once by themselves. Tap to see them.</span></div>` : ""}
@@ -902,7 +971,9 @@ async function viewSettings() {
   const auto = !["false", "0", "no", "off", false].includes(s.auto_publish ?? true);
   const ios = /iphone|ipad/i.test(navigator.userAgent);
   root.innerHTML = shell("settings", `
-    <h1>Settings</h1>
+    <h1>More</h1>
+    <div class="card" data-go="#/channels" style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-top:14px">
+      <span style="font-size:22px">📺</span><div style="flex:1"><div style="font-weight:700">Channels</div><div class="sub">${state.channels.length} connected · shorts per day, connect YouTube</div></div>${ic("chev", 18)}</div>
     <h2>Making shorts</h2>
     <div class="card">
       <div class="row"><div><div class="t">Render on the free GPU first</div><div class="d">Full 1080p, sharper light, faster when Kaggle has a free graphics card. Falls back to the normal machines automatically.</div></div>
