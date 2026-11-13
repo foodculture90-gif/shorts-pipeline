@@ -242,9 +242,16 @@ def length_plan(funny, test_long=8, test_xl=4, others=0):
     if n_long + n_xl > funny:                      # both proven better: share the funny shorts
         n_xl = min(n_xl, funny // 2)
         n_long = funny - n_xl
-    # keep the day's render time inside the budget (the `others` = lesson shorts are normal length)
+    # keep the day's render time inside the budget (the `others` = lesson shorts are normal length);
+    # real average render minutes per length (renderlearn) replace the estimates once there are enough
+    try:
+        from . import db
+        c = dict(COST, **((db.settings().get("render_health") or {}).get("minutes") or {}))
+    except Exception:  # noqa: BLE001
+        c = dict(COST)
+
     def cost(a, b):
-        return a * COST["long"] + b * COST["xl"] + (funny - a - b + others) * COST["normal"]
+        return a * c["long"] + b * c["xl"] + (funny - a - b + others) * c["normal"]
     while cost(n_long, n_xl) > BUDGET and n_xl > 1:
         n_xl -= 1
     while cost(n_long, n_xl) > BUDGET and n_long > 1:

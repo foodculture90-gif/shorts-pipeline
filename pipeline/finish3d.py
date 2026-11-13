@@ -21,6 +21,7 @@ def _run(cmd):
 def main(ep_id, d):
     d = Path(d)
     base = f"episodes/{ep_id}"
+    t0 = datetime.now(timezone.utc)   # the render machines are done now: start -> here = the render time
     try:
         ep = db.select("episodes", f"id=eq.{ep_id}&select=id,title,story,channel_id")[0]
         st = ep.get("story") or {}
@@ -76,9 +77,18 @@ def main(ep_id, d):
         db.upload(d / "final.mp4", f"{base}/final.mp4", "video/mp4")
         db.upload(d / "preview.mp4", f"{base}/preview.mp4", "video/mp4")
         db.upload(d / "thumb.jpg", f"{base}/thumb.jpg", "image/jpeg")
+        stats = {"frames": total, "secs": round(secs, 1), "mb": round((d / "final.mp4").stat().st_size / 1e6, 1),
+                 "gpu": gpu}
+        try:   # how long the render machines took (renderlearn keeps long shorts inside what renders safely)
+            start = datetime.fromisoformat(str(st.get("render_at")).replace("Z", "+00:00"))
+            stats["part_mins"] = round((t0 - start).total_seconds() / 60, 1)
+            stats["mins"] = round((datetime.now(timezone.utc) - start).total_seconds() / 60, 1)
+        except (TypeError, ValueError):
+            pass
+        st["render_stats"] = stats
         db.update("episodes", f"id=eq.{ep_id}", {
             "status": "awaiting_approval", "preview_path": f"{base}/preview.mp4", "thumb_path": f"{base}/thumb.jpg",
-            "duration": round(secs, 1), "error": None, "updated_at": datetime.now(timezone.utc).isoformat()})
+            "duration": round(secs, 1), "error": None, "story": st, "updated_at": datetime.now(timezone.utc).isoformat()})
         db.log(f"🎬 Ready: {ep.get('title') or 'new short'}", "success")
         try:  # auto-publish: straight into the next best time slot
             from . import schedule

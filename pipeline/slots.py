@@ -47,6 +47,7 @@ def kick(done=None):
                                    f"&order=story->>prio.desc.nullslast,created_at.asc&limit={free}"):  # retries/replacements first
         st = e.get("story") or {}
         st["render"] = "cpu"
+        st["render_at"] = now().isoformat()     # for renderlearn: how long renders of each length really take
         if not db.update("episodes", f"id=eq.{e['id']}&story->>render=eq.wait", {"story": st, "updated_at": now().isoformat()}):
             continue  # someone else started it
         try:

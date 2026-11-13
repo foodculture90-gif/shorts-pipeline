@@ -119,8 +119,11 @@ def _generate_3d(payload, ch, ep_id, slot=None):
     if payload.get("moral"):
         choose["moral"] = True
     size = payload.get("len") or ("long" if payload.get("long") else "")
-    span = {"long": dict(min_s=45, max_s=58),        # 7-8 funny moments (~52 s)
-            "xl": dict(min_s=63, max_s=88)}.get(size, {})   # 9-12 funny moments (up to ~1:28, the 1:30 maximum)
+    try:   # long 45-58 s / extra long 63-88 s, minus whatever renderlearn found too slow or too big to render
+        from . import renderlearn
+        span = renderlearn.span(size)
+    except Exception:  # noqa: BLE001
+        span = {"long": dict(min_s=45, max_s=58), "xl": dict(min_s=63, max_s=88)}.get(size, {})
     spec = plan3d.plan(recent, idea=idea, slot=slot, base=base, choose=choose, **span)
     if idea:
         note = (spec.get("wish") or {}).get("note") or plan3d.describe(spec)[:160]
@@ -658,6 +661,11 @@ def daily(day=None, early=False):
         morals = round(n * max(0.0, min(1.0, share)))
         flags = [i * morals // max(1, n) != (i + 1) * morals // max(1, n) for i in range(n)]
         # funny shorts come in 3 lengths (20-35 s, 45-58 s, 63-88 s): each keeps a fair test until views prove one
+        try:   # first: what the last 2 weeks of renders taught about which lengths render safely
+            from . import renderlearn
+            renderlearn.learn()
+        except Exception:  # noqa: BLE001
+            traceback.print_exc()
         try:
             from . import trends
             plan, why = trends.length_plan(flags.count(False), others=flags.count(True))
