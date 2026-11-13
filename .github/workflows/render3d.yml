@@ -16,8 +16,8 @@ env:
   SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
   EP: ${{ github.event.inputs.episode_id }}
   PARTS: "18"         # = max-parallel: every part renders at the same time (one wave, no waiting)
-  SAMPLES: "12"
-  RES: "67"          # rendered at 720x1280, sharpened up to 1080x1920 at the end
+  SAMPLES: "8"        # + fast denoise: same time per frame as the old 720p/12 samples, but real 1080x1920
+  RES: "100"
 
 jobs:
   gpu:
@@ -54,7 +54,7 @@ jobs:
     needs: gpu
     if: always() && needs.gpu.outputs.ok != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       max-parallel: 18     # leaves 2 of GitHub's 20 free machines for the app's worker + finishing
@@ -95,7 +95,7 @@ jobs:
           ASSETS: ${{ github.workspace }}/assets
         run: |
           for try in 1 2; do   # a machine that hiccups gets a second go instead of leaving holes in the video
-            timeout 30m ./bl/blender -b --python blender/scene.py -- spec.json out "part:${{ matrix.part }}/$PARTS" > render.log 2>&1 || true
+            timeout 85m ./bl/blender -b --python blender/scene.py -- spec.json out "part:${{ matrix.part }}/$PARTS" > render.log 2>&1 || true
             grep -E "^frame|^done|Error|Traceback|rror" render.log || true
             grep -q "^done" render.log && break
             echo "::warning::render attempt $try stopped early"; tail -30 render.log
