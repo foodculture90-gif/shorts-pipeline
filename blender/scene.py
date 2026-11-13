@@ -57,6 +57,12 @@ def build(seg):
     except Exception:  # noqa: BLE001
         import traceback
         traceback.print_exc()
+    try:  # snappier acting (overshoot + settle), jelly squash, slow camera push-ins (polish.py)
+        import polish
+        polish.apply(end)
+    except Exception:  # noqa: BLE001
+        import traceback
+        traceback.print_exc()
     T.add_life(end)  # breathing, sway, blinks - nobody stands frozen
     try:  # head acting, floppy ears/tails, follow-through (rig.py)
         import rig

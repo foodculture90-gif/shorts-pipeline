@@ -2704,6 +2704,11 @@ def setup_render(samples=20, res=100):
     sc.cycles.adaptive_threshold = 0.05
     sc.cycles.use_denoising = True
     sc.cycles.denoiser = "OPENIMAGEDENOISE"
+    try:  # the full-size denoise was ~1/3 of every frame: the fast prefilter + balanced quality look the same on toon
+        sc.cycles.denoising_prefilter = "FAST"   # shading, and pay for rendering at the full 1080x1920 instead
+        sc.cycles.denoising_quality = "BALANCED"
+    except Exception:  # noqa: BLE001
+        pass
     sc.cycles.max_bounces = 4
     sc.cycles.diffuse_bounces = 2
     sc.cycles.glossy_bounces = 2
