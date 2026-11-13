@@ -130,6 +130,17 @@ textarea.input{min-height:80px;resize:vertical}
 .rank .th{width:64px;border-radius:12px;cursor:pointer;border:none;padding:0}
 .rank h3{margin:0 0 5px;font-size:14.5px;line-height:1.25}
 .rank .nums{display:flex;flex-wrap:wrap;gap:6px}
+.learnhead .lh{flex:1;min-width:70px;background:var(--bg2);border-radius:12px;padding:10px 12px}
+.learnhead .lh b{display:block;font-size:22px;letter-spacing:-.03em;line-height:1.1}.learnhead .lh span{font-size:11.5px;color:var(--ink2);font-weight:600}
+.ci{position:relative;display:block;height:14px;flex:0 0 34%;max-width:150px}
+.ci .mid{position:absolute;left:50%;top:1px;bottom:1px;width:1px;background:var(--line)}
+.ci .band{position:absolute;top:50%;height:4px;margin-top:-2px;border-radius:4px;opacity:.35}
+.ci .dot{position:absolute;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%}
+.trow{display:flex;gap:10px;align-items:center;margin-top:8px}.trow .tn{flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.3}
+.trow .pill{min-width:62px;justify-content:center}
+.tblock{padding:12px 14px}.tblock summary{list-style:none;display:flex;gap:8px;align-items:center;cursor:pointer}
+.tblock summary::-webkit-details-marker{display:none}.tblock summary b{flex:1}.tblock summary .i{transition:transform .2s}.tblock[open] summary .i{transform:rotate(90deg)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px;font-size:11.5px;color:var(--ink2)}.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .bar{height:6px;border-radius:9px;background:var(--bg2);margin-top:7px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border:none}
@@ -250,6 +261,8 @@ const demo = (() => {
       times: [6, 9, 12, 15, 16, 17, 18, 19, 20].map(x => new Date(Date.UTC(2026, 9, 30, x, 5)).toISOString()),
       hours: Array.from({ length: 24 }, (_, i) => ({ h: i, x: +(1 + 0.9 * Math.exp(-((i - 18) ** 2) / 6) - 0.35 * Math.exp(-((i - 4) ** 2) / 6)).toFixed(2), sure: 0.6, research: 0.5 })) },
       trends: { n: 46, at: new Date(now - 2 * h).toISOString(), kinds: {
+        when_char: { "evening|bolt": { n: 14, effect: 0.42, se: 0.12, used: 0.27, verdict: "better" }, "morning|bolt": { n: 9, effect: -0.05, se: 0.2 }, "afternoon|pip": { n: 6, effect: 0.1, se: 0.25 } },
+        length: { "26-35 s": { n: 30, effect: 0.0, se: 0.1 }, "36-60 s": { n: 14, effect: 0.12, se: 0.2 }, "61-90 s": { n: 4, effect: 0.3, se: 0.4 } },
       story: { slip_peel: { effect: 0.41, n: 9 }, race: { effect: 0.22, n: 7 }, sneeze: { effect: 0.12, n: 8 }, bubbles: { effect: -0.05, n: 6 }, sorry: { effect: -0.35, n: 5 } },
       place: { park: { effect: 0.37, n: 6 }, snow: { effect: 0.18, n: 4 }, kitchen: { effect: 0.02, n: 5 }, castle: { effect: -0.3, n: 4 } },
       char: { pip: { effect: 0.4, n: 6 }, tobi: { effect: 0.2, n: 5 }, bubu: { effect: 0.08, n: 5 }, ellie: { effect: -0.2, n: 4 } },
@@ -635,20 +648,17 @@ function viewStats() {
     return s + (a != null && (b != null || born) ? Math.max(0, a - (b || 0)) : 0); }, 0) : 0);
   const total = vids.reduce((s, e) => s + (e.views || 0), 0), likes = vids.reduce((s, e) => s + (e.likes || 0), 0);
   const comments = vids.reduce((s, e) => s + (e.yt?.comments || 0), 0), today = daily[13];
+  const live = vids.filter(e => e.status === "published"), zero = live.filter(e => !(e.views || 0)).length;
   const priv = vids.filter(e => e.yt?.privacy === "private" && e.status === "published");
   const top = [...vids].sort((a, b) => (b.views || 0) - (a.views || 0));
   const best = Math.max(1, top[0]?.views || 0);
   const updated = vids.map(e => e.stats_at).filter(Boolean).sort().pop();
   const mx = Math.max(1, ...daily);
+  const vt = state.vtab || (state.vtab = store.get("vtab") || "overview");
   const kpi = (icon, label, n, d) => `<div class="card"><div class="l">${ic(icon, 14)} ${label}</div><div class="n">${n}</div>${d ? `<div class="d">${d}</div>` : ""}</div>`;
-  root.innerHTML = shell("views", `
-    <h1>Views</h1><div class="sub" style="margin-bottom:12px">${updated ? `Updated ${ago(updated)} ago · refreshes by itself every 2 hours.` : "Views appear here once your shorts are on YouTube."}
-      <button class="btn" id="refreshStats" style="margin-left:6px;padding:5px 10px;font-size:12.5px">${ic("refresh", 14)} Update now</button></div>
-    <div class="kpis">${kpi("eye", "Total views", fmtNum(total), today ? `+${fmtNum(today)} today` : "")}${kpi("heart", "Likes", fmtNum(likes))}${kpi("chat", "Comments", fmtNum(comments))}${kpi("yt", "Shorts on YouTube", vids.length)}</div>
-    <div id="money"></div>
-    <div id="chanStats"></div>
-    <div id="times"></div>
-    <div id="trends"></div>
+  const overview = `
+    <div class="kpis">${kpi("eye", "Total views", fmtNum(total), today ? `+${fmtNum(today)} today` : "")}${kpi("heart", "Likes", fmtNum(likes))}${kpi("chat", "Comments", fmtNum(comments))}${kpi("yt", "Shorts live", fmtNum(live.length), live.length ? `${Math.round(zero / live.length * 100)}% still at 0 views` : "")}</div>
+    <div id="money"><div class="sk" style="height:150px;margin-top:20px"></div></div>
     ${priv.length ? `<div class="card" style="margin-top:12px;border-color:var(--amber)"><b>${ic("lock", 15)} ${priv.length} of your shorts are still Private on YouTube</b>
       <div class="sub" style="margin-top:4px">Private shorts can't get views. YouTube keeps uploads from new apps private until Google approves the app (the “YouTube API audit” form). Until then: YouTube Studio → Content → select them → Edit → Visibility → Public.</div>
       <a class="btn" style="margin-top:10px" href="https://studio.youtube.com/" target="_blank" rel="noopener">${ic("ext", 15)} Open YouTube Studio</a></div>` : ""}
@@ -656,8 +666,8 @@ function viewStats() {
     <div class="card"><div class="chart">${daily.map((n, i) => `<div class="${i === 13 ? "v" : ""}" style="height:${(n / mx) * 100}%" title="${n} views"></div>`).join("")}</div>
       <div class="chart-l">${days.map((d, i) => `<span>${i % 2 ? "" : new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</span>`).join("")}</div>
       ${daily.some(Boolean) ? "" : `<div class="hint" style="text-align:center">The daily chart fills in as the views come in.</div>`}</div>
-    <h2>Your shorts by views</h2>
-    <div class="grid">${top.length ? top.map((e, i) => `<div class="card rank">
+    <div id="chanStats"></div>`;
+  const ranking = `<div class="grid">${top.length ? top.slice(0, 80).map((e, i) => `<div class="card rank">
       <div class="no">${i + 1}</div>
       <button class="th" data-video="${e.id}" data-thumb="${e.id}" aria-label="Play">${thumbInner(e)}</button>
       <div><h3>${esc(e.title || "Short")}</h3>
@@ -667,22 +677,29 @@ function viewStats() {
           ${e.publish_at ? `<span class="pill">${ago(e.publish_at)} ago</span>` : ""}
           <a class="pill" href="${esc(e.youtube_url)}" target="_blank" rel="noopener">${ic("ext", 12)} YouTube</a></div>
         <div class="bar"><i style="width:${Math.max(2, (e.views || 0) / best * 100)}%"></i></div></div></div>`).join("")
-      : `<div class="card empty"><b>Nothing on YouTube yet</b>Publish a short and its views show up here.</div>`}</div>`, { fab: false });
+      : `<div class="card empty"><b>Nothing on YouTube yet</b>Publish a short and its views show up here.</div>`}</div>`;
+  const tabs = [["overview", "Overview"], ["learning", "What it's learning"], ["top", "Top shorts"]];
+  root.innerHTML = shell("views", `
+    <h1>Views</h1><div class="sub" style="margin-bottom:12px">${updated ? `Updated ${ago(updated)} ago · refreshes every 2 hours.` : "Views appear here once your shorts are on YouTube."}
+      <button class="btn" id="refreshStats" style="margin-left:6px;padding:5px 10px;font-size:12.5px">${ic("refresh", 14)} Update now</button></div>
+    <div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${vt === k ? "on" : ""}" data-vt="${k}">${l}</button>`).join("")}</div>
+    ${vt === "overview" ? overview : vt === "top" ? ranking : `<div id="learn"><div class="sk" style="height:220px"></div></div>`}`, { fab: false });
   root.querySelector("#refreshStats").onclick = ev => guard(ev.currentTarget, async () => { await api.command("stats", {}); toast("Updating views – about a minute"); setTimeout(refresh, 70000); });
+  root.querySelectorAll("[data-vt]").forEach(b => b.onclick = () => { state.vtab = b.dataset.vt; store.set("vtab", b.dataset.vt); viewStats(); window.scrollTo(0, 0); });
   bindCommon();
-  fillThumbs(top.slice(0, 60));
+  if (vt === "top") fillThumbs(top.slice(0, 80));
   api.settings().then(st => {
-    const cs = state.channels.map(c => [c, st["yt_" + c.id]]).filter(([, v]) => v);
-    const el = document.getElementById("chanStats");
-    if (el && cs.length) el.innerHTML = `<h2>Channels</h2><div class="grid">${cs.map(([c, v]) => `<div class="card" style="display:flex;gap:12px;align-items:center;padding:12px 14px">
-      <div style="flex:1;min-width:0"><b>${esc(v.title || c.name)}</b><div class="sub">${fmtNum(v.videos)} videos</div></div>
-      <span class="pill">${ic("users", 12)} ${v.hidden_subs ? "hidden" : fmtNum(v.subs)} subscribers</span><span class="pill green">${ic("eye", 12)} ${fmtNum(v.views)}</span></div>`).join("")}</div>`;
-    const mo = document.getElementById("money");
-    if (mo) mo.innerHTML = monetizeCard(st);
-    const tw = document.getElementById("trends");
-    if (tw) tw.innerHTML = trendsCard(st.trends);
-    const tm = document.getElementById("times");
-    if (tm) tm.innerHTML = timesCard(st.publish_plan);
+    if (vt === "overview") {
+      const mo = document.getElementById("money");
+      if (mo) mo.innerHTML = monetizeCard(st);
+      const cs = state.channels.map(c => [c, st["yt_" + c.id]]).filter(([, v]) => v);
+      const el = document.getElementById("chanStats");
+      if (el && cs.length) el.innerHTML = `<h2>Channels</h2><div class="grid">${cs.map(([c, v]) => `<div class="card" style="display:flex;gap:12px;align-items:center;padding:12px 14px">
+        <div style="flex:1;min-width:0"><b>${esc(v.title || c.name)}</b><div class="sub">${fmtNum(v.videos)} videos</div></div>
+        <span class="pill">${ic("users", 12)} ${v.hidden_subs ? "hidden" : fmtNum(v.subs)} subscribers</span><span class="pill green">${ic("eye", 12)} ${fmtNum(v.views)}</span></div>`).join("")}</div>`;
+    }
+    const lw = document.getElementById("learn");
+    if (lw) lw.innerHTML = learnSummary(st.trends, st.publish_plan) + longCard(st.trends) + timesCard(st.publish_plan) + trendsCard(st.trends);
   }).catch(() => {});
 }
 
@@ -723,39 +740,90 @@ function monetizeCard(st) {
     <div class="sub" style="margin-top:10px">${pace}</div></div>`;
 }
 
-// best publish times: learned per hour (pipeline/schedule.py) - green = better than average, orange = test times today
+// ---------------------------------------------------------------- what the system is learning (trends.py, schedule.py)
+// Every choice gets an error bar: only the part of a difference that is bigger than luck is used ("proven").
+const VERDICT = { better: ["green", "Proven better"], worse: ["red", "Proven worse"], testing: ["", "Testing"], new: ["blue", "New – trying it"] };
+const pctOf = e => { const p = Math.round((Math.exp(e) - 1) * 100); return (p > 0 ? "+" : "") + p + "%"; };
+function verdictOf(x) {
+  if (x.verdict) return x.verdict;
+  const se = x.se ?? 0.4;                 // older tables had no error bars
+  return x.n < 3 ? "new" : x.effect - 1.28 * se > 0.05 ? "better" : x.effect + 1.28 * se < -0.05 ? "worse" : "testing";
+}
+function learnSummary(t, p) {
+  if (!t) return "";
+  const all = Object.entries(t.kinds || {}).flatMap(([k, vals]) => Object.entries(vals).map(([v, x]) => [k, v, x, verdictOf(x)]));
+  const up = all.filter(a => a[3] === "better").length, down = all.filter(a => a[3] === "worse").length, testing = all.length - up - down;
+  const hrs = (p?.hours || []).filter(h => h.proven).length;
+  const weak = t.signal === "weak" || (t.zero_share ?? 0) > 0.6;
+  return `<div class="card learnhead">
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div class="lh"><b>${up}</b><span>proven better</span></div><div class="lh"><b>${down}</b><span>proven worse</span></div>
+      <div class="lh"><b>${testing}</b><span>still testing</span></div><div class="lh"><b>${hrs}</b><span>proven hours</span></div></div>
+    <div class="sub" style="margin-top:10px">${weak
+      ? `${ic("spark", 14)} <b>Not enough views to judge yet.</b> ${Math.round((t.zero_share ?? 0) * 100)}% of shorts are still at 0 views, so most differences are luck. The system keeps testing everything evenly and only leans towards something once it's proven.`
+      : `${ic("spark", 14)} It compares each short with others from the same days, puts an error bar on every result, and only acts on what is clearly bigger than luck. Everything else keeps getting a fair test.`}
+      Based on ${t.n || 0} shorts, updated ${ago(t.at) === "now" ? "just now" : ago(t.at) + " ago"}.</div></div>`;
+}
+function longCard(t) {
+  const L = t?.kinds?.length; if (!L) return "";
+  const norm = Object.entries(L).filter(([k, v]) => !["36-60 s", "61-90 s"].includes(k) && v.n >= 5).map(([, v]) => v);
+  const base = norm.length ? norm.reduce((a, v) => a + v.effect * v.n, 0) / norm.reduce((a, v) => a + v.n, 0) : 0;
+  const row = (key, label, test) => {
+    const v = L[key];
+    if (!v || v.n < 12 || !norm.length) return `<div class="trow"><span class="tn">${label}<span class="sub"> · ${v?.n || 0} so far, ${test} a day</span></span><span class="pill">Testing</span></div>`;
+    const diff = v.effect - base, se = (v.se ?? 0.3) * 1.15;
+    const [cls, lab] = diff - 1.28 * se > 0.02 ? ["green", pctOf(diff)] : diff + 1.28 * se < -0.02 ? ["red", pctOf(diff)] : ["", "Testing"];
+    return `<div class="trow"><span class="tn">${label}<span class="sub"> · ${v.n}</span></span>${ciBar(diff, se)}<span class="pill ${cls}">${lab}</span></div>`;
+  };
+  return `<h2>Length test</h2><div class="card">
+    <div class="sub">Compared with normal shorts (20-35 s). The winner gets most funny shorts once it's proven; the others keep a few.</div>
+    ${row("36-60 s", "Long · 45-58 s", 8)}${row("61-90 s", "Extra long · up to 1:30", 4)}</div>`;
+}
+// a small "result ± error bar" strip: centre line = average, dot = this result, band = could-be-luck range
+function ciBar(e, se) {
+  const R = 0.8, pos = v => 50 + Math.max(-R, Math.min(R, v)) / R * 50;
+  const lo = pos(e - 1.28 * se), hi = pos(e + 1.28 * se);
+  const col = e - 1.28 * se > 0.05 ? "var(--green)" : e + 1.28 * se < -0.05 ? "var(--red)" : "var(--ink3)";
+  return `<div class="ci" title="${pctOf(e)} (could be ${pctOf(e - 1.28 * se)} to ${pctOf(e + 1.28 * se)})"><i class="mid"></i><i class="band" style="left:${lo}%;width:${Math.max(1, hi - lo)}%;background:${col}"></i><i class="dot" style="left:${pos(e)}%;background:${col}"></i></div>`;
+}
+
+// best publish times: per Irish hour. Solid bars = proven (bigger than luck), faint = what was seen so far.
 function timesCard(p) {
   if (!p || !p.hours) return "";
   const hrs = p.hours, hourOf = iso => new Date(iso).toLocaleString("en-GB", { timeZone: "Europe/Dublin", hour: "2-digit", hourCycle: "h23" }) | 0;
   const today = new Set((p.times || []).map(hourOf)), tests = new Set((p.tests || []).map(hourOf));
-  const sure = hrs.reduce((a, h) => a + h.sure, 0) / 24, mx = Math.max(1.2, ...hrs.map(h => h.x));
-  const best = [...hrs].sort((a, b) => b.x - a.x).slice(0, 3).filter(h => h.x > 1.05).map(h => String(h.h).padStart(2, "0") + ":00");
+  const seen = h => h.seen ?? h.x, mx = Math.max(1.2, ...hrs.map(seen));
+  const proven = hrs.filter(h => h.proven && h.x > 1.02).sort((a, b) => b.x - a.x).slice(0, 3).map(h => String(h.h).padStart(2, "0") + ":00");
   const fmt = iso => new Date(iso).toLocaleTimeString("en-GB", { timeZone: "Europe/Dublin", hour: "2-digit", minute: "2-digit" });
   return `<h2>Best publish times</h2><div class="card">
-    <div class="sub" style="margin-bottom:8px">Day-1 views by publish hour (Irish time) compared with shorts from the same days. ${sure < 0.2 ? "Still learning – using research for now." : best.length ? `Best so far: <b>${best.join(", ")}</b>.` : "No clear winner yet."} ${Math.round(sure * 100)}% sure.</div>
-    <div class="chart" style="align-items:flex-end">${hrs.map(h => `<div style="height:${Math.max(4, h.x / mx * 100)}%;background:${tests.has(h.h) ? "var(--amber)" : h.x > 1.05 ? "var(--green)" : h.x < 0.95 ? "var(--red)" : ""};opacity:${today.has(h.h) || tests.has(h.h) ? 1 : 0.45}" title="${String(h.h).padStart(2, "0")}:00 · ×${h.x} views · ${Math.round(h.sure * 100)}% sure"></div>`).join("")}</div>
+    <div class="sub" style="margin-bottom:8px">Views in the first day by publish hour (Irish time). ${proven.length ? `Proven better: <b>${proven.join(", ")}</b> – more shorts go out then.` : "No hour is proven better yet – the differences so far could be luck, so times follow research + daily tests."}</div>
+    <div class="chart" style="align-items:flex-end">${hrs.map(h => `<div style="height:${Math.max(4, seen(h) / mx * 100)}%;background:${tests.has(h.h) ? "var(--amber)" : h.proven ? (h.x >= 1 ? "var(--green)" : "var(--red)") : "var(--ink3)"};opacity:${h.proven || tests.has(h.h) ? 1 : today.has(h.h) ? 0.55 : 0.3}" title="${String(h.h).padStart(2, "0")}:00 · seen ×${seen(h)}${h.proven ? " · proven" : " · could be luck"}${today.has(h.h) ? " · used today" : ""}"></div>`).join("")}</div>
     <div class="chart-l">${hrs.map(h => `<span>${h.h % 3 ? "" : String(h.h).padStart(2, "0")}</span>`).join("")}</div>
-    ${p.tests?.length ? `<div class="sub" style="margin-top:8px"><span class="pill amber">Testing today</span> ${p.tests.map(fmt).join(", ")} – hours we know little about. Bright bars = hours used today.</div>` : ""}</div>`;
+    <div class="legend"><span><i style="background:var(--green)"></i>Proven better</span><span><i style="background:var(--red)"></i>Proven worse</span><span><i style="background:var(--ink3);opacity:.45"></i>Not sure yet</span><span><i style="background:var(--amber)"></i>Testing today</span></div>
+    ${p.tests?.length ? `<div class="sub" style="margin-top:8px">Today's test times: <b>${p.tests.map(fmt).join(", ")}</b> – hours we know least about.</div>` : ""}</div>`;
 }
 
-// what's working: learned from our own shorts (pipeline/trends.py) - new shorts lean towards the winners
+// what's working: every option with its result, error bar and verdict
 function trendsCard(t) {
   if (!t) return "";
-  if (!t.kinds || !Object.keys(t.kinds).length) return `<h2>What's working</h2><div class="card sub">${ic("chart", 14)} Learning from your shorts once ${8} or more have a day of views (${t.n || 0} so far). New shorts then lean towards what kids watch most.</div>`;
+  if (!t.kinds || !Object.keys(t.kinds).length) return `<h2>What's working</h2><div class="card sub">${ic("chart", 14)} Learning starts once 8 or more shorts have a day of views (${t.n || 0} so far).</div>`;
   const TITLES = { how: "“How To …”", dont: "“Don't …”", question: "Questions", name: "Name + action", exclaim: "Exclamations", the: "“The …”", challenge: "Challenges", other: "Other" };
-  const name = (k, v) => k === "char" ? (CAST[v] ? CAST[v][1] + " " + CAST[v][0] : v) : k === "place" ? (PLACES[v] ? PLACES[v][1] + " " + PLACES[v][0] : v)
-    : k === "story" ? (ALLS[v] ? ALLS[v][1] + " " + ALLS[v][0] : v) : k === "title" ? (TITLES[v] || v) : k === "type" ? (v === "lesson" ? "💛 Lesson stories" : "😂 Funny stories") : k === "tag" ? "#" + v : k === "length" && v === "36-60 s" ? "Long (36-60 s)" : v;
-  const rows = [["story", "Stories"], ["place", "Places"], ["char", "Characters"], ["title", "Title styles"], ["type", "Funny vs lesson"], ["length", "Length"], ["tag", "Hashtags"]];
-  const pct = e => { const p = Math.round((Math.exp(e) - 1) * 100); return (p > 0 ? "+" : "") + p + "%"; };
+  const BAND = { night: "🌙 Night", morning: "🌅 Morning", afternoon: "☀️ Afternoon", evening: "🌆 Evening" };
+  const base = (k, v) => k === "char" ? (CAST[v] ? CAST[v][1] + " " + CAST[v][0] : v) : k === "place" ? (PLACES[v] ? PLACES[v][1] + " " + PLACES[v][0] : v)
+    : k === "story" ? (ALLS[v] ? ALLS[v][1] + " " + ALLS[v][0] : v) : k === "title" ? (TITLES[v] || v) : k === "type" ? (v === "lesson" ? "💛 Lesson stories" : "😂 Funny stories") : k === "tag" ? "#" + v : k === "length" ? ({ "36-60 s": "Long (36-60 s)", "61-90 s": "Extra long (61-90 s)" }[v] || v) : k === "when" ? (BAND[v] || v) : v;
+  const name = (k, v) => k.startsWith("when_") ? (BAND[v.split("|")[0]] || v.split("|")[0]) + " · " + base(k.slice(5), v.split("|").slice(1).join("|")) : base(k, v);
+  const rows = [["story", "Stories"], ["place", "Places"], ["char", "Characters"], ["title", "Title styles"], ["type", "Funny vs lesson"], ["length", "Length"], ["when", "Publish time of day"],
+    ["when_char", "Time × character"], ["when_story", "Time × story"], ["when_place", "Time × place"], ["when_type", "Time × funny/lesson"], ["when_length", "Time × length"], ["tag", "Hashtags"]];
   const blocks = rows.map(([k, label]) => {
-    const vals = Object.entries(t.kinds[k] || {}).filter(([, v]) => v.n >= 2).sort((a, b) => b[1].effect - a[1].effect);
+    const vals = Object.entries(t.kinds[k] || {}).filter(([, v]) => !(k === "tag" || k.startsWith("when_")) || v.n >= 3).sort((a, b) => b[1].effect - a[1].effect);
     if (vals.length < 2) return "";
-    const pick = vals.length > 4 ? [...vals.slice(0, 3), vals[vals.length - 1]] : vals;
-    return `<div class="card" style="padding:12px 14px"><b>${label}</b>${pick.map(([v, x], i) => `<div style="display:flex;gap:8px;align-items:center;margin-top:7px">
-      <span style="flex:1;min-width:0">${esc(name(k, v))}${vals.length > 4 && i === 3 ? ` <span class="sub">(weakest)</span>` : ""}</span>
-      <span class="sub">${x.n} shorts</span><span class="pill ${x.effect > 0.05 ? "green" : x.effect < -0.05 ? "red" : ""}">${pct(x.effect)}</span></div>`).join("")}</div>`;
+    const decided = vals.filter(([, x]) => ["better", "worse"].includes(verdictOf(x))).length;
+    const line = ([v, x]) => { const vd = verdictOf(x), [cls, lab] = VERDICT[vd];
+      return `<div class="trow"><span class="tn">${esc(name(k, v))}<span class="sub"> · ${x.n}</span></span>${ciBar(x.effect, x.se ?? 0.4)}<span class="pill ${cls}">${vd === "better" || vd === "worse" ? pctOf(x.used ?? x.effect) : lab}</span></div>`; };
+    return `<details class="card tblock" ${decided ? "open" : ""}><summary><b>${label}</b><span class="sub">${decided ? `${decided} proven` : "all still testing"} · ${vals.length} options</span>${ic("chev", 14)}</summary>
+      ${vals.slice(0, 12).map(line).join("")}${vals.length > 12 ? `<div class="sub" style="margin-top:6px">+${vals.length - 12} more</div>` : ""}</details>`;
   }).join("");
-  return `<h2>What's working</h2><div class="sub" style="margin:-4px 0 8px">Views on day 1 compared with similar shorts, after taking out the effect of publish time. Based on ${t.n} shorts, updated ${ago(t.at) === "now" ? "just now" : ago(t.at) + " ago"}. New shorts use the winners more often, and everything still gets a turn.</div><div class="grid">${blocks}</div>`;
+  return `<h2>What's working</h2><div class="sub" style="margin:-4px 2px 8px">Dot = result so far, band = how much could be luck. New shorts lean only towards <span class="pill green">Proven better</span>; everything else keeps a fair turn.</div><div class="grid">${blocks}</div>`;
 }
 
 // ---------------------------------------------------------------- Channels
@@ -842,7 +910,7 @@ async function viewSettings() {
       <div class="row"><div><div class="t">Publish automatically</div><div class="d">Every finished short is scheduled on YouTube at the next best time (US + UK/Ireland peak hours, 30+ min apart). Delete one in “Ready” before it's booked to stop it.</div></div>
         <label class="switch"><input type="checkbox" id="autopub" ${auto ? "checked" : ""}><span></span></label></div>
       <div class="row"><div><div class="t">Stories with a lesson 💛</div><div class="d">Half of the daily shorts are moral stories: good things take time, sharing, helping a friend, saying sorry, teamwork, never giving up</div></div></div>
-      <div class="row"><div><div class="t">Every short</div><div class="d">3D cartoon · 20–40 s · music + sound effects only · no text on screen · ${auto ? "published automatically at the best times" : "nothing posts without your OK"}</div></div></div>
+      <div class="row"><div><div class="t">Every short</div><div class="d">3D cartoon · 20–90 s · music + sound effects only · no text on screen · ${auto ? "published automatically at the best times" : "nothing posts without your OK"}</div></div></div>
     </div>
     <h2>App</h2>
     <div class="card">
