@@ -149,6 +149,8 @@ def _generate_3d(payload, ch, ep_id, slot=None):
         db.log(f"🎬 Rendering in 3D on the GPU: {st['title']} ({ch['name']})")
         return ep_id
     st["render"] = "wait"   # CPU machines: one short at a time gets all of them (see slots.py)
+    if payload.get("prio"):
+        st["prio"] = "1"    # replacements for failed shorts render first
     _set(ep_id, story=st)
     from . import slots
     slots.kick()
@@ -337,6 +339,11 @@ def cmd_publish(payload, cmd):
     ep = _episode(payload["episode_id"])
     if ep["status"] not in ("awaiting_approval", "failed", "publishing"):
         return
+    if ep.get("youtube_id"):   # already on YouTube (e.g. a retry after the upload went through): don't upload twice
+        pub = ep.get("publish_at")
+        live = not pub or datetime.fromisoformat(str(pub).replace("Z", "+00:00")) <= now()
+        _set(ep["id"], status="published" if live else "scheduled", error=None)
+        return
     ch = _channel(ep["channel_id"])
     token = _token(ch["id"])
     _set(ep["id"], status="publishing", error=None)
@@ -359,7 +366,13 @@ def cmd_publish(payload, cmd):
                 publish_at = t.isoformat() if t else None
         vid, privacy = youtube.upload(token, video, st, ch, publish_at=publish_at)
     except Exception as e:
-        _set(ep["id"], status="awaiting_approval", error=f"Upload failed: {e}"[:400])
+        # it goes back to "ready" and gets booked again - but not forever: after 3 tries (or with its video file
+        # gone) it counts as failed, gets one fresh render, and if that fails too a replacement short is made
+        st = ep.get("story") or {}
+        st["pub_fails"] = int(st.get("pub_fails") or 0) + 1
+        hopeless = st["pub_fails"] >= 3 or "video is missing" in str(e)
+        _set(ep["id"], status="failed" if hopeless else "awaiting_approval", story=st,
+             error=(f"3D publish failed: {e}" if hopeless else f"Upload failed: {e}")[:400])
         raise
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -489,12 +502,52 @@ def retry_failed_renders():
                 db.log(f"🔁 Making your idea again: {e.get('idea') or e.get('feedback')}"[:300])
             continue
         st["retries"] = 1
+        err = str(e.get("error") or "")
+        if ("took too long" in err or "413" in err or "too large" in err) and len((st.get("spec") or {}).get("segments") or []) > 6:
+            db.update("episodes", f"id=eq.{e['id']}", {"story": st})   # same long short would fail the same way
+            continue                                                    # -> replace_failed() makes a normal one
+        st["pub_fails"] = 0
         st["render"] = "wait"
+        st["prio"] = "1"            # a second try goes to the front of the render line
         if db.update("episodes", f"id=eq.{e['id']}&status=eq.failed",
                      {"status": "generating", "error": None, "story": st, "updated_at": now().isoformat()}):
             db.log(f"🔁 Rendering again: {e.get('title') or 'a short'}")
     from . import slots
     slots.kick()
+
+
+MAX_REPLACE = 15   # replacement shorts per day at most (so a broken renderer can't loop forever)
+
+
+def replace_failed():
+    """Fail-safe: a short that failed for good (its retry failed too, or it can't be retried) is replaced by a new
+    normal-length short that renders first. The day's shorts still go out: ready shorts are booked into the next
+    free publish slots, and with the next day's batch rendering early there are always spare shorts to fill in."""
+    since = (now() - timedelta(hours=36)).isoformat()
+    rows = db.select("episodes", f"select=id,title,channel_id,story,error,idea,feedback&status=eq.failed"
+                                 f"&created_at=gte.{since}&limit=40")
+    key = f"replaced_{now().date().isoformat()}"
+    done = int(db.settings().get(key) or 0)
+    made = []
+    for e in rows:
+        st = e.get("story") or {}
+        if st.get("replaced") or (st.get("engine") == "3d" and not st.get("retries")):
+            continue   # already replaced, or still has its retry coming (retry_failed_renders)
+        if e.get("idea") or e.get("feedback"):
+            continue   # your own idea / change request: not swapped for a random short
+        if done + len(made) >= MAX_REPLACE:
+            break
+        st["replaced"] = True
+        if not db.update("episodes", f"id=eq.{e['id']}&status=eq.failed", {"story": st}):
+            continue
+        made.append({"type": "generate", "payload": {"channel_id": e["channel_id"], "auto": True, "silent": True,
+                                                     "moral": bool((st.get("spec") or {}).get("moral")), "len": "",
+                                                     "for": "replacement", "replaces": e["id"], "prio": 1}})
+    if made:
+        db.insert_many("commands", made)
+        db.upsert("settings", {"key": key, "value": done + len(made)}, "key")
+        db.log(f"🛟 {len(made)} failed short{'s' if len(made) > 1 else ''} replaced with new normal-length "
+               f"one{'s' if len(made) > 1 else ''} (they render first)", "warning")
 
 
 def clear_stale_failed():
@@ -532,7 +585,7 @@ def retry_failed_plans():
 
 def process_queue():
     if WORKER_ID == "1":
-        for job in (retry_failed_plans, retry_failed_renders, clear_stale_failed):
+        for job in (retry_failed_plans, retry_failed_renders, replace_failed, clear_stale_failed):
             try:
                 job()
             except Exception:  # noqa: BLE001

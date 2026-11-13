@@ -82,11 +82,29 @@ def log(message, kind="info", project="shorts"):
 
 # ---- Storage ------------------------------------------------------------------
 def upload(local: Path, remote: str, content_type="application/octet-stream"):
-    with open(local, "rb") as f:
-        r = requests.post(f"{_base()}/storage/v1/object/{BUCKET}/{remote}",
-                          headers=_headers({"Content-Type": content_type, "x-upsert": "true"}),
-                          data=f, timeout=600)
-    _check(r)
+    """Upload to storage. Hiccups (database timeout 544, 5xx, dropped connection) are retried 3 times with a pause,
+    so one slow moment doesn't throw away a finished render. A file that is too big (413) fails straight away."""
+    import time
+    for attempt in range(4):
+        try:
+            with open(local, "rb") as f:
+                r = requests.post(f"{_base()}/storage/v1/object/{BUCKET}/{remote}",
+                                  headers=_headers({"Content-Type": content_type, "x-upsert": "true"}),
+                                  data=f, timeout=600)
+        except requests.RequestException as e:
+            if attempt == 3:
+                raise
+            print(f"  upload hiccup ({e.__class__.__name__}), trying again", flush=True)
+            time.sleep(10 * (attempt + 1) ** 2)
+            continue
+        body = r.text[:300]
+        transient = r.status_code >= 500 or '"544"' in body or "DatabaseTimeout" in body or "timed out" in body
+        if transient and attempt < 3:
+            print(f"  upload hiccup ({r.status_code}), trying again", flush=True)
+            time.sleep(10 * (attempt + 1) ** 2)
+            continue
+        _check(r)
+        return remote
     return remote
 
 

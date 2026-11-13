@@ -328,10 +328,11 @@ def book_ready():
     from . import db
     if not enabled():
         return []
-    ready = db.select("episodes", "select=id,story&status=eq.awaiting_approval&order=created_at.asc&limit=60")
+    ready = db.select("episodes", "select=id,story,youtube_id&status=eq.awaiting_approval&order=created_at.asc&limit=60")
     ordered = {(c.get("payload") or {}).get("episode_id")
                for c in db.select("commands", "select=payload&type=eq.publish&status=in.(queued,running)")}
-    ids = [e["id"] for e in ready if (e.get("story") or {}).get("engine") == "3d" and e["id"] not in ordered]
+    ids = [e["id"] for e in ready if (e.get("story") or {}).get("engine") == "3d" and e["id"] not in ordered
+           and not e.get("youtube_id")]   # already uploaded: never book it again (that once looped 44 times)
     return book(ids)
 
 

@@ -44,7 +44,7 @@ def kick(done=None):
         return 0
     started = 0
     for e in db.select("episodes", "select=id,title,story&status=eq.generating&story->>render=eq.wait"
-                                   f"&order=created_at.asc&limit={free}"):
+                                   f"&order=story->>prio.desc.nullslast,created_at.asc&limit={free}"):  # retries/replacements first
         st = e.get("story") or {}
         st["render"] = "cpu"
         if not db.update("episodes", f"id=eq.{e['id']}&story->>render=eq.wait", {"story": st, "updated_at": now().isoformat()}):
