@@ -545,6 +545,10 @@ def process_queue():
         maybe_stats()
         from . import notify
         notify.maybe_report()    # morning push: yesterday's views + subscribers vs the day before
+        try:
+            maybe_early()        # renders nearly done -> start the next day's shorts now (rendering the day before)
+        except Exception:  # noqa: BLE001
+            traceback.print_exc()
     stale = (now() - timedelta(minutes=50)).isoformat()
     db.update("commands", f"status=eq.running&created_at=lt.{stale}&finished_at=is.null",
               {"status": "queued", "note": "retrying after a stopped run"})
@@ -576,12 +580,18 @@ def process_queue():
     return failures
 
 
-def daily():
-    today = now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+def daily(day=None, early=False):
+    """Queue the shorts for `day` (default today, UTC). early=True: tomorrow's batch, started the evening before
+    as soon as today's renders are nearly done, so the render machines never sit idle overnight."""
+    day = day or now().date()
+    today = datetime.combine(day, datetime.min.time(), timezone.utc).isoformat()
     batch = []
     for ch in db.select("channels", "select=*&auto_daily=eq.true"):
-        done = db.select("commands", f"select=id&type=eq.generate&created_at=gte.{today}"
+        # this day's shorts already queued: tagged for it (started early), or queued that day without a tag
+        done = db.select("commands", f"select=id&type=eq.generate&payload->>for=eq.{day.isoformat()}"
                                      f"&payload->>channel_id=eq.{ch['id']}&payload->>auto=eq.true")
+        done += db.select("commands", f"select=id&type=eq.generate&created_at=gte.{today}&payload->>for=is.null"
+                                      f"&payload->>channel_id=eq.{ch['id']}&payload->>auto=eq.true")
         silent = str(db.settings().get("silent", "true")).lower() not in ("false", "0", "no")
         # shorts already waiting (ready, or scheduled beyond tomorrow) count towards today's batch
         later = (now() + timedelta(hours=30)).isoformat()
@@ -609,21 +619,49 @@ def daily():
             sizes[i] = "long"
         if n:
             nl, nx = list(sizes.values()).count("long"), list(sizes.values()).count("xl")
-            db.log(f"📏 Today: {n} shorts — {n - nl - nx} normal, {nl} long (45-58 s), {nx} extra long (63-88 s) · {why}")
+            when = f"Tomorrow ({day:%a}, started early)" if early and day > now().date() else "Today"
+            db.log(f"📏 {when}: {n} shorts — {n - nl - nx} normal, {nl} long (45-58 s), {nx} extra long (63-88 s) · {why}")
         batch += [{"type": "generate", "payload": {"channel_id": ch["id"], "auto": True, "silent": silent,
                                                    "moral": flags[i], "len": sizes.get(i, ""),
-                                                   "long": sizes.get(i) == "long"}}
+                                                   "long": sizes.get(i) == "long", "for": day.isoformat()}}
                   for i in range(n)]
-    batch.append({"type": "stats", "payload": {}})
-    try:  # daily research: today's best publish times (research + what our own shorts showed)
-        from . import schedule
-        schedule.plan_today()
-    except Exception:  # noqa: BLE001
-        traceback.print_exc()
-    db.insert_many("commands", batch)  # one insert = one wake-up of the workers
-    if len(batch) > 1:
-        notify.send(f"🎬 Making {len(batch) - 1} new shorts — they'll appear in the app for approval.")
+    db.upsert("settings", {"key": f"batch_{day.isoformat()}", "value": now().isoformat()}, "key")
+    made = len(batch)
+    if not early:
+        batch.append({"type": "stats", "payload": {}})
+        try:  # daily research: today's best publish times (research + what our own shorts showed)
+            from . import schedule
+            schedule.plan_today()
+        except Exception:  # noqa: BLE001
+            traceback.print_exc()
+    if batch:
+        db.insert_many("commands", batch)  # one insert = one wake-up of the workers
+    if made:
+        notify.send(f"🎬 Making {made} new shorts — they'll appear in the app for approval.")
     return 0
+
+
+EARLY_QUEUE = 4    # start the next day's batch once only this many shorts are left waiting to render/plan
+
+
+def maybe_early():
+    """Render the next day's shorts the day before: when the render queue is almost empty (the worker checks every
+    ~2 h), queue the next batch right away instead of waiting for the 07:07 morning run. The render machines then
+    work around the clock; finished shorts are booked into the next free publish slots as usual."""
+    st = db.settings()
+    if str(st.get("render_early", "true")).strip('"').lower() in ("false", "0", "no", "off"):
+        return
+    waiting = db.select("episodes", "select=id&status=eq.generating&story->>render=eq.wait&limit=20")
+    planning = db.select("commands", "select=id&type=eq.generate&status=in.(queued,running)&limit=20")
+    if len(waiting) + len(planning) > EARLY_QUEUE:
+        return
+    today = now().date()
+    for d in (today, today + timedelta(days=1)):
+        if d > today and now().hour < 12:      # tomorrow's batch: from midday on (= "the day before")
+            return
+        if not st.get(f"batch_{d.isoformat()}"):
+            daily(d, early=d > today)
+            return
 
 
 def test3d():

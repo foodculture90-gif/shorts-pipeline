@@ -210,7 +210,7 @@ LONG_BUCKET = "36-60 s"
 XL_BUCKET = "61-90 s"
 # minutes of render time a short takes (18 cloud machines in parallel) - the day has room for ~1,100
 COST = {"normal": 20, "long": 50, "xl": 75}
-BUDGET = 1100
+BUDGET = 1250     # renders run around the clock now (next day's batch starts the day before): 24 h minus ~15 %
 
 
 def length_plan(funny, test_long=8, test_xl=4, others=0):
