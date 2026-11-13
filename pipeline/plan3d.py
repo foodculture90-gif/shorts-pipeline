@@ -315,7 +315,7 @@ def plan(recent_specs=(), idea=None, rnd=None, min_s=20, max_s=60, slot=None, ba
         gags = [moral]
     else:
         lo, hi = max(3, int(-(-min_s // SEG_SECONDS))), min(len(GAGS), int(max_s // SEG_SECONDS))
-        sizes = [k for k in (3, 4, 4, 5) if lo <= k <= hi] or [lo]
+        sizes = [k for k in (3, 4, 4, 5) if lo <= k <= hi] or list(range(lo, max(lo, hi) + 1))
         n = trends.pick(rnd, sizes, "n", extra=lambda k: trends.lean("length", trends.length_bucket(k * SEG_SECONDS)))
         recent_gags = [g.get("gag") for g in list(_segments(recent))[:6]]
         order = [g for g in GAGS if g not in recent_gags] + [g for g in GAGS if g in recent_gags]
@@ -432,7 +432,7 @@ def describe(spec):
     return s + (f" (It all happens {place}.)" if place else "") + (" " + ", ".join(wear) + "." if wear else "")
 
 
-SYSTEM = """You write the YouTube metadata for a wordless 3D cartoon short (20-60 seconds, a few funny moments in a row)
+SYSTEM = """You write the YouTube metadata for a wordless 3D cartoon short (20-90 seconds, a few funny moments in a row)
 for kids aged 2-6,
 in the style of hit channels like Morphle and Cocomelon. It has only music and cartoon sound effects, no talking.
 - Title: a curiosity hook that makes kids AND parents tap. Max 50 characters, Title Case, one fitting emoji at the end.

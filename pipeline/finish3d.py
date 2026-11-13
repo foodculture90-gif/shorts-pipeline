@@ -41,13 +41,16 @@ def main(ep_id, d):
         if not gpu and len(frames) < total:
             raise RuntimeError(f"only {len(frames)} of {total} frames were rendered")
         secs = total / fps
+        # Supabase's free storage takes files up to 50 MB: give the video a bitrate ceiling that keeps it under ~44 MB
+        vk = max(2500, min(12000, int(44e6 * 8 / secs / 1000) - 260))
+        cap = ["-maxrate", f"{vk}k", "-bufsize", f"{vk * 2}k"]
         if gpu:
-            _run(["ffmpeg", "-y", "-loglevel", "error", "-i", d / "gpu.mp4", "-c:v", "libx264", "-crf", 17, "-preset", "slow",
+            _run(["ffmpeg", "-y", "-loglevel", "error", "-i", d / "gpu.mp4", "-c:v", "libx264", "-crf", 17, *cap, "-preset", "slow",
                   "-pix_fmt", "yuv420p", d / "video.mp4"])
         else:
             _run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", fps, "-i", d / "frames/f_%04d.png",
-                  "-vf", "scale=1080:1920:flags=lanczos,setsar=1", "-c:v", "libx264", "-crf", 18, "-preset", "slow",
-                  "-pix_fmt", "yuv420p", d / "video.mp4"])
+                  "-vf", "scale=1080:1920:flags=lanczos,setsar=1", "-c:v", "libx264", "-crf", 18, *cap, "-preset", "slow",
+                  "-tune", "animation", "-pix_fmt", "yuv420p", d / "video.mp4"])
         seed = (st.get("spec") or {}).get("seed", 0)
         _run([sys.executable, "blender/audio.py", d / "events.json", d / "sound.wav", secs, seed])
         _run(["ffmpeg", "-y", "-loglevel", "error", "-i", d / "video.mp4", "-i", d / "sound.wav", "-c:v", "copy",
@@ -56,6 +59,13 @@ def main(ep_id, d):
         _run(["ffmpeg", "-y", "-loglevel", "error", "-i", d / "final.mp4", "-vf", "scale=720:1280", "-c:v", "libx264",
               "-crf", 24, "-preset", "medium", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart",
               d / "preview.mp4"])
+        crf = 21
+        while (d / "final.mp4").stat().st_size > 47e6 and crf <= 33:   # still too big for storage: squeeze harder
+            print(f"final.mp4 is {(d / 'final.mp4').stat().st_size / 1e6:.0f} MB - re-encoding at crf {crf}", flush=True)
+            _run(["ffmpeg", "-y", "-loglevel", "error", "-i", d / "final.mp4", "-c:v", "libx264", "-crf", crf, "-preset", "slow",
+                  "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", d / "final2.mp4"])
+            (d / "final2.mp4").replace(d / "final.mp4")
+            crf += 4
         tf = ev.get("thumb") or total // 2
         thumb_src = d / f"frames/f_{tf:04d}.png"
         if gpu and (d / "thumb.png").exists():

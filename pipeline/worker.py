@@ -118,7 +118,9 @@ def _generate_3d(payload, ch, ep_id, slot=None):
     choose = dict(payload.get("choose") or {})
     if payload.get("moral"):
         choose["moral"] = True
-    span = dict(min_s=45, max_s=58) if payload.get("long") else {}   # long shorts: 7 funny moments (~52 s)
+    size = payload.get("len") or ("long" if payload.get("long") else "")
+    span = {"long": dict(min_s=45, max_s=58),        # 7-8 funny moments (~52 s)
+            "xl": dict(min_s=63, max_s=88)}.get(size, {})   # 9-12 funny moments (up to ~1:28, the 1:30 maximum)
     spec = plan3d.plan(recent, idea=idea, slot=slot, base=base, choose=choose, **span)
     if idea:
         note = (spec.get("wish") or {}).get("note") or plan3d.describe(spec)[:160]
@@ -592,18 +594,25 @@ def daily():
             share = 0.5
         morals = round(n * max(0.0, min(1.0, share)))
         flags = [i * morals // max(1, n) != (i + 1) * morals // max(1, n) for i in range(n)]
-        # a share of the funny shorts are LONG (45-58 s): 10 a day while testing, then whatever the views say
+        # funny shorts come in 3 lengths (20-35 s, 45-58 s, 63-88 s): each keeps a fair test until views prove one
         try:
             from . import trends
-            n_long, why = trends.long_plan(flags.count(False))
+            plan, why = trends.length_plan(flags.count(False), others=flags.count(True))
         except Exception:  # noqa: BLE001
-            n_long, why = min(10, flags.count(False)), "testing long shorts"
+            plan, why = {"long": 8, "xl": 4}, "testing lengths"
         funny = [i for i, m in enumerate(flags) if not m]
-        long_ids = set(funny[::max(1, len(funny) // max(1, n_long))][:n_long]) if n_long else set()
+        sizes = {}
+        for i in funny[::max(1, len(funny) // max(1, plan["xl"]))][:plan["xl"]] if plan["xl"] else []:
+            sizes[i] = "xl"
+        rest = [i for i in funny if i not in sizes]
+        for i in rest[::max(1, len(rest) // max(1, plan["long"]))][:plan["long"]] if plan["long"] else []:
+            sizes[i] = "long"
         if n:
-            db.log(f"📏 Today: {n} shorts, {len(long_ids)} of them long (45-58 s) — {why}")
+            nl, nx = list(sizes.values()).count("long"), list(sizes.values()).count("xl")
+            db.log(f"📏 Today: {n} shorts — {n - nl - nx} normal, {nl} long (45-58 s), {nx} extra long (63-88 s) · {why}")
         batch += [{"type": "generate", "payload": {"channel_id": ch["id"], "auto": True, "silent": silent,
-                                                   "moral": flags[i], "long": i in long_ids}}
+                                                   "moral": flags[i], "len": sizes.get(i, ""),
+                                                   "long": sizes.get(i) == "long"}}
                   for i in range(n)]
     batch.append({"type": "stats", "payload": {}})
     try:  # daily research: today's best publish times (research + what our own shorts showed)

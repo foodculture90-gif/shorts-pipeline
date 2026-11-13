@@ -78,9 +78,10 @@ def learned():
             # compare each short with the shorts published around the same days (the channel grows, so a
             # plain average would just reward whatever times we happened to use most recently)
             res = []
-            for x, y, t in pts:
-                near = sorted(y2 for _x, y2, t2 in pts if abs(t2 - t) <= timedelta(days=3))
-                res.append((x, y - near[len(near) // 2]))
+            for x, y, t in pts:   # vs the AVERAGE of those days (most shorts have 0 views: a median of 0 flattered all)
+                near = [y2 for _x, y2, t2 in pts if abs(t2 - t) <= timedelta(days=3)]
+                res.append((x, y - sum(near) / len(near)))
+            sd = max(0.15, (sum(y * y for _x, y in res) / len(res)) ** 0.5)     # how noisy one short is
             for b in range(48):  # smooth over neighbouring times (circular, ~1.5 h wide)
                 num = den = 0.0
                 for x, y in res:
@@ -88,7 +89,11 @@ def learned():
                     k = math.exp(-0.5 * (dx / 3.0) ** 2)
                     num += k * y
                     den += k
-                lift[b], weight[b] = (num / den if den else 0.0), den
+                raw = num / den if den else 0.0
+                se = sd / math.sqrt(den + PRIOR_N)
+                RAW[b], SE[b] = raw, se
+                # only the part of the difference that is bigger than its error bar counts (the rest could be luck)
+                lift[b], weight[b] = math.copysign(max(0.0, abs(raw) - Z * se), raw), den
     except Exception as ex:  # noqa: BLE001 - no data yet: research only
         print("learning skipped:", ex)
     _LEARNED = (lift, weight)
@@ -106,6 +111,8 @@ def score(t):
 
 _DAY = {}
 _TESTS = {}
+RAW, SE = [0.0] * 48, [1.0] * 48     # per 30-min bin: measured difference and its error bar (for the app)
+Z = 1.8                              # 48 time bins are many chances to be fooled by luck: ~96 % sure each
 
 
 TEST_SHARE = 0.15                    # ~1 in 6 slots tests a time we know little about (then the data decides)
@@ -145,7 +152,9 @@ def day_slots(d: date, per_day=20):
     start = datetime.combine(d, time(0), timezone.utc)
     mins = [start + timedelta(minutes=5 * i) for i in range(288)]
     w = [score(t) ** 1.3 for t in mins]
-    tests = _test_times(d, start, round(per_day * TEST_SHARE)) if per_day >= 6 else []
+    lift_, _w = learned()
+    share = TEST_SHARE if any(abs(x) > 0.05 for x in lift_) else TEST_SHARE + 0.05   # nothing proven: test more
+    tests = _test_times(d, start, round(per_day * share)) if per_day >= 6 else []
     main = per_day - len(tests)
     tot, acc, out, k = sum(w), 0.0, [], 0
     for t, x in zip(mins, w):
@@ -178,10 +187,11 @@ def plan_today():
     slots = day_slots(d, per_day())
     dub = ZoneInfo("Europe/Dublin")
     trust = [weight[b] / (weight[b] + PRIOR_N) for b in range(48)]
-    best = sorted(range(48), key=lambda b: lift[b] * trust[b], reverse=True)[:3]
+    best = [b for b in sorted(range(48), key=lambda b: lift[b] * trust[b], reverse=True)[:3] if lift[b] > 0.05]
     start = datetime.combine(d, time(0), timezone.utc)
     hm = lambda b: (start + timedelta(minutes=30 * b)).astimezone(dub).strftime("%H:%M")  # noqa: E731
-    learned_txt = ("own data: best around " + ", ".join(hm(b) for b in best) + " Irish time"
+    learned_txt = ("own data: proven better around " + ", ".join(hm(b) for b in best) + " Irish time" if best
+                   else "own data: no time is proven better yet (differences so far could be luck), so research + tests"
                    if n else "own data: not enough yet, using research")
     times = ", ".join(t.astimezone(dub).strftime("%H:%M") for t in slots)
     tests = _TESTS.get(d) or []
@@ -191,7 +201,11 @@ def plan_today():
     for h in range(24):
         bs = [b for b in range(48) if (start + timedelta(minutes=30 * b)).astimezone(dub).hour == h]
         lf = sum(lift[b] * trust[b] for b in bs) / max(1, len(bs))
+        raw = sum(RAW[b] for b in bs) / max(1, len(bs))
+        se = sum(SE[b] for b in bs) / max(1, len(bs))
         hours.append({"h": h, "x": round(math.exp(max(-1.5, min(1.5, lf))), 2),
+                      "seen": round(math.exp(max(-1.5, min(1.5, raw))), 2), "err": round(se, 2),
+                      "proven": bool(abs(lf) > 0.03),
                       "sure": round(sum(trust[b] for b in bs) / max(1, len(bs)), 2),
                       "research": round(sum(_research(start + timedelta(minutes=30 * b)) for b in bs) / max(1, len(bs)), 2)})
     db.upsert("settings", {"key": "publish_plan", "value": {
@@ -249,14 +263,55 @@ def per_day():
         return 20
 
 
+def _candidates(taken, n, k=6, within=timedelta(hours=10)):
+    """The next k free slots (inside `within`), earliest first."""
+    out, tk = [], list(taken)
+    first = None
+    while len(out) < k:
+        t = next_slot(tk, per_day=n)
+        if not t or (first and t - first > within):
+            break
+        first = first or t
+        out.append(t)
+        tk.append(t)
+    return out
+
+
+def best_slot(ep, taken, n):
+    """Pick the publish slot that suits this short: among the next few free slots, the one where its character /
+    story / place / length is PROVEN to do better at that part of the day (trends.fit). Nothing proven -> the
+    earliest slot, exactly as before. A later slot must win clearly (+10 %) to be worth the wait."""
+    cands = _candidates(taken, n)
+    if not cands:
+        return None
+    try:
+        from . import trends
+        st = ep.get("story") or {}
+        scores = [(trends.fit(st.get("spec"), ep.get("title"), ep.get("duration"), t) * (0.97 ** i), t)
+                  for i, t in enumerate(cands)]
+        best = max(scores, key=lambda x: x[0])
+        if best[0] > scores[0][0] * 1.10:
+            return best[1]
+    except Exception:  # noqa: BLE001
+        pass
+    return cands[0]
+
+
 def book(ep_ids):
-    """Give each ready short the next free slot (a 'publish' order; the worker uploads it scheduled)."""
+    """Give each ready short a free slot (a 'publish' order; the worker uploads it scheduled) - the earliest one,
+    unless what it learned says this short does clearly better at a slightly later part of the day."""
     from . import db
     if not ep_ids:
         return []
     taken, n, rows = taken_times(), per_day(), []
+    eps = {}
+    try:
+        ids = ",".join(ep_ids)
+        eps = {e["id"]: e for e in db.select("episodes", f"select=id,title,duration,story&id=in.({ids})")}
+    except Exception:  # noqa: BLE001
+        pass
     for ep_id in ep_ids:
-        t = next_slot(taken, per_day=n)
+        t = best_slot(eps.get(ep_id) or {}, taken, n)
         if not t:
             break
         taken.append(t)
