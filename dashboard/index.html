@@ -450,7 +450,7 @@ function viewHome() {
   // today's shorts as a sheet of dots: live today, booked for later today, ready, being made
   const isToday = t => t && new Date(t).toDateString() === new Date().toDateString();
   const liveToday = live.filter(e => isToday(e.publish_at)).length, bookedToday = sched.filter(e => isToday(e.publish_at)).length;
-  const kinds = [["live", liveToday, "live today", "published"], ["booked", bookedToday, "booked for today", "scheduled"], ["ready", ready.length, "ready", "approve"], ["making", making.length, "being made", "progress"], ["fail", failed.length, "failed", "progress"]];
+  const kinds = [["live", liveToday, "live today", "published"], ["booked", bookedToday, "booked for today", "scheduled"], ["ready", ready.length, "ready", "approve"], ["making", making.length, "being made", "progress"], ["fail", failed.filter(e => isToday(e.updated_at || e.created_at)).length, "failed today", "progress"]];
   const total = Math.max(perDay, kinds.reduce((a, k) => a + k[1], 0));
   const dots = kinds.flatMap(([c, n]) => Array(n).fill(c));
   const nextUp = sched.map(e => e.publish_at).filter(t => t && new Date(t) > new Date()).sort()[0];
